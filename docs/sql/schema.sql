@@ -1,14 +1,16 @@
-```sql
 -- ============================================================
 -- Imprint Studio
 -- schema.sql
 -- PostgreSQL 16+
--- Versión: 1.0
+-- Versión: 2.0
 -- Estado: Aprobado para implementación
 -- ============================================================
 
--- Este archivo define el esquema base de datos para Imprint Studio.
--- Debe usarse como referencia para Django Models y migraciones.
+-- Cambios v2.0 respecto a v1.0:
+-- * Se agrega tabla otp_codes (bloqueante de autenticación).
+-- * Se agrega columna is_staff a users (requerido por Django AbstractBaseUser).
+-- * Se corrige nombre del campo payment_stage → payment_status (ya estaba
+--   correcto en v1.0 del SQL; se documenta la decisión explícitamente).
 
 -- ============================================================
 -- EXTENSIONS
@@ -34,6 +36,9 @@ CREATE TABLE users (
 
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
 
+    -- Requerido por Django AbstractBaseUser para acceso al admin.
+    is_staff BOOLEAN NOT NULL DEFAULT FALSE,
+
     last_login TIMESTAMPTZ,
 
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
@@ -53,6 +58,61 @@ CREATE INDEX idx_users_phone ON users(phone);
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_users_is_active ON users(is_active);
+
+-- ============================================================
+-- OTP CODES
+-- ============================================================
+
+-- Códigos de verificación enviados por WhatsApp.
+-- No tiene FK a users porque el OTP puede generarse antes del registro.
+-- Los registros pueden eliminarse físicamente después de 24 horas.
+
+CREATE TABLE otp_codes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    -- Teléfono destino en formato E.164.
+    phone VARCHAR(20) NOT NULL,
+
+    -- Código numérico de 6 dígitos.
+    code VARCHAR(6) NOT NULL,
+
+    -- Indica si ya fue utilizado exitosamente.
+    is_used BOOLEAN NOT NULL DEFAULT FALSE,
+
+    -- Contador de intentos fallidos. Máximo 5.
+    attempts INTEGER NOT NULL DEFAULT 0,
+
+    -- Timestamp de expiración (10 minutos desde creación).
+    expires_at TIMESTAMPTZ NOT NULL,
+
+    -- Timestamp en que fue usado exitosamente.
+    used_at TIMESTAMPTZ,
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT chk_otp_codes_phone_not_empty
+        CHECK (phone <> ''),
+
+    CONSTRAINT chk_otp_codes_attempts_non_negative
+        CHECK (attempts >= 0),
+
+    CONSTRAINT chk_otp_codes_attempts_max
+        CHECK (attempts <= 5)
+);
+
+-- Índice para la consulta principal de validación de OTP.
+CREATE INDEX idx_otp_codes_phone
+ON otp_codes(phone);
+
+CREATE INDEX idx_otp_codes_expires_at
+ON otp_codes(expires_at);
+
+CREATE INDEX idx_otp_codes_is_used
+ON otp_codes(is_used);
+
+-- Índice compuesto para la consulta de OTP activo por teléfono.
+CREATE INDEX idx_otp_codes_phone_active
+ON otp_codes(phone, is_used, expires_at);
 
 -- ============================================================
 -- SHIPPING ADDRESSES
@@ -105,6 +165,10 @@ WHERE is_default = TRUE;
 -- ORDERS
 -- ============================================================
 
+-- Nombre oficial del campo de estado de pago: payment_status.
+-- Valores: NO_PAYMENT, DEPOSIT_PENDING, DEPOSIT_PAID,
+--          BALANCE_PENDING, FULLY_PAID, REFUNDED.
+
 CREATE TABLE orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
@@ -124,6 +188,9 @@ CREATE TABLE orders (
     priority VARCHAR(20) NOT NULL DEFAULT 'NORMAL',
 
     status VARCHAR(50) NOT NULL,
+
+    -- Estado financiero del pedido.
+    -- Nombre oficial: payment_status (no payment_stage).
     payment_status VARCHAR(50) NOT NULL DEFAULT 'NO_PAYMENT',
 
     delivery_method VARCHAR(20) NOT NULL DEFAULT 'PICKUP',
@@ -392,6 +459,7 @@ CREATE TABLE quote_snapshots (
     express_multiplier DECIMAL(5,2) NOT NULL,
     full_payment_discount_percentage DECIMAL(5,2) NOT NULL,
 
+    -- Sin updated_at por diseño: los snapshots son inmutables.
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
     CONSTRAINT fk_quote_snapshots_quote
@@ -876,10 +944,11 @@ FOR EACH ROW
 EXECUTE FUNCTION set_updated_at();
 
 -- ============================================================
--- INITIAL COMMENTS
+-- COMMENTS
 -- ============================================================
 
 COMMENT ON TABLE users IS 'Clientes y administradores del sistema.';
+COMMENT ON TABLE otp_codes IS 'Códigos OTP para autenticación de usuarios.';
 COMMENT ON TABLE orders IS 'Solicitudes de impresión 3D.';
 COMMENT ON TABLE shipping_addresses IS 'Direcciones de envío de clientes.';
 COMMENT ON TABLE request_files IS 'Archivos asociados a pedidos.';
@@ -894,7 +963,9 @@ COMMENT ON TABLE business_hours IS 'Horarios de atención.';
 COMMENT ON TABLE holidays IS 'Días festivos.';
 COMMENT ON TABLE payment_instructions IS 'Instrucciones bancarias visibles al cliente.';
 
+COMMENT ON COLUMN orders.payment_status IS 'Estado financiero del pedido. Nombre oficial: payment_status.';
+COMMENT ON COLUMN users.is_staff IS 'Requerido por Django AbstractBaseUser para acceso al panel de administración.';
+
 -- ============================================================
 -- END OF FILE
 -- ============================================================
-```
