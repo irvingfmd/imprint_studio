@@ -24,4 +24,7 @@ urlpatterns = [
 
     # Calculadora
     path("calculator/", include("apps.quotes.calculator_urls")),
+
+    # Configuración del negocio
+    path("", include("apps.configuration.admin_urls")),
 ]

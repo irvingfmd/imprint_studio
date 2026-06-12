@@ -210,3 +210,76 @@ class RequestFile(models.Model):
 
     def __str__(self) -> str:
         return f"{self.file_type} — {self.original_filename}"
+
+
+class EventType(models.TextChoices):
+    ORDER_CREATED            = "ORDER_CREATED",            "Order Created"
+    FILE_UPLOADED            = "FILE_UPLOADED",            "File Uploaded"
+    QUOTE_CREATED            = "QUOTE_CREATED",            "Quote Created"
+    QUOTE_ACCEPTED           = "QUOTE_ACCEPTED",           "Quote Accepted"
+    QUOTE_REJECTED           = "QUOTE_REJECTED",           "Quote Rejected"
+    PAYMENT_PROOF_UPLOADED   = "PAYMENT_PROOF_UPLOADED",   "Payment Proof Uploaded"
+    PAYMENT_CONFIRMED        = "PAYMENT_CONFIRMED",        "Payment Confirmed"
+    PAYMENT_REJECTED         = "PAYMENT_REJECTED",         "Payment Rejected"
+    DEPOSIT_CONFIRMED        = "DEPOSIT_CONFIRMED",        "Deposit Confirmed"
+    BALANCE_CONFIRMED        = "BALANCE_CONFIRMED",        "Balance Confirmed"
+    FULL_PAYMENT_CONFIRMED   = "FULL_PAYMENT_CONFIRMED",   "Full Payment Confirmed"
+    STATUS_CHANGED           = "STATUS_CHANGED",           "Status Changed"
+    PRIORITY_CHANGED         = "PRIORITY_CHANGED",         "Priority Changed"
+    SHIPPING_ADDRESS_UPDATED = "SHIPPING_ADDRESS_UPDATED", "Shipping Address Updated"
+    SHIPMENT_CREATED         = "SHIPMENT_CREATED",         "Shipment Created"
+    ORDER_DELIVERED          = "ORDER_DELIVERED",          "Order Delivered"
+    REFUND_REQUESTED         = "REFUND_REQUESTED",         "Refund Requested"
+    REFUND_PROCESSED         = "REFUND_PROCESSED",         "Refund Processed"
+    ORDER_CANCELLED          = "ORDER_CANCELLED",          "Order Cancelled"
+
+
+class OrderEvent(models.Model):
+    """
+    Evento de auditoría asociado a un pedido.
+    Registro inmutable: nunca se modifica ni elimina.
+    No tiene updated_at por diseño.
+    """
+
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.RESTRICT,
+        related_name="events",
+    )
+
+    event_type = models.CharField(
+        max_length=100,
+        choices=EventType.choices,
+    )
+
+    event_description = models.TextField(blank=True, default="")
+
+    metadata = models.JSONField(null=True, blank=True)
+
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="order_events",
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "order_events"
+        indexes = [
+            models.Index(fields=["order"]),
+            models.Index(fields=["event_type"]),
+            models.Index(fields=["created_at"]),
+            models.Index(fields=["order", "created_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.event_type} — Order {self.order_id}"

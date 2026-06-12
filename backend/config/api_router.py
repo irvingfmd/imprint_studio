@@ -22,6 +22,9 @@ urlpatterns = [
     # Direcciones de envío (clientes)
     path("shipping-addresses/", include("apps.shipping.urls")),
 
+    # Envíos (clientes — lectura)
+    path("shipments/", include("apps.shipping.shipment_urls")),
+
     # Instrucciones de pago (público autenticado)
     path("payment-instructions/", include("apps.configuration.urls")),
 
