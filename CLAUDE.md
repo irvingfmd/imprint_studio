@@ -92,36 +92,109 @@ imprint_studio/
 
 ### Completado
 - Estructura base del proyecto Django
-- App authentication: User, OTPCode, managers, serializers, services, views, urls
-- App configuration: BusinessConfig, BusinessHours, Holiday, PaymentInstructions, seed_initial_data
-- core: BaseModel, SoftDeleteModel, permisos, responses, exception handler
-- Primera migración aplicada
+- App `authentication`: User, OTPCode, managers, serializers, services, views, urls
+- App `configuration`: BusinessConfig, BusinessHours, Holiday, PaymentInstructions, seed_initial_data
+- App `shipping`: ShippingAddress, Shipment — modelos, serializers, services, selectors, views, urls, admin, migración
+- App `orders`: Order, RequestFile, OrderEvent (EventType) — modelos, serializers, services, selectors, views, urls, admin, migración
+- App `quotes`: Quote, QuoteSnapshot — modelos, serializers, services (QuoteCalculatorService + QuoteService), selectors, views, urls, admin, migración
+- App `payments`: Payment — modelos, serializers, services, selectors, views, urls, admin, migración
+- App `production`: ProductionHistory, OrderStatusTransitionService — modelos, serializers, services, selectors, views, admin, migración
+- App `notifications`: WhatsAppService, EmailService, NotificationService — servicios puros (sin modelos ni endpoints)
+- `core`: BaseModel, SoftDeleteModel, permisos, responses, exception handler
+- Todas las migraciones aplicadas
 - Superusuario creado
 - Servidor corriendo en http://127.0.0.1:8000
 
 ### Endpoints funcionando
+
+#### Autenticación
 - POST /api/v1/auth/register/
 - POST /api/v1/auth/otp/send/
 - POST /api/v1/auth/otp/verify/
 - POST /api/v1/auth/token/refresh/
 - GET  /api/v1/auth/me/
 
-### En progreso
-- App orders: Order y RequestFile definidos en models.py
-- Bloqueado: makemigrations orders falla porque ShippingAddress no existe aún
+#### Pedidos (cliente)
+- GET/POST /api/v1/orders/
+- GET  /api/v1/orders/{order_id}/
+- PUT  /api/v1/orders/{order_id}/cancel/
+- PUT  /api/v1/orders/{order_id}/shipping-address/
+- GET/POST /api/v1/orders/{order_id}/files/
+
+#### Cotizaciones (cliente)
+- GET  /api/v1/orders/{order_id}/quotes/
+- GET  /api/v1/quotes/{quote_id}/
+- PUT  /api/v1/quotes/{quote_id}/accept/
+- PUT  /api/v1/quotes/{quote_id}/reject/
+- GET  /api/v1/quotes/{quote_id}/snapshot/  (admin only)
+
+#### Pagos (cliente)
+- GET  /api/v1/orders/{order_id}/payments/
+- GET  /api/v1/payments/{payment_id}/
+- POST /api/v1/payments/{payment_id}/proof/
+
+#### Producción / estado (cliente)
+- GET /api/v1/orders/{order_id}/production-history/
+- GET /api/v1/orders/{order_id}/events/
+- GET /api/v1/orders/{order_id}/events/{event_id}/
+
+#### Envíos (cliente)
+- GET/POST /api/v1/shipping-addresses/
+- GET/PUT/DELETE /api/v1/shipping-addresses/{address_id}/
+- GET  /api/v1/shipments/{shipment_id}/
+
+#### Admin — pedidos
+- GET  /api/v1/admin/orders/
+- GET  /api/v1/admin/orders/{order_id}/
+- PUT  /api/v1/admin/orders/{order_id}/status/
+- PUT  /api/v1/admin/orders/{order_id}/cancel/
+
+#### Admin — cotizaciones
+- POST /api/v1/admin/orders/{order_id}/quote/
+- PUT  /api/v1/admin/quotes/{quote_id}/expire/
+- POST /api/v1/admin/calculator/calculate/
+
+#### Admin — pagos
+- GET  /api/v1/admin/payments/
+- PUT  /api/v1/admin/payments/{payment_id}/confirm/
+- PUT  /api/v1/admin/payments/{payment_id}/reject/
+- POST /api/v1/admin/orders/{order_id}/payments/manual-confirmation/
+- POST /api/v1/admin/orders/{order_id}/refund/
+
+#### Admin — envíos
+- POST /api/v1/admin/orders/{order_id}/shipment/
+- PUT  /api/v1/admin/shipments/{shipment_id}/delivered/
+
+#### Admin — dashboard
+- GET /api/v1/admin/dashboard/
+
+#### Admin — configuración del negocio
+- GET/PUT /api/v1/admin/business-config/
+- GET/PUT /api/v1/admin/business-hours/
+- GET/POST /api/v1/admin/holidays/
+- DELETE /api/v1/admin/holidays/{holiday_id}/
+- GET/PUT /api/v1/admin/payment-instructions/
+
+#### Instrucciones de pago (público autenticado)
+- GET /api/v1/payment-instructions/
+
+### Frontend Vue 3 (implementado)
+- Scaffold: Vue 3 + TypeScript + Vite + Pinia + Vue Router + Tailwind CSS v4
+- Dark mode + acento azul
+- Proxy a backend en /api/v1/
+- Auth: Login (OTP), Register, OTP verify con cooldown
+- Portal cliente: lista de pedidos, crear pedido, detalle (cotización, pagos, producción, cancelar)
+- Panel admin: Dashboard, lista de pedidos con filtros, detalle (cambiar estado, cotizar), pagos (confirmar/rechazar), configuración (costos, instrucciones de pago, festivos)
+- Componentes: AppButton, AppInput, AppCard, AppAlert, StatusBadge
+- Servicios: authService, orderService, quoteService, paymentService, adminService
+- Store: authStore (JWT tokens, user, isAdmin)
+- Router con guards de autenticación y rol
+
+### Pendiente de implementar
+- Pruebas (ver docs/quality/07-testing-plan.md)
 
 ### Siguiente paso inmediato
-Crear ShippingAddress en apps/shipping/models.py
-Luego continuar con orders migrations y el resto de apps.
-
-### Orden de implementación pendiente
-1. shipping (ShippingAddress)
-2. orders (migración desbloqueada)
-3. quotes
-4. payments
-5. production
-6. notifications
-7. frontend Vue 3
+Security review + pruebas
 
 ---
 
