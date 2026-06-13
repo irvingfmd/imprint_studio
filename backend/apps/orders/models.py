@@ -106,6 +106,7 @@ class Order(models.Model):
     status = models.CharField(
         max_length=50,
         choices=OrderStatus.choices,
+        default=OrderStatus.RECEIVED,
     )
 
     payment_status = models.CharField(

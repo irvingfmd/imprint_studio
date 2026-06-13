@@ -53,7 +53,7 @@ class AcceptQuoteSerializer(serializers.Serializer):
 
 
 class RejectQuoteSerializer(serializers.Serializer):
-    reason = serializers.CharField(required=False, default="")
+    reason = serializers.CharField(required=False, default="", allow_blank=True)
 
 
 class CalculateSerializer(serializers.Serializer):

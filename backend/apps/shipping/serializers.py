@@ -23,13 +23,13 @@ class ShippingAddressCreateSerializer(serializers.Serializer):
     address_name = serializers.CharField(max_length=100)
     street = serializers.CharField(max_length=255)
     external_number = serializers.CharField(max_length=50)
-    internal_number = serializers.CharField(max_length=50, required=False, default="")
+    internal_number = serializers.CharField(max_length=50, required=False, default="", allow_blank=True)
     neighborhood = serializers.CharField(max_length=255)
     postal_code = serializers.CharField(max_length=20)
     city = serializers.CharField(max_length=100)
     state = serializers.CharField(max_length=100)
     country = serializers.CharField(max_length=100, required=False, default="Mexico")
-    references = serializers.CharField(required=False, default="")
+    references = serializers.CharField(required=False, default="", allow_blank=True)
     is_default = serializers.BooleanField(required=False, default=False)
 
 
@@ -44,11 +44,11 @@ class ShipmentSerializer(serializers.ModelSerializer):
 
 
 class CreateShipmentSerializer(serializers.Serializer):
-    carrier_name = serializers.CharField(max_length=100, required=False, default="")
-    tracking_number = serializers.CharField(max_length=100, required=False, default="")
+    carrier_name = serializers.CharField(max_length=100, required=False, default="", allow_blank=True)
+    tracking_number = serializers.CharField(max_length=100, required=False, default="", allow_blank=True)
     shipping_cost = serializers.DecimalField(
         max_digits=10, decimal_places=2,
         min_value=Decimal("0.00"),
         default=Decimal("0.00"),
     )
-    shipping_notes = serializers.CharField(required=False, default="")
+    shipping_notes = serializers.CharField(required=False, default="", allow_blank=True)

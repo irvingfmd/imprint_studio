@@ -48,7 +48,9 @@ export interface Order extends OrderSummary {
   delivery_method: DeliveryMethod
   color: string
   quantity: number
+  payment_status: string
   shipping_address?: ShippingAddress
+  shipment?: Shipment | null
 }
 
 export interface Quote {

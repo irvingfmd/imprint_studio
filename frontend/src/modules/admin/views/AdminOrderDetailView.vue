@@ -84,6 +84,58 @@
         </div>
       </AppCard>
 
+      <!-- Envío (solo si delivery_method = SHIPPING) -->
+      <template v-if="order.delivery_method === 'SHIPPING'">
+        <!-- Sin envío creado aún -->
+        <AppCard v-if="!order.shipment" class="mb-4">
+          <h3 class="text-sm font-medium text-gray-400 mb-3">Crear envío</h3>
+          <div class="grid grid-cols-2 gap-3">
+            <AppInput v-model="shipmentForm.carrier_name" label="Paquetería" placeholder="Ej: FedEx, DHL" />
+            <AppInput v-model="shipmentForm.tracking_number" label="Número de rastreo" placeholder="Ej: 123456789" />
+            <AppInput v-model="shipmentForm.shipping_cost" label="Costo de envío (MXN)" type="number" placeholder="0" />
+          </div>
+          <AppInput v-model="shipmentForm.shipping_notes" label="Notas (opcional)" placeholder="Instrucciones especiales" class="mt-3" />
+          <AppButton size="sm" class="mt-3" :loading="creatingShipment" @click="handleCreateShipment">
+            Registrar envío
+          </AppButton>
+        </AppCard>
+
+        <!-- Envío creado, pendiente de entrega -->
+        <AppCard v-else-if="!order.shipment.delivered_at" class="mb-4">
+          <h3 class="text-sm font-medium text-gray-400 mb-2">Envío registrado</h3>
+          <div class="text-sm space-y-1">
+            <p v-if="order.shipment.carrier_name" class="text-gray-300">
+              Paquetería: <span class="text-white">{{ order.shipment.carrier_name }}</span>
+            </p>
+            <p v-if="order.shipment.tracking_number" class="text-gray-300">
+              Rastreo: <span class="text-white font-mono">{{ order.shipment.tracking_number }}</span>
+            </p>
+            <p class="text-gray-300">
+              Costo: <span class="text-white">{{ formatMXN(order.shipment.shipping_cost) }}</span>
+            </p>
+          </div>
+          <AppButton size="sm" class="mt-3" :loading="markingDelivered" @click="handleMarkDelivered">
+            Marcar como entregado
+          </AppButton>
+        </AppCard>
+
+        <!-- Envío entregado -->
+        <AppCard v-else class="mb-4">
+          <h3 class="text-sm font-medium text-gray-400 mb-2">Envío entregado</h3>
+          <div class="text-sm space-y-1">
+            <p v-if="order.shipment.carrier_name" class="text-gray-300">
+              Paquetería: <span class="text-white">{{ order.shipment.carrier_name }}</span>
+            </p>
+            <p v-if="order.shipment.tracking_number" class="text-gray-300">
+              Rastreo: <span class="text-white font-mono">{{ order.shipment.tracking_number }}</span>
+            </p>
+            <p class="text-gray-300">
+              Entregado: <span class="text-white">{{ formatDate(order.shipment.delivered_at!) }}</span>
+            </p>
+          </div>
+        </AppCard>
+      </template>
+
       <!-- Cancelar pedido (admin) -->
       <div v-if="canCancelAdmin" class="mt-4">
         <AppButton variant="danger" size="sm" @click="showCancelModal = true">
@@ -118,7 +170,7 @@ import AppAlert from '@/components/ui/AppAlert.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import {
   getAdminOrder, updateOrderStatus, cancelOrderAdmin,
-  createQuote, calculateQuote,
+  createQuote, calculateQuote, createShipment, markDelivered,
 } from '../services/adminService'
 import { listProductionHistory } from '@/modules/orders/services/orderService'
 import { formatMXN, formatDate, formatDateTime, ORDER_STATUS_LABELS } from '@/utils/formatters'
@@ -142,6 +194,9 @@ const calculating = ref(false)
 const creatingQuote = ref(false)
 const quotePreview = ref<any>(null)
 const quoteForm = ref({ weight_grams: '', print_time_hours: '', shipping_cost: '0' })
+const creatingShipment = ref(false)
+const markingDelivered = ref(false)
+const shipmentForm = ref({ carrier_name: '', tracking_number: '', shipping_cost: '0', shipping_notes: '' })
 
 // Transiciones válidas por estado según status-flow.md
 const VALID_TRANSITIONS: Record<string, string[]> = {
@@ -249,6 +304,33 @@ async function handleCreateQuote() {
     errorMessage.value = err.response?.data?.message ?? 'Error al crear la cotización'
   } finally {
     creatingQuote.value = false
+  }
+}
+
+async function handleCreateShipment() {
+  creatingShipment.value = true
+  errorMessage.value = ''
+  try {
+    await createShipment(orderId, shipmentForm.value)
+    router.go(0)
+  } catch (err: any) {
+    errorMessage.value = err.response?.data?.message ?? 'Error al registrar el envío'
+  } finally {
+    creatingShipment.value = false
+  }
+}
+
+async function handleMarkDelivered() {
+  if (!order.value?.shipment?.id) return
+  markingDelivered.value = true
+  errorMessage.value = ''
+  try {
+    await markDelivered(order.value.shipment.id)
+    router.go(0)
+  } catch (err: any) {
+    errorMessage.value = err.response?.data?.message ?? 'Error al marcar como entregado'
+  } finally {
+    markingDelivered.value = false
   }
 }
 </script>

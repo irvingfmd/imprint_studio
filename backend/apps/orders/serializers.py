@@ -22,15 +22,43 @@ class OrderDetailSerializer(serializers.ModelSerializer):
             "approved_at", "ready_at", "delivered_at", "cancelled_at", "cancellation_reason",
             "created_at", "updated_at",
         ]
+        read_only_fields = [
+            "id", "status", "payment_status", "approved_at", "ready_at",
+            "delivered_at", "cancelled_at", "created_at", "updated_at",
+        ]
+
+
+class AdminOrderDetailSerializer(OrderDetailSerializer):
+    """Serializer de detalle para admins. Incluye datos de envío anidados."""
+
+    shipment = serializers.SerializerMethodField()
+
+    class Meta(OrderDetailSerializer.Meta):
+        fields = OrderDetailSerializer.Meta.fields + ["shipment"]
+
+    def get_shipment(self, obj) -> dict | None:
+        try:
+            s = obj.shipment
+            return {
+                "id": str(s.id),
+                "carrier_name": s.carrier_name,
+                "tracking_number": s.tracking_number,
+                "shipping_cost": str(s.shipping_cost),
+                "shipped_at": s.shipped_at.isoformat() if s.shipped_at else None,
+                "delivered_at": s.delivered_at.isoformat() if s.delivered_at else None,
+                "shipping_notes": s.shipping_notes,
+            }
+        except Exception:
+            return None
 
 
 class OrderCreateSerializer(serializers.Serializer):
     request_type = serializers.ChoiceField(choices=RequestType.choices)
     title = serializers.CharField(max_length=255)
     description = serializers.CharField()
-    color = serializers.CharField(max_length=100, required=False, default="")
+    color = serializers.CharField(max_length=100, required=False, default="", allow_blank=True)
     quantity = serializers.IntegerField(min_value=1)
-    dimensions_notes = serializers.CharField(required=False, default="")
+    dimensions_notes = serializers.CharField(required=False, default="", allow_blank=True)
     priority = serializers.ChoiceField(choices=OrderPriority.choices, default=OrderPriority.NORMAL)
     delivery_method = serializers.ChoiceField(choices=DeliveryMethod.choices, default=DeliveryMethod.PICKUP)
 
@@ -57,7 +85,7 @@ class AssignShippingAddressSerializer(serializers.Serializer):
 
 
 class CancelOrderSerializer(serializers.Serializer):
-    reason = serializers.CharField()
+    reason = serializers.CharField(max_length=1000)
 
 
 class AdminOrderListSerializer(serializers.ModelSerializer):

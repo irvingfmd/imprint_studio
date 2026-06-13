@@ -24,7 +24,7 @@
           </div>
           <div class="grid grid-cols-2 gap-4">
             <AppInput v-model="form.color" label="Color deseado" placeholder="Ej: Negro" :error="errors.color" :disabled="loading" />
-            <AppInput v-model="form.quantity" label="Cantidad" type="number" placeholder="1" :error="errors.quantity" :disabled="loading" />
+            <AppInput v-model="form.quantity" label="Cantidad" type="number" placeholder="1" min="1" :error="errors.quantity" :disabled="loading" />
           </div>
         </div>
       </AppCard>

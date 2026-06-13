@@ -10,6 +10,7 @@ from core.responses import created_response, error_response, success_response
 
 from . import selectors, services
 from .serializers import (
+    AdminOrderDetailSerializer,
     AdminOrderListSerializer,
     AssignShippingAddressSerializer,
     CancelOrderSerializer,
@@ -204,7 +205,7 @@ class AdminOrderDetailView(APIView):
         if not order:
             return error_response("Order not found", status_code=status.HTTP_404_NOT_FOUND)
 
-        serializer = OrderDetailSerializer(order)
+        serializer = AdminOrderDetailSerializer(order)
         return success_response(data=serializer.data, message="Order retrieved")
 
 
