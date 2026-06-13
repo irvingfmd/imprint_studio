@@ -6,6 +6,7 @@ para los endpoints de registro, OTP y JWT.
 """
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 
 from apps.authentication.models import User
 
@@ -19,6 +20,24 @@ class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["phone", "email", "first_name", "last_name"]
+        extra_kwargs = {
+            "phone": {
+                "validators": [
+                    UniqueValidator(
+                        queryset=User.objects.all(),
+                        message="Este teléfono ya está registrado.",
+                    )
+                ],
+            },
+            "email": {
+                "validators": [
+                    UniqueValidator(
+                        queryset=User.objects.filter(email__isnull=False),
+                        message="Este email ya está registrado.",
+                    )
+                ],
+            },
+        }
 
     def validate_email(self, value: str) -> str | None:
         """
