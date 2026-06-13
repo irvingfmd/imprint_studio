@@ -39,8 +39,8 @@ def get_all_payments(
     payment_method: str | None = None,
     payment_status: str | None = None,
     order_id: str | None = None,
-    created_from=None,
-    created_to=None,
+    created_from: str | None = None,
+    created_to: str | None = None,
 ) -> QuerySet:
     """Retorna pagos con filtros opcionales. Para uso administrativo."""
     qs = Payment.objects.filter(is_deleted=False).select_related("order", "confirmed_by")

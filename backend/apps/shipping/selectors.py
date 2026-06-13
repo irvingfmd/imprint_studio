@@ -13,7 +13,7 @@ def get_address_by_id(address_id: str) -> ShippingAddress | None:
         return None
 
 
-def get_addresses_for_user(user_id) -> QuerySet:
+def get_addresses_for_user(user_id: str) -> QuerySet:
     return ShippingAddress.objects.filter(user_id=user_id).order_by("-created_at")
 
 

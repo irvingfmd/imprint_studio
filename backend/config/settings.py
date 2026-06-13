@@ -26,7 +26,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "insecure-dev-key-cambiar-en-produccion")
 
-DEBUG = os.environ.get("DEBUG", "True") == "True"
+DEBUG = os.environ.get("DEBUG", "False") == "True"
+
+# En producción, exigir una clave secreta real.
+if not DEBUG and SECRET_KEY == "insecure-dev-key-cambiar-en-produccion":
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured(
+        "DJANGO_SECRET_KEY debe configurarse en producción. "
+        "Genera una clave segura con: python -c \"import secrets; print(secrets.token_hex(50))\""
+    )
 
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
@@ -188,6 +196,10 @@ REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "core.exceptions.handler.custom_exception_handler",
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
+    "DEFAULT_THROTTLE_RATES": {
+        "otp_send": "5/hour",
+        "otp_verify": "10/hour",
+    },
 }
 
 # ============================================================
@@ -286,3 +298,17 @@ LOGGING = {
         },
     },
 }
+
+# ============================================================
+# Seguridad adicional para producción
+# ============================================================
+
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31_536_000  # 1 año
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    X_FRAME_OPTIONS = "DENY"

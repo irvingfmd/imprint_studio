@@ -20,6 +20,7 @@ from apps.authentication.serializers import (
 )
 from apps.authentication.services import JWTService, OTPService, RegisterService
 from core.responses import created_response, error_response, success_response
+from core.throttles import OTPSendThrottle, OTPVerifyThrottle
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +57,7 @@ class SendOTPView(APIView):
     """
 
     permission_classes = [AllowAny]
+    throttle_classes = [OTPSendThrottle]
 
     def post(self, request: Request) -> Response:
         serializer = SendOTPSerializer(data=request.data)
@@ -83,6 +85,7 @@ class VerifyOTPView(APIView):
     """
 
     permission_classes = [AllowAny]
+    throttle_classes = [OTPVerifyThrottle]
 
     def post(self, request: Request) -> Response:
         serializer = VerifyOTPSerializer(data=request.data)

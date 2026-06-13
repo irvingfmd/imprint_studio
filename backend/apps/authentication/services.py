@@ -4,9 +4,9 @@ Servicios de la app authentication.
 Contiene toda la lógica de negocio para registro,
 generación y verificación de OTP, y autenticación JWT.
 """
+import hmac
 import logging
-import random
-import string
+import secrets
 from datetime import timedelta
 
 from django.conf import settings
@@ -43,12 +43,19 @@ class OTPService:
     Gestiona la generación y verificación de códigos OTP.
     """
 
-    def generate_and_send(self, phone: str) -> OTPCode:
+    def generate_and_send(self, phone: str) -> OTPCode | None:
         """
         Genera un nuevo código OTP e invalida los anteriores.
         En desarrollo imprime el código en consola.
         En producción lo envía por WhatsApp.
+        Retorna None silenciosamente si el teléfono no está registrado
+        (evita user enumeration: la vista siempre responde 200).
         """
+        # No revelar si el teléfono existe o no — responder siempre 200.
+        if not User.objects.filter(phone=phone, is_active=True).exists():
+            logger.info("OTP solicitado para teléfono no registrado: %s", phone)
+            return None
+
         # Invalidar códigos anteriores del mismo teléfono.
         OTPCode.objects.filter(
             phone=phone,
@@ -96,7 +103,8 @@ class OTPService:
         if otp.attempts >= max_attempts:
             raise ValueError("Demasiados intentos fallidos. Solicita un nuevo código.")
 
-        if otp.code != code:
+        # Comparación en tiempo constante para evitar timing attacks.
+        if not hmac.compare_digest(otp.code, code):
             # Registrar intento fallido.
             otp.attempts += 1
             otp.save(update_fields=["attempts"])
@@ -121,9 +129,9 @@ class OTPService:
 
     def _generate_code(self) -> str:
         """
-        Genera un código numérico de 6 dígitos.
+        Genera un código numérico de 6 dígitos usando CSPRNG.
         """
-        return "".join(random.choices(string.digits, k=6))
+        return str(secrets.randbelow(1_000_000)).zfill(6)
 
     def _send(self, phone: str, code: str) -> None:
         """

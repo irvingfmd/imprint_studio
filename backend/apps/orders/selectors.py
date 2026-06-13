@@ -16,7 +16,7 @@ def get_order_by_id(order_id: str) -> Order | None:
         return None
 
 
-def get_orders_for_customer(customer_id) -> QuerySet:
+def get_orders_for_customer(customer_id: str) -> QuerySet:
     return (
         Order.objects
         .filter(customer_id=customer_id, is_deleted=False)

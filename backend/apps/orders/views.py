@@ -252,7 +252,7 @@ class AdminDashboardView(APIView):
                 "printing_orders": printing_orders,
                 "ready_orders": ready_orders,
                 "pending_payments": pending_payments,
-                "monthly_revenue": float(monthly_revenue),
+                "monthly_revenue": str(monthly_revenue),
             },
             message="Dashboard metrics retrieved",
         )

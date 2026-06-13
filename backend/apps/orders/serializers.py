@@ -45,7 +45,7 @@ class RequestFileSerializer(serializers.ModelSerializer):
 
 
 class RequestFileUploadSerializer(serializers.Serializer):
-    file_url = serializers.CharField()
+    file_url = serializers.URLField(max_length=2048)
     file_type = serializers.ChoiceField(choices=FileType.choices)
     original_filename = serializers.CharField(max_length=255)
     mime_type = serializers.CharField(max_length=100)

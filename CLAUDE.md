@@ -80,10 +80,10 @@ imprint_studio/
 │   │   ├── shipping/         # ShippingAddress, Shipment
 │   │   └── notifications/    # WhatsApp, Email
 │   ├── config/               # settings.py, urls.py, routers
-│   ├── core/                 # BaseModel, permisos, responses, exception handler
+│   ├── core/                 # BaseModel, permisos, responses, exception handler, throttles
 │   └── manage.py
 ├── docs/                     # Documentación oficial
-└── frontend/                 # Vue 3 (pendiente)
+└── frontend/                 # Vue 3 (implementado)
 ```
 
 ---
@@ -100,7 +100,7 @@ imprint_studio/
 - App `payments`: Payment — modelos, serializers, services, selectors, views, urls, admin, migración
 - App `production`: ProductionHistory, OrderStatusTransitionService — modelos, serializers, services, selectors, views, admin, migración
 - App `notifications`: WhatsAppService, EmailService, NotificationService — servicios puros (sin modelos ni endpoints)
-- `core`: BaseModel, SoftDeleteModel, permisos, responses, exception handler
+- `core`: BaseModel, SoftDeleteModel, permisos, responses, exception handler, throttles (OTPSendThrottle, OTPVerifyThrottle)
 - Todas las migraciones aplicadas
 - Superusuario creado
 - Servidor corriendo en http://127.0.0.1:8000
@@ -190,11 +190,44 @@ imprint_studio/
 - Store: authStore (JWT tokens, user, isAdmin)
 - Router con guards de autenticación y rol
 
-### Pendiente de implementar
-- Pruebas (ver docs/quality/07-testing-plan.md)
+### Pruebas ✅ (completo)
+
+Infraestructura configurada: `backend/pytest.ini`, `backend/conftest.py`
+Entorno: `backend/venv/` — ejecutar con `.\venv\Scripts\python -m pytest` desde `backend/`
+
+| App | test_models | test_serializers | test_services | test_selectors | test_views |
+|---|---|---|---|---|---|
+| authentication | ✅ | ✅ | ✅ | — | ✅ |
+| orders | ✅ | ✅ | ✅ | ✅ | ✅ |
+| quotes | ✅ | ✅ | ✅ | ✅ | ✅ |
+| payments | ✅ | ✅ | ✅ | ✅ | ✅ |
+| production | ✅ | ✅ | ✅ | ✅ | ✅ |
+| shipping | ✅ | ✅ | ✅ | ✅ | ✅ |
+
+Total: 511 tests — todos pasando ✅
+
+### Security Review ✅ (completo — 2026-06-13)
+
+Vulnerabilidades corregidas:
+
+| Severidad | Hallazgo | Archivo | Fix |
+|---|---|---|---|
+| 🔴 Alta | OTP generado con `random` (no CSPRNG) | `authentication/services.py` | `secrets.randbelow(1_000_000)` |
+| 🔴 Alta | Comparación OTP con `!=` (timing attack) | `authentication/services.py` | `hmac.compare_digest()` |
+| 🟠 Media | User enumeration en `/otp/send/` | `authentication/serializers.py` | Serializer valida solo formato; servicio hace no-op silencioso |
+| 🟠 Media | Sin rate limiting en endpoints OTP | `authentication/views.py` | `OTPSendThrottle` (5/h) y `OTPVerifyThrottle` (10/h) |
+| 🟠 Media | `file_url` aceptaba strings arbitrarios en subida de archivos | `orders/serializers.py` | `URLField(max_length=2048)` |
+| 🟡 Baja | `DEBUG` default `True` — stack traces expuestos en producción | `config/settings.py` | Default cambiado a `False` |
+| 🟡 Baja | `SECRET_KEY` con fallback débil conocido | `config/settings.py` | Lanza `ImproperlyConfigured` si `DEBUG=False` y la clave es el fallback |
+| 🟡 Baja | Sin headers de seguridad HTTP en producción | `config/settings.py` | Bloque `if not DEBUG:` con HSTS, SSL redirect, cookie flags |
+
+Sin vulnerabilidades: IDOR, SQL injection, soft-delete bypass, escalada de privilegios, JWT replay.
+
+Pendiente de evaluación (no bloqueante):
+- OTP almacenado en texto plano en BD — TTL de 10 min lo mitiga; hashear con HMAC-SHA256 para mayor rigor
 
 ### Siguiente paso inmediato
-Security review + pruebas
+Despliegue — ver `docs/deployment/09-deployment.md`
 
 ---
 
@@ -229,22 +262,27 @@ Fuente oficial: docs/appendices/status-flow.md
 
 ## Comandos útiles
 
-```bash
-# Activar entorno virtual
-source venv/Scripts/activate
+```powershell
+# Desde C:\Users\PC\imprint_studio\backend\
 
 # Correr servidor
-python manage.py runserver
+.\venv\Scripts\python manage.py runserver
+
+# Ejecutar pruebas
+.\venv\Scripts\python -m pytest
+
+# Ejecutar pruebas de una app específica
+.\venv\Scripts\python -m pytest apps/orders/
 
 # Migraciones
-python manage.py makemigrations
-python manage.py migrate
+.\venv\Scripts\python manage.py makemigrations
+.\venv\Scripts\python manage.py migrate
 
 # Datos iniciales
-python manage.py seed_initial_data
+.\venv\Scripts\python manage.py seed_initial_data
 
 # Verificar
-python manage.py check
+.\venv\Scripts\python manage.py check
 ```
 
 ---
