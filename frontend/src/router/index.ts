@@ -56,21 +56,25 @@ router.beforeEach(async (to) => {
     return { name: 'login' }
   }
 
-  if (to.meta.requiresAdmin && !auth.isAdmin) {
-    // Carga el usuario si ya hay token pero no tenemos info
-    if (auth.isAuthenticated && !auth.user) {
-      try {
-        const { getMe } = await import('@/modules/auth/services/authService')
-        const user = await getMe()
-        auth.setUser(user)
-        if (user.role !== 'ADMIN') return { path: '/orders' }
-      } catch {
-        auth.logout()
-        return { name: 'login' }
-      }
-    } else if (!auth.isAdmin) {
-      return { path: '/orders' }
+  // Cargar usuario si hay token pero aún no tenemos info de rol
+  if (to.meta.requiresAuth && auth.isAuthenticated && !auth.user) {
+    try {
+      const { getMe } = await import('@/modules/auth/services/authService')
+      const user = await getMe()
+      auth.setUser(user)
+    } catch {
+      auth.logout()
+      return { name: 'login' }
     }
+  }
+
+  // Admin que accede a rutas de cliente → redirigir a dashboard
+  if (!to.meta.requiresAdmin && to.meta.requiresAuth && auth.isAdmin) {
+    return { path: '/admin/dashboard' }
+  }
+
+  if (to.meta.requiresAdmin && !auth.isAdmin) {
+    return { path: '/orders' }
   }
 
   return true

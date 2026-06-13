@@ -20,30 +20,14 @@ class RegisterSerializer(serializers.ModelSerializer):
         model = User
         fields = ["phone", "email", "first_name", "last_name"]
 
-    def validate_phone(self, value: str) -> str:
-        """
-        Valida que el teléfono esté en formato E.164.
-        Ejemplo válido: +5219611234567
-        """
-        if not value.startswith("+"):
-            raise serializers.ValidationError(
-                "El teléfono debe estar en formato E.164. Ejemplo: +5219611234567"
-            )
-        if not value[1:].isdigit():
-            raise serializers.ValidationError(
-                "El teléfono solo debe contener dígitos después del símbolo +."
-            )
-        if len(value) < 10 or len(value) > 16:
-            raise serializers.ValidationError(
-                "El teléfono debe tener entre 10 y 16 caracteres."
-            )
-        return value
-
-    def validate_email(self, value: str) -> str:
+    def validate_email(self, value: str) -> str | None:
         """
         Valida que el email no esté registrado.
+        Convierte string vacío a None para respetar el unique constraint.
         """
-        if value and User.objects.filter(email=value).exists():
+        if not value:
+            return None
+        if User.objects.filter(email=value).exists():
             raise serializers.ValidationError(
                 "Este email ya está registrado."
             )
@@ -82,15 +66,12 @@ class SendOTPSerializer(serializers.Serializer):
 
     def validate_phone(self, value: str) -> str:
         """
-        Valida que el teléfono esté registrado en el sistema.
+        Valida solo el formato E.164. La existencia del usuario la verifica
+        el servicio de forma silenciosa para evitar user enumeration.
         """
         if not value.startswith("+"):
             raise serializers.ValidationError(
                 "El teléfono debe estar en formato E.164. Ejemplo: +5219611234567"
-            )
-        if not User.objects.filter(phone=value, is_active=True).exists():
-            raise serializers.ValidationError(
-                "No existe una cuenta activa con este teléfono."
             )
         return value
 

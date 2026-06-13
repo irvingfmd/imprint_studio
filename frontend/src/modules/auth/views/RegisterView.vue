@@ -11,7 +11,6 @@
       <AppInput v-model="form.phone" label="Teléfono (WhatsApp)" type="tel" placeholder="+5219611234567" :error="errors.phone" :disabled="loading" />
       <AppInput v-model="form.email" label="Correo electrónico" type="email" placeholder="tu@email.com" :error="errors.email" :disabled="loading" />
       <AppAlert :message="errorMessage" />
-      <AppAlert :message="successMessage" variant="success" />
       <AppButton type="submit" size="lg" class="w-full" :loading="loading">
         Registrarme
       </AppButton>
@@ -26,28 +25,28 @@
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
+import { useRouter } from 'vue-router'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppAlert from '@/components/ui/AppAlert.vue'
-import { register } from '../services/authService'
+import { register, sendOtp } from '../services/authService'
 
+const router = useRouter()
 const loading = ref(false)
 const errorMessage = ref('')
-const successMessage = ref('')
 const errors = ref<Record<string, string>>({})
 
 const form = reactive({ first_name: '', last_name: '', phone: '', email: '' })
 
 async function handleRegister() {
   errorMessage.value = ''
-  successMessage.value = ''
   errors.value = {}
 
   loading.value = true
   try {
     await register(form)
-    successMessage.value = '¡Registro exitoso! Ahora inicia sesión con tu número.'
-    Object.assign(form, { first_name: '', last_name: '', phone: '', email: '' })
+    await sendOtp(form.phone)
+    router.push({ name: 'otp', query: { phone: form.phone } })
   } catch (err: any) {
     const data = err.response?.data
     if (data?.errors) {
