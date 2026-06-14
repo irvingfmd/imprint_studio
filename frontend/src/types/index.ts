@@ -49,6 +49,8 @@ export interface Order extends OrderSummary {
   color: string
   quantity: number
   payment_status: string
+  delivered_at?: string | null
+  cancelled_at?: string | null
   shipping_address?: ShippingAddress
   shipment?: Shipment | null
 }

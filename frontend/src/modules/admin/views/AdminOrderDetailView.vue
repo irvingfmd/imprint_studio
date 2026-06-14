@@ -50,7 +50,7 @@
       <!-- Cambiar estado -->
       <AppCard class="mb-4">
         <h3 class="text-sm font-medium text-gray-400 mb-3">Cambiar estado</h3>
-        <div v-if="availableTransitions.length > 0" class="space-y-3">
+        <div v-if="availableTransitions.length > 0 || blockedDelivered" class="space-y-3">
           <div class="flex flex-wrap gap-2">
             <button
               v-for="s in availableTransitions"
@@ -65,6 +65,18 @@
             >
               {{ s.label }}
             </button>
+            <!-- DELIVERED bloqueado: se muestra pero deshabilitado con explicación -->
+            <div v-if="blockedDelivered" class="relative group">
+              <button
+                disabled
+                class="px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-800 text-gray-600 cursor-not-allowed"
+              >
+                Entregado
+              </button>
+              <div class="absolute bottom-full left-0 mb-1 w-52 text-xs bg-gray-900 border border-gray-700 text-gray-400 rounded-lg px-2 py-1.5 hidden group-hover:block z-10">
+                Requiere pago completo. Mueve a "Pagado completo" primero.
+              </div>
+            </div>
           </div>
           <AppInput v-model="statusNotes" placeholder="Notas para el cliente (opcional)" />
           <AppButton size="sm" :loading="updatingStatus" :disabled="!selectedStatus" @click="handleStatusChange">
@@ -310,6 +322,14 @@ const availableTransitions = computed(() => {
 const canCancelAdmin = computed(() =>
   order.value && CANCELLABLE_FROM_ADMIN.includes(order.value.status)
 )
+
+// DELIVERED aparece en READY o FULLY_PAID solo si el pago está completo.
+// Cuando está bloqueado mostramos el botón deshabilitado con tooltip.
+const blockedDelivered = computed(() => {
+  if (!order.value) return false
+  const hasDeliveredTransition = (VALID_TRANSITIONS[order.value.status] ?? []).includes('DELIVERED')
+  return hasDeliveredTransition && order.value.payment_status !== 'FULLY_PAID'
+})
 
 const canCreateQuote = computed(() =>
   order.value && QUOTE_ELIGIBLE.includes(order.value.status)

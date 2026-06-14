@@ -157,6 +157,19 @@
         </div>
       </AppCard>
 
+      <!-- Pedido entregado -->
+      <AppCard v-if="order.status === 'DELIVERED'" class="mb-4 border-emerald-800">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">✓</span>
+          <div>
+            <p class="text-emerald-300 font-semibold text-sm">¡Pedido entregado!</p>
+            <p v-if="order.delivered_at" class="text-gray-400 text-xs mt-0.5">
+              Entregado el {{ formatDate(order.delivered_at) }}
+            </p>
+          </div>
+        </div>
+      </AppCard>
+
       <!-- Cancelar pedido -->
       <div v-if="canCancel" class="mt-4">
         <AppButton variant="danger" size="sm" @click="showCancelModal = true">
