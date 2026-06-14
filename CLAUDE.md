@@ -220,7 +220,11 @@ Entorno: `backend/venv/` — ejecutar con `.\venv\Scripts\python -m pytest` desd
 | production | ✅ | ✅ | ✅ | ✅ | ✅ |
 | shipping | ✅ | ✅ | ✅ | ✅ | ✅ |
 
-Total: 511 tests — todos pasando ✅
+Total: 524 tests — todos pasando ✅
+
+| Archivo | Tests |
+|---|---|
+| orders/tests/test_jobs.py | ✅ (11 — scheduler de cancelación automática) |
 
 ### Security Review ✅ (completo — 2026-06-13)
 
@@ -241,6 +245,17 @@ Sin vulnerabilidades: IDOR, SQL injection, soft-delete bypass, escalada de privi
 
 Pendiente de evaluación (no bloqueante):
 - OTP almacenado en texto plano en BD — TTL de 10 min lo mitiga; hashear con HMAC-SHA256 para mayor rigor
+
+### Scheduler ✅ (completo — 2026-06-14)
+
+`backend/scheduler.py` + `backend/apps/orders/jobs.py`
+
+- Job `cancel_expired_deposits`: corre cada hora, cancela pedidos en `PENDING_DEPOSIT`
+  que superaron `BusinessConfig.deposit_deadline_hours` (default 72h)
+- Usa subquery sobre `ProductionHistory` para calcular desde cuándo el pedido está en ese estado
+- `ProductionHistory.changed_by` ahora es nullable — `NULL` = acción automática del sistema
+- En dev: arrancar con `runserver` (el scheduler se inicia en el proceso hijo, `RUN_MAIN=true`)
+- En producción: `SCHEDULER_AUTOSTART=true` en el entorno de gunicorn
 
 ### Siguiente paso inmediato
 Despliegue — ver `docs/deployment/09-deployment.md`
