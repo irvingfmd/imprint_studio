@@ -23,6 +23,8 @@ const PAYMENT_COLORS: Record<string, string> = {
   PENDING: 'bg-yellow-900/50 text-yellow-300',
   CONFIRMED: 'bg-green-900/50 text-green-300',
   REJECTED: 'bg-red-900/50 text-red-300',
+  DEPOSIT_PAID: 'bg-lime-900/50 text-lime-300',
+  FULLY_PAID: 'bg-green-900/50 text-green-300',
 }
 
 const ORDER_COLORS: Record<string, string> = {

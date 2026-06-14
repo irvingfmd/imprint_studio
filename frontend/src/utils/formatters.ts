@@ -44,9 +44,13 @@ export const PRIORITY_LABELS: Record<string, string> = {
 }
 
 export const PAYMENT_STATUS_LABELS: Record<string, string> = {
+  // Estados de transacción de pago (Payment.payment_status)
   PENDING: 'Pendiente',
   CONFIRMED: 'Confirmado',
   REJECTED: 'Rechazado',
+  // Estados de pago del pedido (Order.payment_status)
+  DEPOSIT_PAID: 'Anticipo pagado',
+  FULLY_PAID: 'Pagado completo',
 }
 
 export const PAYMENT_TYPE_LABELS: Record<string, string> = {

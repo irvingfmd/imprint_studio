@@ -14,7 +14,10 @@
           <h1 class="text-xl font-semibold text-white">{{ order.title }}</h1>
           <p class="text-gray-400 text-sm mt-0.5">{{ formatDateTime(order.created_at) }}</p>
         </div>
-        <StatusBadge :status="order.status" />
+        <div class="flex flex-col items-end gap-1.5">
+          <StatusBadge :status="order.status" />
+          <StatusBadge :status="order.payment_status" type="payment" />
+        </div>
       </div>
 
       <!-- Detalles básicos -->
@@ -299,6 +302,8 @@ const availableTransitions = computed(() => {
   if (!order.value) return []
   return (VALID_TRANSITIONS[order.value.status] ?? [])
     .filter(s => s !== 'CANCELLED')
+    // DELIVERED desde READY solo si ya está completamente pagado
+    .filter(s => !(s === 'DELIVERED' && order.value!.payment_status !== 'FULLY_PAID'))
     .map(s => ({ value: s, label: ORDER_STATUS_LABELS[s] ?? s }))
 })
 
