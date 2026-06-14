@@ -117,7 +117,7 @@ class VerifyOTPView(APIView):
 
         tokens = JWTService().generate_tokens(user)
 
-        return Response(tokens, status=status.HTTP_200_OK)
+        return success_response(data=tokens, message="OTP verified successfully")
 
 
 class MeView(APIView):

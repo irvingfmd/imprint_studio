@@ -42,7 +42,11 @@
       >
         <div class="flex-1 min-w-0">
           <p class="text-gray-100 text-sm font-medium group-hover:text-white truncate">{{ order.title }}</p>
-          <p class="text-gray-500 text-xs mt-0.5">{{ formatDateTime(order.created_at) }}</p>
+          <div class="flex items-center gap-2 mt-0.5">
+            <p class="text-gray-500 text-xs">{{ formatDateTime(order.created_at) }}</p>
+            <span v-if="order.customer_phone" class="text-gray-600 text-xs">·</span>
+            <p v-if="order.customer_phone" class="text-gray-500 text-xs font-mono">{{ order.customer_phone }}</p>
+          </div>
         </div>
         <div class="flex items-center gap-2 shrink-0">
           <span :class="['text-xs px-2 py-0.5 rounded font-medium', priorityClass(order.priority)]">
@@ -67,11 +71,11 @@ import AppAlert from '@/components/ui/AppAlert.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { listAdminOrders } from '../services/adminService'
 import { formatDateTime, PRIORITY_LABELS } from '@/utils/formatters'
-import type { OrderSummary } from '@/types'
+import type { AdminOrderSummary } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
-const orders = ref<OrderSummary[]>([])
+const orders = ref<AdminOrderSummary[]>([])
 const loading = ref(true)
 const errorMessage = ref('')
 const activeFilter = ref(String(route.query.status ?? ''))

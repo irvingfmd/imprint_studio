@@ -158,6 +158,17 @@ async function handleCreate() {
   errorMessage.value = ''
   errors.value = {}
 
+  if (!form.title.trim()) {
+    errors.value.title = 'El título es obligatorio'
+  }
+  if (!form.description.trim()) {
+    errorMessage.value = 'La descripción es obligatoria'
+  }
+  if (Number(form.quantity) < 1) {
+    errors.value.quantity = 'La cantidad mínima es 1'
+  }
+  if (Object.keys(errors.value).length > 0 || errorMessage.value) return
+
   loading.value = true
   try {
     const result = await createOrder({

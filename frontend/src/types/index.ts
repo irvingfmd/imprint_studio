@@ -39,7 +39,14 @@ export interface OrderSummary {
   title: string
   status: OrderStatus
   priority: OrderPriority
+  payment_status?: string
   created_at: string
+}
+
+export interface AdminOrderSummary extends OrderSummary {
+  customer_phone: string
+  request_type: string
+  delivery_method: string
 }
 
 export interface Order extends OrderSummary {

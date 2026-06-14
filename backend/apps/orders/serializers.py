@@ -1,6 +1,7 @@
 """
 Serializers para la app orders.
 """
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 
 from .models import DeliveryMethod, FileType, Order, OrderPriority, RequestFile, RequestType
@@ -48,7 +49,7 @@ class AdminOrderDetailSerializer(OrderDetailSerializer):
                 "delivered_at": s.delivered_at.isoformat() if s.delivered_at else None,
                 "shipping_notes": s.shipping_notes,
             }
-        except Exception:
+        except ObjectDoesNotExist:
             return None
 
 

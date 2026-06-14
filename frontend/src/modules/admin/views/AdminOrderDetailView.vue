@@ -30,7 +30,7 @@
           </div>
           <div>
             <dt class="text-gray-500">Prioridad</dt>
-            <dd class="text-gray-200 mt-0.5">{{ order.priority }}</dd>
+            <dd class="text-gray-200 mt-0.5">{{ PRIORITY_LABELS[order.priority] ?? order.priority }}</dd>
           </div>
           <div>
             <dt class="text-gray-500">Entrega</dt>
@@ -264,7 +264,7 @@ import {
   createQuote, calculateQuote, createShipment, markDelivered,
 } from '../services/adminService'
 import { listProductionHistory } from '@/modules/orders/services/orderService'
-import { formatMXN, formatDate, formatDateTime, ORDER_STATUS_LABELS } from '@/utils/formatters'
+import { formatMXN, formatDate, formatDateTime, ORDER_STATUS_LABELS, PRIORITY_LABELS } from '@/utils/formatters'
 import { useToast } from '@/composables/useToast'
 import type { Order, ProductionHistoryEntry } from '@/types'
 
@@ -335,14 +335,20 @@ const canCreateQuote = computed(() =>
   order.value && QUOTE_ELIGIBLE.includes(order.value.status)
 )
 
+async function reload() {
+  const [orderData, historyData] = await Promise.all([
+    getAdminOrder(orderId),
+    listProductionHistory(orderId),
+  ])
+  order.value = orderData
+  history.value = historyData.results
+  selectedStatus.value = ''
+  statusNotes.value = ''
+}
+
 onMounted(async () => {
   try {
-    const [orderData, historyData] = await Promise.all([
-      getAdminOrder(orderId),
-      listProductionHistory(orderId),
-    ])
-    order.value = orderData
-    history.value = historyData.results
+    await reload()
   } catch {
     errorMessage.value = 'Error al cargar el pedido'
   } finally {
@@ -357,7 +363,7 @@ async function handleStatusChange() {
   try {
     await updateOrderStatus(orderId, selectedStatus.value, statusNotes.value)
     toast.show(`Estado actualizado a: ${ORDER_STATUS_LABELS[selectedStatus.value] ?? selectedStatus.value}`)
-    router.go(0)
+    await reload()
   } catch (err: any) {
     errorMessage.value = err.response?.data?.message ?? 'Error al cambiar el estado'
   } finally {
@@ -420,7 +426,9 @@ async function handleCreateQuote() {
   try {
     await createQuote(orderId, quoteForm.value)
     toast.show('Cotización creada y enviada al cliente.')
-    router.go(0)
+    quotePreview.value = null
+    quoteForm.value = { weight_grams: '', print_time_hours: '', shipping_cost: '0' }
+    await reload()
   } catch (err: any) {
     errorMessage.value = err.response?.data?.message ?? 'Error al crear la cotización'
   } finally {
@@ -434,7 +442,7 @@ async function handleCreateShipment() {
   try {
     await createShipment(orderId, shipmentForm.value)
     toast.show('Envío registrado correctamente.')
-    router.go(0)
+    await reload()
   } catch (err: any) {
     errorMessage.value = err.response?.data?.message ?? 'Error al registrar el envío'
   } finally {
@@ -449,7 +457,7 @@ async function handleMarkDelivered() {
   try {
     await markDelivered(order.value.shipment.id)
     toast.show('Pedido marcado como entregado.')
-    router.go(0)
+    await reload()
   } catch (err: any) {
     errorMessage.value = err.response?.data?.message ?? 'Error al marcar como entregado'
   } finally {

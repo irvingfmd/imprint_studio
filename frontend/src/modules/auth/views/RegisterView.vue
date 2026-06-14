@@ -115,9 +115,8 @@ async function handleRegister() {
   // Registro exitoso — enviar OTP automáticamente
   try {
     const res = await sendOtp(form.phone)
-    const query: Record<string, string> = { phone: form.phone }
-    if (res.dev_code) query.dev_code = res.dev_code
-    router.push({ name: 'otp', query })
+    if (res.dev_code) sessionStorage.setItem('otp_dev_code', res.dev_code)
+    router.push({ name: 'otp', query: { phone: form.phone } })
   } catch {
     // Si el OTP falla, redirigir a login con mensaje de éxito
     router.push({ name: 'login', query: { registered: '1' } })

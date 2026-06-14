@@ -102,8 +102,8 @@ class TestVerifyOTPView:
             "otp_code": "123456",
         })
         assert resp.status_code == 200
-        assert "access" in resp.data
-        assert "refresh" in resp.data
+        assert "access" in resp.data["data"]
+        assert "refresh" in resp.data["data"]
 
     def test_otp_incorrecto_devuelve_401(self, api_client, customer):
         # Caso 6: OTP incorrecto → 401

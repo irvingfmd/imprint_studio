@@ -51,6 +51,10 @@ const ORDER_COLORS: Record<string, string> = {
 
 const colorClass = computed(() => {
   const map = props.type === 'payment' ? PAYMENT_COLORS : ORDER_COLORS
-  return map[props.status] ?? 'bg-gray-700 text-gray-300'
+  const color = map[props.status]
+  if (!color && import.meta.env.DEV) {
+    console.warn(`[StatusBadge] Status desconocido: "${props.status}" (type: ${props.type ?? 'order'})`)
+  }
+  return color ?? 'bg-gray-700 text-gray-300'
 })
 </script>

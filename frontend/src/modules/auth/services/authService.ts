@@ -18,7 +18,7 @@ export async function sendOtp(phone: string): Promise<{ dev_code?: string }> {
 
 export async function verifyOtp(phone: string, otp_code: string): Promise<AuthTokens> {
   const { data } = await api.post('/auth/otp/verify/', { phone, otp_code })
-  return data
+  return data.data
 }
 
 export async function getMe(): Promise<User> {

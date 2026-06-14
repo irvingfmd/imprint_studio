@@ -1,7 +1,7 @@
 // Servicios administrativos
 import api from '@/services/api'
 import type {
-  Order, OrderSummary, Payment, BusinessConfig,
+  Order, AdminOrderSummary, Payment, BusinessConfig,
   PaymentInstructions, DashboardMetrics, PaginatedResponse,
 } from '@/types'
 
@@ -14,7 +14,7 @@ export async function getDashboard(): Promise<DashboardMetrics> {
 
 // --- Pedidos ---
 
-export async function listAdminOrders(params?: Record<string, string>): Promise<PaginatedResponse<OrderSummary>> {
+export async function listAdminOrders(params?: Record<string, string>): Promise<PaginatedResponse<AdminOrderSummary>> {
   const { data } = await api.get('/admin/orders/', { params })
   return data.data
 }

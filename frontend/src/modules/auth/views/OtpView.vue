@@ -6,11 +6,10 @@
       <span class="text-gray-200 font-medium">{{ phone }}</span>
     </p>
 
-    <!-- Banner de desarrollo con el código -->
-    <div v-if="devCode" class="mb-4 p-3 rounded-lg bg-yellow-900/40 border border-yellow-700 text-yellow-200">
-      <p class="text-xs font-semibold text-yellow-400 mb-1">MODO DESARROLLO</p>
+    <!-- Banner de desarrollo: solo visible en modo DEV -->
+    <div v-if="devCode && isDev" class="mb-4 p-3 rounded-lg bg-yellow-900/40 border border-yellow-700 text-yellow-200">
+      <p class="text-xs font-semibold text-yellow-400 mb-1">MODO DESARROLLO — solo visible localmente</p>
       <p class="text-2xl font-mono font-bold tracking-widest text-center text-yellow-100">{{ devCode }}</p>
-      <p class="text-xs text-yellow-500 text-center mt-1">Este banner solo aparece en desarrollo</p>
     </div>
 
     <form @submit.prevent="handleVerify" class="space-y-4">
@@ -62,8 +61,11 @@ const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 
+const isDev = import.meta.env.DEV
+
 const phone = ref(String(route.query.phone ?? ''))
-const devCode = ref(String(route.query.dev_code ?? ''))
+// dev_code se guarda en sessionStorage (nunca en la URL) para no exponer el código
+const devCode = ref(isDev ? (sessionStorage.getItem('otp_dev_code') ?? '') : '')
 const otpCode = ref('')
 const loading = ref(false)
 const errorMessage = ref('')
@@ -80,7 +82,11 @@ function startCooldown() {
   }, 1000)
 }
 
-onMounted(startCooldown)
+onMounted(() => {
+  startCooldown()
+  // Limpiar dev_code de sessionStorage para que no persista entre navegaciones
+  sessionStorage.removeItem('otp_dev_code')
+})
 onUnmounted(() => clearInterval(timer))
 
 async function handleVerify() {
@@ -119,7 +125,9 @@ async function handleResend() {
   try {
     const res = await sendOtp(phone.value)
     startCooldown()
-    if (res.dev_code) devCode.value = res.dev_code
+    if (isDev && res.dev_code) {
+      devCode.value = res.dev_code
+    }
   } catch (err: any) {
     errorMessage.value = err.response?.data?.message ?? 'Error al reenviar el código'
   }
