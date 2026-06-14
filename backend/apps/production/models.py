@@ -44,9 +44,12 @@ class ProductionHistory(models.Model):
         choices=OrderStatus.choices,
     )
 
+    # Null cuando el cambio fue realizado por el sistema (p. ej. cancelación automática)
     changed_by = models.ForeignKey(
         User,
-        on_delete=models.RESTRICT,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="production_history_changes",
     )
 

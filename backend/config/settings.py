@@ -243,6 +243,13 @@ OTP_EXPIRY_MINUTES = int(os.environ.get("OTP_EXPIRY_MINUTES", 10))
 OTP_MAX_ATTEMPTS = int(os.environ.get("OTP_MAX_ATTEMPTS", 5))
 
 # ============================================================
+# APScheduler
+# ============================================================
+
+APSCHEDULER_DATETIME_FORMAT = "N j, Y, f:s a"
+APSCHEDULER_RUN_NOW_TIMEOUT = 25  # segundos
+
+# ============================================================
 # Cloudinary
 # ============================================================
 
