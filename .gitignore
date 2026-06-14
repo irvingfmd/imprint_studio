@@ -209,8 +209,9 @@ tempCodeRunnerFile.py
 # PyPI configuration file
 .pypirc
 
-# Claude Code
-.claude/
+# Claude Code — ignorar estado interno, versionar skills del proyecto
+.claude/*
+!.claude/skills
 
 # Marimo
 marimo/_static/
