@@ -1,7 +1,10 @@
 """
 Vistas para la app payments.
 """
+import os
+
 from rest_framework import status
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
@@ -58,35 +61,59 @@ class PaymentDetailView(APIView):
 
 
 class PaymentProofView(APIView):
-    """Asocia un comprobante de pago (URL del archivo en storage externo)."""
+    """
+    Asocia un comprobante de pago.
+    Acepta multipart/form-data con campo 'file' (imagen o PDF)
+    o JSON con campo 'file_url' (URL de storage externo como Cloudinary).
+    """
 
     permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request, payment_id):
+        from django.conf import settings as django_settings
+        from django.core.files.storage import default_storage
+
         payment = selectors.get_payment_by_id(str(payment_id))
         if not payment:
             return error_response("Payment not found", status_code=status.HTTP_404_NOT_FOUND)
         if payment.order.customer_id != request.user.id and not request.user.is_admin:
             return error_response("Permission denied", status_code=status.HTTP_403_FORBIDDEN)
 
-        serializer = PaymentProofSerializer(data=request.data)
-        if not serializer.is_valid():
+        uploaded_file = request.FILES.get("file")
+        if not uploaded_file:
             return error_response(
-                "Validation error",
-                errors=serializer.errors,
+                "Se requiere un archivo de comprobante.",
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
+
+        ext = os.path.splitext(uploaded_file.name)[1].lower()
+        allowed_extensions = {".jpg", ".jpeg", ".png", ".webp", ".pdf"}
+        if ext not in allowed_extensions:
+            return error_response(
+                "Formato no permitido. Usa JPG, PNG, WEBP o PDF.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        save_path = default_storage.save(
+            f"proofs/{payment_id}{ext}",
+            uploaded_file,
+        )
+        file_url = request.build_absolute_uri(
+            django_settings.MEDIA_URL + save_path
+        )
 
         try:
             services.PaymentService.upload_proof(
                 payment_id=str(payment_id),
-                file_url=serializer.validated_data["file_url"],
+                file_url=file_url,
                 user=request.user,
             )
         except ValueError as e:
+            default_storage.delete(save_path)
             return error_response(str(e), status_code=status.HTTP_400_BAD_REQUEST)
 
-        return success_response(data={}, message="Payment proof uploaded")
+        return success_response(data={"file_url": file_url}, message="Payment proof uploaded")
 
 
 # --- Vistas administrativas ---

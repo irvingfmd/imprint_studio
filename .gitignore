@@ -213,6 +213,14 @@ tempCodeRunnerFile.py
 .claude/*
 !.claude/skills
 
+# Archivos subidos por usuarios (comprobantes de pago, etc.)
+backend/media/
+
+# Dependencias frontend
+node_modules/
+package.json
+package-lock.json
+
 # Marimo
 marimo/_static/
 marimo/_lsp/

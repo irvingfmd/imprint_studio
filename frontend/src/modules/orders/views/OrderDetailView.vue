@@ -9,6 +9,15 @@
       <div class="h-48 bg-gray-800 rounded-xl animate-pulse" />
     </div>
 
+    <div v-else-if="!order && !loading" class="text-center py-16">
+      <div class="text-4xl mb-3">🔍</div>
+      <p class="text-gray-300 font-medium">Pedido no encontrado</p>
+      <p class="text-gray-500 text-sm mt-1">Es posible que haya sido eliminado o no tengas acceso.</p>
+      <RouterLink to="/orders" class="inline-block mt-4">
+        <AppButton variant="secondary" size="sm">← Volver a mis pedidos</AppButton>
+      </RouterLink>
+    </div>
+
     <template v-else-if="order">
       <!-- Encabezado -->
       <div class="flex items-start justify-between gap-4 mb-6">
@@ -25,7 +34,7 @@
         <dl class="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
           <div>
             <dt class="text-gray-500">Tipo</dt>
-            <dd class="text-gray-200 mt-0.5">{{ order.request_type === 'REFERENCE' ? 'Por referencia' : 'Archivo 3D' }}</dd>
+            <dd class="text-gray-200 mt-0.5">{{ REQUEST_TYPE_LABELS[order.request_type] }}</dd>
           </div>
           <div>
             <dt class="text-gray-500">Prioridad</dt>
@@ -41,7 +50,7 @@
           </div>
           <div>
             <dt class="text-gray-500">Entrega</dt>
-            <dd class="text-gray-200 mt-0.5">{{ order.delivery_method === 'PICKUP' ? 'Recoger en tienda' : 'Envío a domicilio' }}</dd>
+            <dd class="text-gray-200 mt-0.5">{{ DELIVERY_METHOD_LABELS[order.delivery_method] }}</dd>
           </div>
           <div class="col-span-2" v-if="order.description">
             <dt class="text-gray-500">Descripción</dt>
@@ -56,7 +65,7 @@
           <h3 class="text-sm font-medium text-gray-400">Cotización</h3>
           <div class="flex items-center gap-2">
             <span class="text-xs text-gray-500">{{ formatDate(activeQuote.created_at) }}</span>
-            <StatusBadge :status="activeQuote.quote_status" type="order" />
+            <StatusBadge :status="activeQuote.quote_status" type="quote" />
           </div>
         </div>
 
@@ -232,7 +241,7 @@ import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { getOrder, listProductionHistory, cancelOrder } from '../services/orderService'
 import { listOrderQuotes, acceptQuote, rejectQuote } from '@/modules/quotes/services/quoteService'
 import { listOrderPayments, uploadPaymentProof } from '@/modules/payments/services/paymentService'
-import { formatMXN, formatDate, formatDateTime, ORDER_STATUS_LABELS, PRIORITY_LABELS, PAYMENT_TYPE_LABELS } from '@/utils/formatters'
+import { formatMXN, formatDate, formatDateTime, ORDER_STATUS_LABELS, PRIORITY_LABELS, PAYMENT_TYPE_LABELS, REQUEST_TYPE_LABELS, DELIVERY_METHOD_LABELS } from '@/utils/formatters'
 import { useToast } from '@/composables/useToast'
 import type { Order, Quote, Payment, ProductionHistoryEntry } from '@/types'
 
@@ -262,18 +271,22 @@ const CANCELLABLE_STATUSES = ['RECEIVED', 'PENDING_ANALYSIS', 'QUOTED', 'APPROVE
 const canCancel = computed(() => order.value && CANCELLABLE_STATUSES.includes(order.value.status))
 const pendingPayment = computed(() => payments.value.find(p => p.payment_status === 'PENDING'))
 
+async function reload() {
+  const [orderData, quotesData, paymentsData, historyData] = await Promise.all([
+    getOrder(orderId),
+    listOrderQuotes(orderId),
+    listOrderPayments(orderId),
+    listProductionHistory(orderId),
+  ])
+  order.value = orderData
+  activeQuote.value = quotesData.results[0] ?? null
+  payments.value = paymentsData.results
+  history.value = historyData.results
+}
+
 onMounted(async () => {
   try {
-    const [orderData, quotesData, paymentsData, historyData] = await Promise.all([
-      getOrder(orderId),
-      listOrderQuotes(orderId),
-      listOrderPayments(orderId),
-      listProductionHistory(orderId),
-    ])
-    order.value = orderData
-    activeQuote.value = quotesData.results[0] ?? null
-    payments.value = paymentsData.results
-    history.value = historyData.results
+    await reload()
   } catch {
     errorMessage.value = 'Error al cargar el pedido'
   } finally {
@@ -287,7 +300,7 @@ async function handleAccept(option: 'DEPOSIT' | 'FULL_PAYMENT') {
   try {
     await acceptQuote(activeQuote.value.id, option)
     toast.show('Cotización aceptada. Ya puedes realizar tu pago.')
-    router.go(0)
+    await reload()
   } catch (err: any) {
     errorMessage.value = err.response?.data?.message ?? 'Error al aceptar la cotización'
   } finally {
@@ -302,7 +315,7 @@ async function handleReject() {
     await rejectQuote(activeQuote.value.id, rejectReason.value)
     showRejectModal.value = false
     toast.show('Cotización rechazada.', 'info')
-    router.go(0)
+    await reload()
   } catch (err: any) {
     errorMessage.value = err.response?.data?.message ?? 'Error al rechazar la cotización'
   } finally {
@@ -332,7 +345,7 @@ async function handleProofUpload(event: Event) {
   try {
     await uploadPaymentProof(pendingPayment.value.id, file)
     toast.show('Comprobante enviado. El administrador lo revisará pronto.')
-    router.go(0)
+    await reload()
   } catch (err: any) {
     errorMessage.value = err.response?.data?.message ?? 'Error al subir el comprobante'
   } finally {

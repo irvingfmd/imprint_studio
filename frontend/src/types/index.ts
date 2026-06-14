@@ -82,6 +82,20 @@ export interface Quote {
   created_at: string
 }
 
+export interface QuoteCalculation {
+  material_cost: string
+  energy_cost: string
+  labor_cost: string
+  post_processing_cost: string
+  packaging_cost: string
+  risk_cost: string
+  shipping_cost: string
+  subtotal: string
+  profit_amount: string
+  discount_amount: string
+  total_price: string
+}
+
 export type PaymentStatus = 'PENDING' | 'CONFIRMED' | 'REJECTED'
 export type PaymentType = 'DEPOSIT' | 'BALANCE' | 'FULL_PAYMENT' | 'REFUND'
 export type PaymentMethod = 'BANK_TRANSFER' | 'CASH'

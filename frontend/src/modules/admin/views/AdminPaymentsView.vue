@@ -61,9 +61,16 @@
     <AppAlert :message="errorMessage" class="mt-4" />
 
     <!-- Modal: rechazar pago -->
-    <div v-if="showRejectModal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
+    <div
+      v-if="showRejectModal"
+      class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="reject-payment-modal-title"
+      @keydown.esc="showRejectModal = false"
+    >
       <div class="bg-gray-800 rounded-2xl border border-gray-700 p-6 w-full max-w-sm">
-        <h3 class="text-lg font-semibold text-white mb-3">Rechazar pago</h3>
+        <h3 id="reject-payment-modal-title" class="text-lg font-semibold text-white mb-3">Rechazar pago</h3>
         <AppInput v-model="rejectReason" label="Motivo" placeholder="¿Por qué se rechaza?" />
         <div class="flex gap-2 mt-4">
           <AppButton variant="ghost" class="flex-1" @click="showRejectModal = false">Cancelar</AppButton>

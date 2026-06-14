@@ -32,7 +32,7 @@ VALID_TRANSITIONS: dict[str, list[str]] = {
     OrderStatus.POST_PROCESSING:  [OrderStatus.READY],
     OrderStatus.READY:            [OrderStatus.PENDING_BALANCE, OrderStatus.FULLY_PAID, OrderStatus.DELIVERED],
     OrderStatus.PENDING_BALANCE:  [OrderStatus.FULLY_PAID],
-    OrderStatus.FULLY_PAID:       [OrderStatus.DELIVERED],
+    OrderStatus.FULLY_PAID:       [OrderStatus.PRINTING, OrderStatus.DELIVERED],
     OrderStatus.DELIVERED:        [],
     OrderStatus.CANCELLED:        [],
 }

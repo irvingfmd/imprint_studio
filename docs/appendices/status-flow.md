@@ -313,7 +313,8 @@ FULLY_PAID
 Puede cambiar a:
 
 ```text
-DELIVERED
+PRINTING   ← flujo pago completo (100%) — el cliente pagó antes de producción
+DELIVERED  ← flujo anticipo/saldo — producción ya terminó
 ```
 
 ---
@@ -405,7 +406,7 @@ Regla: nunca marcar como DELIVERED si payment_status no es FULLY_PAID.
 | POST_PROCESSING  | READY                                             |
 | READY            | PENDING_BALANCE, FULLY_PAID, DELIVERED*           |
 | PENDING_BALANCE  | FULLY_PAID                                        |
-| FULLY_PAID       | DELIVERED                                         |
+| FULLY_PAID       | PRINTING, DELIVERED                               |
 | DELIVERED        | — (estado final)                                  |
 | CANCELLED        | — (estado final)                                  |
 

@@ -152,40 +152,56 @@ class TestPaymentProofView:
         resp = api_client.post(proof_url(payment.id), {"file_url": "https://x.com/a.pdf"})
         assert resp.status_code == 401
 
-    def test_sube_comprobante_valido(self, auth_client, customer):
-        """Caso 32: comprobante almacenado."""
+    def test_sube_comprobante_valido(self, auth_client, customer, tmp_path, settings):
+        """Caso 32: comprobante almacenado via multipart."""
+        import io
+        settings.MEDIA_ROOT = tmp_path
         order = _make_order(customer)
         payment = _make_payment(order)
+        fake_file = io.BytesIO(b"fake image content")
+        fake_file.name = "comprobante.jpg"
         resp = auth_client.post(
             proof_url(payment.id),
-            {"file_url": "https://cdn.example.com/comprobante.pdf"},
-            format="json",
+            {"file": fake_file},
+            format="multipart",
         )
         assert resp.status_code == 200
         payment.refresh_from_db()
-        assert payment.proof_file_url == "https://cdn.example.com/comprobante.pdf"
+        assert payment.proof_file_url != ""
 
-    def test_url_invalida_devuelve_400(self, auth_client, customer):
+    def test_sin_archivo_devuelve_400(self, auth_client, customer):
         order = _make_order(customer)
         payment = _make_payment(order)
+        resp = auth_client.post(proof_url(payment.id), {}, format="multipart")
+        assert resp.status_code == 400
+
+    def test_extension_invalida_devuelve_400(self, auth_client, customer):
+        import io
+        order = _make_order(customer)
+        payment = _make_payment(order)
+        fake_file = io.BytesIO(b"<script>alert(1)</script>")
+        fake_file.name = "malware.exe"
         resp = auth_client.post(
             proof_url(payment.id),
-            {"file_url": "no-es-url"},
-            format="json",
+            {"file": fake_file},
+            format="multipart",
         )
         assert resp.status_code == 400
 
     def test_cliente_ajeno_recibe_403(self, api_client, customer):
         # Caso 60
+        import io
         from apps.authentication.models import User
         otro = User.objects.create_user(phone="+529611099912", first_name="Otro")
         order = _make_order(otro)
         payment = _make_payment(order)
         api_client.force_authenticate(user=customer)
+        fake_file = io.BytesIO(b"data")
+        fake_file.name = "a.jpg"
         resp = api_client.post(
             proof_url(payment.id),
-            {"file_url": "https://cdn.example.com/a.pdf"},
-            format="json",
+            {"file": fake_file},
+            format="multipart",
         )
         assert resp.status_code == 403
 

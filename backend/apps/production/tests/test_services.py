@@ -116,6 +116,17 @@ class TestValidTransitions:
         order.refresh_from_db()
         assert order.status == OrderStatus.FULLY_PAID
 
+    def test_fully_paid_a_printing_flujo_pago_completo(self, customer, admin_user):
+        """Flujo pago completo (100%): FULLY_PAID → PRINTING → ... → DELIVERED."""
+        order = _make_order(
+            customer,
+            status=OrderStatus.FULLY_PAID,
+            payment_status=OrderPaymentStatus.FULLY_PAID,
+        )
+        OrderStatusTransitionService.transition(order, OrderStatus.PRINTING, admin_user)
+        order.refresh_from_db()
+        assert order.status == OrderStatus.PRINTING
+
     def test_fully_paid_a_delivered_guarda_delivered_at(self, customer, admin_user):
         """Caso 46: DELIVERED — requiere payment_status = FULLY_PAID."""
         order = _make_order(

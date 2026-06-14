@@ -26,7 +26,7 @@
         <dl class="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
           <div>
             <dt class="text-gray-500">Tipo</dt>
-            <dd class="text-gray-200 mt-0.5">{{ order.request_type === 'REFERENCE' ? 'Por referencia' : 'Archivo 3D' }}</dd>
+            <dd class="text-gray-200 mt-0.5">{{ REQUEST_TYPE_LABELS[order.request_type] }}</dd>
           </div>
           <div>
             <dt class="text-gray-500">Prioridad</dt>
@@ -34,7 +34,7 @@
           </div>
           <div>
             <dt class="text-gray-500">Entrega</dt>
-            <dd class="text-gray-200 mt-0.5">{{ order.delivery_method === 'PICKUP' ? 'Recoger en tienda' : 'Envío a domicilio' }}</dd>
+            <dd class="text-gray-200 mt-0.5">{{ DELIVERY_METHOD_LABELS[order.delivery_method] }}</dd>
           </div>
           <div>
             <dt class="text-gray-500">Cantidad</dt>
@@ -264,9 +264,9 @@ import {
   createQuote, calculateQuote, createShipment, markDelivered,
 } from '../services/adminService'
 import { listProductionHistory } from '@/modules/orders/services/orderService'
-import { formatMXN, formatDate, formatDateTime, ORDER_STATUS_LABELS, PRIORITY_LABELS } from '@/utils/formatters'
+import { formatMXN, formatDate, formatDateTime, ORDER_STATUS_LABELS, PRIORITY_LABELS, REQUEST_TYPE_LABELS, DELIVERY_METHOD_LABELS } from '@/utils/formatters'
 import { useToast } from '@/composables/useToast'
-import type { Order, ProductionHistoryEntry } from '@/types'
+import type { Order, ProductionHistoryEntry, QuoteCalculation } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -285,7 +285,7 @@ const showCancelModal = ref(false)
 const cancelReason = ref('')
 const calculating = ref(false)
 const creatingQuote = ref(false)
-const quotePreview = ref<any>(null)
+const quotePreview = ref<QuoteCalculation | null>(null)
 const quoteErrors = ref<Record<string, string>>({})
 const quoteForm = ref({ weight_grams: '', print_time_hours: '', shipping_cost: '0' })
 const creatingShipment = ref(false)
@@ -304,7 +304,7 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
   POST_PROCESSING: ['READY'],
   READY: ['PENDING_BALANCE', 'FULLY_PAID', 'DELIVERED'],
   PENDING_BALANCE: ['FULLY_PAID'],
-  FULLY_PAID: ['DELIVERED'],
+  FULLY_PAID: ['PRINTING', 'DELIVERED'],
 }
 
 const CANCELLABLE_FROM_ADMIN = ['RECEIVED', 'PENDING_ANALYSIS', 'QUOTED', 'APPROVED', 'PENDING_DEPOSIT']

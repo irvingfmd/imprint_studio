@@ -63,3 +63,20 @@ export const PAYMENT_TYPE_LABELS: Record<string, string> = {
   FULL_PAYMENT: 'Pago completo',
   REFUND: 'Reembolso',
 }
+
+export const QUOTE_STATUS_LABELS: Record<string, string> = {
+  PENDING: 'Pendiente',
+  ACCEPTED: 'Aceptada',
+  REJECTED: 'Rechazada',
+  EXPIRED: 'Vencida',
+}
+
+export const REQUEST_TYPE_LABELS: Record<string, string> = {
+  REFERENCE: 'Por referencia',
+  PRINTABLE_FILE: 'Archivo 3D',
+}
+
+export const DELIVERY_METHOD_LABELS: Record<string, string> = {
+  PICKUP: 'Recoger en tienda',
+  SHIPPING: 'Envío a domicilio',
+}
