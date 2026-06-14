@@ -76,8 +76,10 @@ async function handleSendOtp() {
 
   loading.value = true
   try {
-    await sendOtp(phone.value.trim())
-    router.push({ name: 'otp', query: { phone: phone.value.trim() } })
+    const res = await sendOtp(phone.value.trim())
+    const query: Record<string, string> = { phone: phone.value.trim() }
+    if (res.dev_code) query.dev_code = res.dev_code
+    router.push({ name: 'otp', query })
   } catch (err: any) {
     const detail = err.response?.data?.message ?? 'Error al enviar el código'
     errorMessage.value = detail

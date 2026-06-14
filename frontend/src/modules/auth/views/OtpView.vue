@@ -1,10 +1,17 @@
 <template>
   <div class="bg-gray-800 rounded-2xl border border-gray-700 p-8">
     <h2 class="text-xl font-semibold text-white mb-1">Verificar código</h2>
-    <p class="text-gray-400 text-sm mb-6">
+    <p class="text-gray-400 text-sm mb-4">
       Ingresa el código de 6 dígitos enviado a
       <span class="text-gray-200 font-medium">{{ phone }}</span>
     </p>
+
+    <!-- Banner de desarrollo con el código -->
+    <div v-if="devCode" class="mb-4 p-3 rounded-lg bg-yellow-900/40 border border-yellow-700 text-yellow-200">
+      <p class="text-xs font-semibold text-yellow-400 mb-1">MODO DESARROLLO</p>
+      <p class="text-2xl font-mono font-bold tracking-widest text-center text-yellow-100">{{ devCode }}</p>
+      <p class="text-xs text-yellow-500 text-center mt-1">Este banner solo aparece en desarrollo</p>
+    </div>
 
     <form @submit.prevent="handleVerify" class="space-y-4">
       <AppInput
@@ -36,8 +43,6 @@
       {{ resendCooldown > 0 ? `Reenviar código en ${resendCooldown}s` : 'Reenviar código' }}
     </button>
 
-    <AppAlert v-if="resendSuccess" message="Código reenviado correctamente." variant="success" class="mt-3" />
-
     <p class="text-center text-sm text-gray-400 mt-4">
       <RouterLink to="/login" class="text-blue-400 hover:text-blue-300">← Cambiar número</RouterLink>
     </p>
@@ -58,10 +63,10 @@ const router = useRouter()
 const auth = useAuthStore()
 
 const phone = ref(String(route.query.phone ?? ''))
+const devCode = ref(String(route.query.dev_code ?? ''))
 const otpCode = ref('')
 const loading = ref(false)
 const errorMessage = ref('')
-const resendSuccess = ref(false)
 const errors = ref<Record<string, string>>({})
 const resendCooldown = ref(0)
 
@@ -109,13 +114,12 @@ async function handleVerify() {
 
 async function handleResend() {
   if (resendCooldown.value > 0) return
-  resendSuccess.value = false
   errorMessage.value = ''
+  devCode.value = ''
   try {
-    await sendOtp(phone.value)
+    const res = await sendOtp(phone.value)
     startCooldown()
-    resendSuccess.value = true
-    setTimeout(() => { resendSuccess.value = false }, 3000)
+    if (res.dev_code) devCode.value = res.dev_code
   } catch (err: any) {
     errorMessage.value = err.response?.data?.message ?? 'Error al reenviar el código'
   }

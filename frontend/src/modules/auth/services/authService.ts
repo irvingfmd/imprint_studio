@@ -11,8 +11,9 @@ export async function register(payload: {
   await api.post('/auth/register/', payload)
 }
 
-export async function sendOtp(phone: string): Promise<void> {
-  await api.post('/auth/otp/send/', { phone })
+export async function sendOtp(phone: string): Promise<{ dev_code?: string }> {
+  const { data } = await api.post('/auth/otp/send/', { phone })
+  return data?.data ?? {}
 }
 
 export async function verifyOtp(phone: string, otp_code: string): Promise<AuthTokens> {

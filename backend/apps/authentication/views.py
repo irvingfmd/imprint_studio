@@ -6,6 +6,7 @@ Documentados en 04-api-specification.md
 """
 import logging
 
+from django.conf import settings
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
@@ -69,11 +70,17 @@ class SendOTPView(APIView):
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
 
-        OTPService().generate_and_send(
+        otp = OTPService().generate_and_send(
             phone=serializer.validated_data["phone"],
         )
 
+        # En desarrollo incluir el código en la respuesta para facilitar pruebas.
+        data = {}
+        if settings.DEBUG and otp is not None:
+            data["dev_code"] = otp.code
+
         return success_response(
+            data=data if data else None,
             message="OTP sent successfully",
         )
 
