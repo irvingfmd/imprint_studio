@@ -83,7 +83,10 @@ import AppAlert from '@/components/ui/AppAlert.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { listAdminPayments, confirmPayment, rejectPayment } from '../services/adminService'
 import { formatMXN, formatDateTime, PAYMENT_TYPE_LABELS } from '@/utils/formatters'
+import { useToast } from '@/composables/useToast'
 import type { Payment } from '@/types'
+
+const toast = useToast()
 
 const payments = ref<Payment[]>([])
 const loading = ref(true)
@@ -125,6 +128,7 @@ async function handleConfirm(paymentId: string) {
   confirming.value = paymentId
   try {
     await confirmPayment(paymentId)
+    toast.show('Pago confirmado correctamente.')
     await loadPayments()
   } catch (err: any) {
     errorMessage.value = err.response?.data?.message ?? 'Error al confirmar'
@@ -145,6 +149,7 @@ async function handleReject() {
   try {
     await rejectPayment(rejectTargetId.value, rejectReason.value)
     showRejectModal.value = false
+    toast.show('Pago rechazado.', 'info')
     await loadPayments()
   } catch (err: any) {
     errorMessage.value = err.response?.data?.message ?? 'Error al rechazar'

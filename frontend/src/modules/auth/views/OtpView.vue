@@ -1,19 +1,21 @@
 <template>
   <div class="bg-gray-800 rounded-2xl border border-gray-700 p-8">
     <h2 class="text-xl font-semibold text-white mb-1">Verificar código</h2>
-    <p class="text-gray-400 text-sm mb-2">
-      Ingresa el código enviado a
+    <p class="text-gray-400 text-sm mb-6">
+      Ingresa el código de 6 dígitos enviado a
       <span class="text-gray-200 font-medium">{{ phone }}</span>
     </p>
-    <p class="text-xs text-gray-500 mb-6">En desarrollo el código se imprime en la consola del servidor.</p>
 
     <form @submit.prevent="handleVerify" class="space-y-4">
       <AppInput
         v-model="otpCode"
         label="Código OTP"
         type="text"
+        inputmode="numeric"
+        pattern="[0-9]{6}"
         placeholder="123456"
         maxlength="6"
+        autocomplete="one-time-code"
         :error="errors.otp"
         :disabled="loading"
       />
@@ -24,12 +26,17 @@
     </form>
 
     <button
-      class="mt-4 w-full text-center text-sm text-gray-400 hover:text-gray-200 transition-colors"
+      class="mt-4 w-full text-center text-sm transition-colors"
+      :class="resendCooldown > 0
+        ? 'text-gray-600 cursor-not-allowed'
+        : 'text-gray-400 hover:text-gray-200'"
       :disabled="resendCooldown > 0"
       @click="handleResend"
     >
-      {{ resendCooldown > 0 ? `Reenviar en ${resendCooldown}s` : 'Reenviar código' }}
+      {{ resendCooldown > 0 ? `Reenviar código en ${resendCooldown}s` : 'Reenviar código' }}
     </button>
+
+    <AppAlert v-if="resendSuccess" message="Código reenviado correctamente." variant="success" class="mt-3" />
 
     <p class="text-center text-sm text-gray-400 mt-4">
       <RouterLink to="/login" class="text-blue-400 hover:text-blue-300">← Cambiar número</RouterLink>
@@ -54,6 +61,7 @@ const phone = ref(String(route.query.phone ?? ''))
 const otpCode = ref('')
 const loading = ref(false)
 const errorMessage = ref('')
+const resendSuccess = ref(false)
 const errors = ref<Record<string, string>>({})
 const resendCooldown = ref(0)
 
@@ -79,6 +87,11 @@ async function handleVerify() {
     return
   }
 
+  if (!/^\d{6}$/.test(otpCode.value.trim())) {
+    errors.value.otp = 'El código debe tener exactamente 6 dígitos'
+    return
+  }
+
   loading.value = true
   try {
     const tokens = await verifyOtp(phone.value, otpCode.value.trim())
@@ -88,6 +101,7 @@ async function handleVerify() {
     router.push(user.role === 'ADMIN' ? '/admin/dashboard' : '/orders')
   } catch (err: any) {
     errorMessage.value = err.response?.data?.message ?? 'Código inválido o expirado'
+    otpCode.value = ''
   } finally {
     loading.value = false
   }
@@ -95,11 +109,15 @@ async function handleVerify() {
 
 async function handleResend() {
   if (resendCooldown.value > 0) return
+  resendSuccess.value = false
+  errorMessage.value = ''
   try {
     await sendOtp(phone.value)
     startCooldown()
+    resendSuccess.value = true
+    setTimeout(() => { resendSuccess.value = false }, 3000)
   } catch (err: any) {
-    errorMessage.value = err.response?.data?.message ?? 'Error al reenviar'
+    errorMessage.value = err.response?.data?.message ?? 'Error al reenviar el código'
   }
 }
 </script>

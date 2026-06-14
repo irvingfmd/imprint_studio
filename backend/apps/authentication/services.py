@@ -53,6 +53,8 @@ class OTPService:
         """
         # No revelar si el teléfono existe o no — responder siempre 200.
         if not User.objects.filter(phone=phone, is_active=True).exists():
+            if settings.DEBUG:
+                print(f"\n[DEV] OTP ignorado — teléfono no registrado: {phone}\n", flush=True)
             logger.info("OTP solicitado para teléfono no registrado: %s", phone)
             return None
 
@@ -140,10 +142,13 @@ class OTPService:
         En producción usa WhatsApp Business API.
         """
         if settings.DEBUG:
-            # En desarrollo mostramos el código en consola.
-            logger.info("=" * 40)
+            # En desarrollo mostramos el código directamente en stdout.
+            print("\n" + "=" * 40, flush=True)
+            print(f"  OTP DEVELOPMENT MODE", flush=True)
+            print(f"  Teléfono : {phone}", flush=True)
+            print(f"  Código   : {code}", flush=True)
+            print("=" * 40 + "\n", flush=True)
             logger.info("OTP para %s: %s", phone, code)
-            logger.info("=" * 40)
         else:
             # En producción enviar por WhatsApp.
             # TODO: Implementar WhatsAppNotificationService

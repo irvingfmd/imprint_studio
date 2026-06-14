@@ -17,6 +17,33 @@
         <StatusBadge :status="order.status" />
       </div>
 
+      <!-- Detalles básicos -->
+      <AppCard class="mb-4">
+        <h3 class="text-sm font-medium text-gray-400 mb-3">Detalles del pedido</h3>
+        <dl class="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+          <div>
+            <dt class="text-gray-500">Tipo</dt>
+            <dd class="text-gray-200 mt-0.5">{{ order.request_type === 'REFERENCE' ? 'Por referencia' : 'Archivo 3D' }}</dd>
+          </div>
+          <div>
+            <dt class="text-gray-500">Prioridad</dt>
+            <dd class="text-gray-200 mt-0.5">{{ order.priority }}</dd>
+          </div>
+          <div>
+            <dt class="text-gray-500">Entrega</dt>
+            <dd class="text-gray-200 mt-0.5">{{ order.delivery_method === 'PICKUP' ? 'Recoger en tienda' : 'Envío a domicilio' }}</dd>
+          </div>
+          <div>
+            <dt class="text-gray-500">Cantidad</dt>
+            <dd class="text-gray-200 mt-0.5">{{ order.quantity }}</dd>
+          </div>
+          <div v-if="order.color">
+            <dt class="text-gray-500">Color</dt>
+            <dd class="text-gray-200 mt-0.5">{{ order.color }}</dd>
+          </div>
+        </dl>
+      </AppCard>
+
       <!-- Cambiar estado -->
       <AppCard class="mb-4">
         <h3 class="text-sm font-medium text-gray-400 mb-3">Cambiar estado</h3>
@@ -36,29 +63,73 @@
               {{ s.label }}
             </button>
           </div>
-          <AppInput v-model="statusNotes" placeholder="Notas (opcional)" />
+          <AppInput v-model="statusNotes" placeholder="Notas para el cliente (opcional)" />
           <AppButton size="sm" :loading="updatingStatus" :disabled="!selectedStatus" @click="handleStatusChange">
             Actualizar estado
           </AppButton>
         </div>
-        <p v-else class="text-gray-500 text-sm">No hay transiciones disponibles para este estado.</p>
+        <p v-else class="text-gray-500 text-sm">No hay transiciones disponibles desde el estado actual.</p>
       </AppCard>
 
       <!-- Crear cotización -->
       <AppCard v-if="canCreateQuote" class="mb-4">
         <h3 class="text-sm font-medium text-gray-400 mb-3">Crear cotización</h3>
-        <p class="text-xs text-gray-500 mb-3">Ingresa los datos reales de Bambu Studio:</p>
+        <p class="text-xs text-gray-500 mb-3">Ingresa los datos del archivo en Bambu Studio:</p>
         <div class="grid grid-cols-2 gap-3">
-          <AppInput v-model="quoteForm.weight_grams" label="Peso (gramos)" type="number" placeholder="250" />
-          <AppInput v-model="quoteForm.print_time_hours" label="Tiempo de impresión (horas)" type="number" placeholder="12.5" />
-          <AppInput v-model="quoteForm.shipping_cost" label="Costo de envío (MXN)" type="number" placeholder="0" />
+          <AppInput
+            v-model="quoteForm.weight_grams"
+            label="Peso (gramos)"
+            type="number"
+            placeholder="250"
+            :error="quoteErrors.weight_grams"
+          />
+          <AppInput
+            v-model="quoteForm.print_time_hours"
+            label="Tiempo de impresión (horas)"
+            type="number"
+            placeholder="12.5"
+            :error="quoteErrors.print_time_hours"
+          />
+          <AppInput
+            v-model="quoteForm.shipping_cost"
+            label="Costo de envío (MXN)"
+            type="number"
+            placeholder="0"
+          />
         </div>
-        <div v-if="quotePreview" class="mt-3 p-3 bg-gray-900/50 rounded-lg text-sm">
-          <div class="flex justify-between text-gray-400 mb-1">
-            <span>Precio total estimado:</span>
-            <span class="text-white font-semibold">{{ formatMXN(quotePreview.total_price) }}</span>
+
+        <!-- Desglose detallado del cálculo -->
+        <div v-if="quotePreview" class="mt-4 p-3 bg-gray-900/60 rounded-lg text-sm space-y-1.5 border border-gray-700">
+          <p class="text-xs font-medium text-gray-400 mb-2">Desglose de costos:</p>
+          <div class="flex justify-between text-gray-400">
+            <span>Material</span><span class="text-gray-300">{{ formatMXN(quotePreview.material_cost) }}</span>
+          </div>
+          <div class="flex justify-between text-gray-400">
+            <span>Energía</span><span class="text-gray-300">{{ formatMXN(quotePreview.energy_cost) }}</span>
+          </div>
+          <div class="flex justify-between text-gray-400">
+            <span>Mano de obra</span><span class="text-gray-300">{{ formatMXN(quotePreview.labor_cost) }}</span>
+          </div>
+          <div v-if="Number(quotePreview.post_processing_cost) > 0" class="flex justify-between text-gray-400">
+            <span>Post-procesado</span><span class="text-gray-300">{{ formatMXN(quotePreview.post_processing_cost) }}</span>
+          </div>
+          <div v-if="Number(quotePreview.packaging_cost) > 0" class="flex justify-between text-gray-400">
+            <span>Empaque</span><span class="text-gray-300">{{ formatMXN(quotePreview.packaging_cost) }}</span>
+          </div>
+          <div v-if="Number(quotePreview.risk_cost) > 0" class="flex justify-between text-gray-400">
+            <span>Riesgo</span><span class="text-gray-300">{{ formatMXN(quotePreview.risk_cost) }}</span>
+          </div>
+          <div v-if="Number(quotePreview.shipping_cost) > 0" class="flex justify-between text-gray-400">
+            <span>Envío</span><span class="text-gray-300">{{ formatMXN(quotePreview.shipping_cost) }}</span>
+          </div>
+          <div class="flex justify-between text-gray-400 pt-1 border-t border-gray-700">
+            <span>Subtotal + margen</span><span class="text-gray-300">{{ formatMXN(quotePreview.subtotal) }}</span>
+          </div>
+          <div class="flex justify-between font-semibold text-white pt-1 border-t border-gray-600">
+            <span>Total estimado</span><span>{{ formatMXN(quotePreview.total_price) }}</span>
           </div>
         </div>
+
         <div class="flex gap-2 mt-3">
           <AppButton size="sm" variant="secondary" :loading="calculating" @click="handleCalculate">
             Calcular
@@ -73,22 +144,21 @@
       <AppCard v-if="history.length > 0" class="mb-4">
         <h3 class="text-sm font-medium text-gray-400 mb-3">Historial de estados</h3>
         <div class="space-y-2">
-          <div v-for="entry in history" :key="entry.id" class="flex items-center gap-3 text-sm">
-            <div class="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+          <div v-for="entry in history" :key="entry.id" class="flex items-start gap-3 text-sm">
+            <div class="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5 shrink-0" />
             <div class="flex-1">
               <span class="text-gray-300">{{ ORDER_STATUS_LABELS[entry.new_status] }}</span>
               <span v-if="entry.notes" class="text-gray-500 ml-1">— {{ entry.notes }}</span>
             </div>
-            <span class="text-gray-600 text-xs">{{ formatDate(entry.changed_at) }}</span>
+            <span class="text-gray-600 text-xs shrink-0">{{ formatDate(entry.changed_at) }}</span>
           </div>
         </div>
       </AppCard>
 
       <!-- Envío (solo si delivery_method = SHIPPING) -->
       <template v-if="order.delivery_method === 'SHIPPING'">
-        <!-- Sin envío creado aún -->
         <AppCard v-if="!order.shipment" class="mb-4">
-          <h3 class="text-sm font-medium text-gray-400 mb-3">Crear envío</h3>
+          <h3 class="text-sm font-medium text-gray-400 mb-3">Registrar envío</h3>
           <div class="grid grid-cols-2 gap-3">
             <AppInput v-model="shipmentForm.carrier_name" label="Paquetería" placeholder="Ej: FedEx, DHL" />
             <AppInput v-model="shipmentForm.tracking_number" label="Número de rastreo" placeholder="Ej: 123456789" />
@@ -100,9 +170,8 @@
           </AppButton>
         </AppCard>
 
-        <!-- Envío creado, pendiente de entrega -->
         <AppCard v-else-if="!order.shipment.delivered_at" class="mb-4">
-          <h3 class="text-sm font-medium text-gray-400 mb-2">Envío registrado</h3>
+          <h3 class="text-sm font-medium text-gray-400 mb-2">Envío en camino</h3>
           <div class="text-sm space-y-1">
             <p v-if="order.shipment.carrier_name" class="text-gray-300">
               Paquetería: <span class="text-white">{{ order.shipment.carrier_name }}</span>
@@ -119,7 +188,6 @@
           </AppButton>
         </AppCard>
 
-        <!-- Envío entregado -->
         <AppCard v-else class="mb-4">
           <h3 class="text-sm font-medium text-gray-400 mb-2">Envío entregado</h3>
           <div class="text-sm space-y-1">
@@ -147,9 +215,17 @@
     <AppAlert :message="errorMessage" class="mt-4" />
 
     <!-- Modal: cancelar -->
-    <div v-if="showCancelModal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
+    <div
+      v-if="showCancelModal"
+      class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="admin-cancel-modal-title"
+      @keydown.esc="showCancelModal = false"
+    >
       <div class="bg-gray-800 rounded-2xl border border-gray-700 p-6 w-full max-w-sm">
-        <h3 class="text-lg font-semibold text-white mb-3">Cancelar pedido</h3>
+        <h3 id="admin-cancel-modal-title" class="text-lg font-semibold text-white mb-2">Cancelar pedido</h3>
+        <p class="text-xs text-gray-500 mb-3">El cliente será notificado del motivo.</p>
         <AppInput v-model="cancelReason" label="Motivo" placeholder="Motivo de cancelación" />
         <div class="flex gap-2 mt-4">
           <AppButton variant="ghost" class="flex-1" @click="showCancelModal = false">Volver</AppButton>
@@ -174,10 +250,12 @@ import {
 } from '../services/adminService'
 import { listProductionHistory } from '@/modules/orders/services/orderService'
 import { formatMXN, formatDate, formatDateTime, ORDER_STATUS_LABELS } from '@/utils/formatters'
+import { useToast } from '@/composables/useToast'
 import type { Order, ProductionHistoryEntry } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
+const toast = useToast()
 const orderId = String(route.params.id)
 
 const order = ref<Order | null>(null)
@@ -193,12 +271,13 @@ const cancelReason = ref('')
 const calculating = ref(false)
 const creatingQuote = ref(false)
 const quotePreview = ref<any>(null)
+const quoteErrors = ref<Record<string, string>>({})
 const quoteForm = ref({ weight_grams: '', print_time_hours: '', shipping_cost: '0' })
 const creatingShipment = ref(false)
 const markingDelivered = ref(false)
 const shipmentForm = ref({ carrier_name: '', tracking_number: '', shipping_cost: '0', shipping_notes: '' })
 
-// Transiciones válidas por estado según status-flow.md
+// Transiciones válidas según status-flow.md
 const VALID_TRANSITIONS: Record<string, string[]> = {
   RECEIVED: ['QUOTED', 'CANCELLED'],
   PENDING_ANALYSIS: ['QUOTED', 'CANCELLED'],
@@ -218,10 +297,9 @@ const QUOTE_ELIGIBLE = ['RECEIVED', 'PENDING_ANALYSIS']
 
 const availableTransitions = computed(() => {
   if (!order.value) return []
-  return (VALID_TRANSITIONS[order.value.status] ?? []).map(s => ({
-    value: s,
-    label: ORDER_STATUS_LABELS[s] ?? s,
-  }))
+  return (VALID_TRANSITIONS[order.value.status] ?? [])
+    .filter(s => s !== 'CANCELLED')
+    .map(s => ({ value: s, label: ORDER_STATUS_LABELS[s] ?? s }))
 })
 
 const canCancelAdmin = computed(() =>
@@ -253,6 +331,7 @@ async function handleStatusChange() {
   errorMessage.value = ''
   try {
     await updateOrderStatus(orderId, selectedStatus.value, statusNotes.value)
+    toast.show(`Estado actualizado a: ${ORDER_STATUS_LABELS[selectedStatus.value] ?? selectedStatus.value}`)
     router.go(0)
   } catch (err: any) {
     errorMessage.value = err.response?.data?.message ?? 'Error al cambiar el estado'
@@ -266,18 +345,34 @@ async function handleCancel() {
   try {
     await cancelOrderAdmin(orderId, cancelReason.value)
     showCancelModal.value = false
+    toast.show('Pedido cancelado.', 'info')
     router.push('/admin/orders')
   } catch (err: any) {
     errorMessage.value = err.response?.data?.message ?? 'Error al cancelar'
+    showCancelModal.value = false
   } finally {
     cancelling.value = false
   }
 }
 
+function validateQuoteForm(): boolean {
+  quoteErrors.value = {}
+  const weight = Number(quoteForm.value.weight_grams)
+  const hours = Number(quoteForm.value.print_time_hours)
+  if (!quoteForm.value.weight_grams || weight <= 0) {
+    quoteErrors.value.weight_grams = 'Debe ser mayor a 0'
+  }
+  if (!quoteForm.value.print_time_hours || hours <= 0) {
+    quoteErrors.value.print_time_hours = 'Debe ser mayor a 0'
+  }
+  return Object.keys(quoteErrors.value).length === 0
+}
+
 async function handleCalculate() {
-  if (!quoteForm.value.weight_grams || !quoteForm.value.print_time_hours) return
+  if (!validateQuoteForm()) return
   calculating.value = true
   errorMessage.value = ''
+  quotePreview.value = null
   try {
     const result = await calculateQuote({
       weight_grams: quoteForm.value.weight_grams,
@@ -299,6 +394,7 @@ async function handleCreateQuote() {
   errorMessage.value = ''
   try {
     await createQuote(orderId, quoteForm.value)
+    toast.show('Cotización creada y enviada al cliente.')
     router.go(0)
   } catch (err: any) {
     errorMessage.value = err.response?.data?.message ?? 'Error al crear la cotización'
@@ -312,6 +408,7 @@ async function handleCreateShipment() {
   errorMessage.value = ''
   try {
     await createShipment(orderId, shipmentForm.value)
+    toast.show('Envío registrado correctamente.')
     router.go(0)
   } catch (err: any) {
     errorMessage.value = err.response?.data?.message ?? 'Error al registrar el envío'
@@ -326,6 +423,7 @@ async function handleMarkDelivered() {
   errorMessage.value = ''
   try {
     await markDelivered(order.value.shipment.id)
+    toast.show('Pedido marcado como entregado.')
     router.go(0)
   } catch (err: any) {
     errorMessage.value = err.response?.data?.message ?? 'Error al marcar como entregado'
