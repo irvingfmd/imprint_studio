@@ -20,11 +20,17 @@ const label = computed(() => {
 })
 
 const PAYMENT_COLORS: Record<string, string> = {
+  // Payment.payment_status
   PENDING: 'bg-yellow-900/50 text-yellow-300',
   CONFIRMED: 'bg-green-900/50 text-green-300',
   REJECTED: 'bg-red-900/50 text-red-300',
+  // Order.payment_status
+  NO_PAYMENT: 'bg-gray-700 text-gray-400',
+  DEPOSIT_PENDING: 'bg-orange-900/50 text-orange-300',
   DEPOSIT_PAID: 'bg-lime-900/50 text-lime-300',
+  BALANCE_PENDING: 'bg-orange-900/50 text-orange-300',
   FULLY_PAID: 'bg-green-900/50 text-green-300',
+  REFUNDED: 'bg-purple-900/50 text-purple-300',
 }
 
 const ORDER_COLORS: Record<string, string> = {

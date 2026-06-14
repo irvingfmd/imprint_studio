@@ -49,8 +49,12 @@ export const PAYMENT_STATUS_LABELS: Record<string, string> = {
   CONFIRMED: 'Confirmado',
   REJECTED: 'Rechazado',
   // Estados de pago del pedido (Order.payment_status)
+  NO_PAYMENT: 'Sin pago',
+  DEPOSIT_PENDING: 'Anticipo pendiente',
   DEPOSIT_PAID: 'Anticipo pagado',
+  BALANCE_PENDING: 'Saldo pendiente',
   FULLY_PAID: 'Pagado completo',
+  REFUNDED: 'Reembolsado',
 }
 
 export const PAYMENT_TYPE_LABELS: Record<string, string> = {
