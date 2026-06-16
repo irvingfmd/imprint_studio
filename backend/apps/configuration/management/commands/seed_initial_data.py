@@ -14,6 +14,7 @@ class Command(BaseCommand):
         self._seed_business_hours()
         self._seed_holidays()
         self._seed_payment_instructions()
+        self._seed_printers()
         self.stdout.write(
             self.style.SUCCESS("Datos iniciales cargados correctamente.")
         )
@@ -30,7 +31,7 @@ class Command(BaseCommand):
 
         BusinessConfig.objects.create(
             material_cost_per_kg="25.00",
-            energy_cost_per_hour="0.50",
+            electricity_rate_kwh="2.0000",
             labor_cost_per_hour="15.00",
             post_processing_cost_per_gram="0.05",
             packaging_cost="2.00",
@@ -129,3 +130,35 @@ class Command(BaseCommand):
         self.stdout.write(
             "payment_instructions: creadas (datos placeholder, actualizar antes de producción)."
         )
+
+    def _seed_printers(self):
+        """
+        Crea el catálogo inicial de impresoras si no existe.
+        Potencia en vatios según especificaciones oficiales de cada modelo.
+        """
+        from apps.configuration.models import Printer
+
+        if Printer.objects.exists():
+            self.stdout.write("printers: ya existen, omitiendo.")
+            return
+
+        # (marca, modelo, potencia promedio W, potencia máxima técnica W)
+        impresoras = [
+            ("Bambu Lab", "X1 Carbon",      350, 1000),
+            ("Bambu Lab", "P1S",            350, 1000),
+            ("Bambu Lab", "P1P",            300, 1000),
+            ("Bambu Lab", "A1",             250,  800),
+            ("Bambu Lab", "A1 Mini",        200,  500),
+            ("Creality",  "K1",             350, 1000),
+            ("Creality",  "K1 Max",         400, 1000),
+            ("Creality",  "Ender-3 V3 SE",  165,  350),
+            ("Creality",  "Ender-3 S1 Pro", 180,  350),
+            ("Prusa",     "MK4",            120,  280),
+            ("Prusa",     "MINI+",           90,  180),
+            ("Anycubic",  "Kobra 2 Pro",    250,  500),
+        ]
+
+        for brand, name, watts, max_watts in impresoras:
+            Printer.objects.create(brand=brand, name=name, power_watts=watts, max_power_watts=max_watts)
+
+        self.stdout.write(f"printers: {len(impresoras)} impresoras creadas.")

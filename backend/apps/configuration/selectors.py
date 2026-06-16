@@ -4,7 +4,7 @@ Encapsulan las consultas a la base de datos.
 """
 from django.db.models import QuerySet
 
-from .models import BusinessConfig, BusinessHours, Holiday, PaymentInstructions
+from .models import BusinessConfig, BusinessHours, Holiday, PaymentInstructions, Printer
 
 
 def get_active_business_config() -> BusinessConfig | None:
@@ -35,3 +35,16 @@ def get_holiday_by_id(holiday_id: str) -> Holiday | None:
 def get_active_payment_instructions() -> PaymentInstructions | None:
     """Retorna las instrucciones de pago activas."""
     return PaymentInstructions.objects.filter(is_active=True).first()
+
+
+def get_all_printers(active_only: bool = False) -> QuerySet:
+    """Retorna todas las impresoras del catálogo."""
+    qs = Printer.objects.all()
+    if active_only:
+        qs = qs.filter(is_active=True)
+    return qs
+
+
+def get_printer_by_id(printer_id: str) -> "Printer | None":
+    """Retorna una impresora por su ID."""
+    return Printer.objects.filter(id=printer_id).first()

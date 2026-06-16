@@ -30,7 +30,7 @@ export type OrderStatus =
   | 'CANCELLED'
 
 export type OrderPriority = 'NORMAL' | 'URGENT' | 'EXPRESS'
-export type RequestType = 'REFERENCE' | 'PRINTABLE_FILE'
+export type RequestType = 'REFERENCE' | 'PRINTABLE_FILE' | 'WEB_MODEL'
 export type DeliveryMethod = 'PICKUP' | 'SHIPPING'
 export type PaymentOption = 'DEPOSIT' | 'FULL_PAYMENT'
 
@@ -60,6 +60,7 @@ export interface Order extends OrderSummary {
   cancelled_at?: string | null
   shipping_address?: ShippingAddress
   shipment?: Shipment | null
+  active_quote?: Quote | null
 }
 
 export interface Quote {
@@ -79,6 +80,9 @@ export interface Quote {
   discount_amount: string
   total_price: string
   quote_status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED'
+  expires_at?: string | null
+  accepted_at?: string | null
+  rejected_at?: string | null
   created_at: string
 }
 
@@ -152,9 +156,20 @@ export interface OrderEvent {
   created_at: string
 }
 
+export interface Printer {
+  id: string
+  name: string
+  brand: string
+  power_watts: number
+  max_power_watts: number | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
 export interface BusinessConfig {
   material_cost_per_kg: string
-  energy_cost_per_hour: string
+  electricity_rate_kwh: string
   labor_cost_per_hour: string
   post_processing_cost_per_gram: string
   packaging_cost: string
@@ -193,5 +208,17 @@ export interface ApiResponse<T> {
 
 export interface PaginatedResponse<T> {
   count: number
+  num_pages?: number
   results: T[]
+}
+
+export interface AdminUser {
+  id: string
+  phone: string
+  email: string | null
+  first_name: string
+  last_name: string
+  role: 'CUSTOMER' | 'ADMIN'
+  is_active: boolean
+  created_at: string
 }

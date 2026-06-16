@@ -47,6 +47,41 @@
         </dl>
       </AppCard>
 
+      <!-- Enlace de modelo web (WEB_MODEL) -->
+      <AppCard v-if="order.request_type === 'WEB_MODEL'" class="mb-4 border-blue-800/50">
+        <h3 class="text-sm font-medium text-gray-400 mb-3">Modelos del cliente</h3>
+        <div v-if="webModelFiles.length > 0" class="space-y-2">
+          <div v-for="file in webModelFiles" :key="file.id" class="flex items-center gap-2">
+            <span class="text-blue-400 shrink-0">🔗</span>
+            <a
+              :href="file.file_url"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-blue-400 hover:underline text-sm truncate"
+            >
+              {{ file.original_filename || file.file_url }}
+            </a>
+            <span class="text-xs text-gray-600 ml-auto shrink-0">{{ file.file_url }}</span>
+          </div>
+        </div>
+        <p v-else class="text-xs text-gray-500">El cliente aún no ha adjuntado un enlace.</p>
+        <p class="mt-2 text-xs text-yellow-400/70">El costo de la licencia, si el modelo es de pago, corre por cuenta del cliente.</p>
+      </AppCard>
+
+      <!-- Archivos adjuntos (non-WEB_MODEL) -->
+      <AppCard v-else-if="files.length > 0" class="mb-4">
+        <h3 class="text-sm font-medium text-gray-400 mb-3">Archivos adjuntos</h3>
+        <ul class="space-y-1.5">
+          <li v-for="file in files" :key="file.id" class="flex items-center gap-2 text-sm">
+            <span class="text-gray-500">📎</span>
+            <a :href="file.file_url" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:underline truncate">
+              {{ file.original_filename }}
+            </a>
+            <span class="text-xs text-gray-600 shrink-0 uppercase">{{ file.file_type }}</span>
+          </li>
+        </ul>
+      </AppCard>
+
       <!-- Cambiar estado -->
       <AppCard class="mb-4">
         <h3 class="text-sm font-medium text-gray-400 mb-3">Cambiar estado</h3>
@@ -111,6 +146,18 @@
             type="number"
             placeholder="0"
           />
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Impresora (opcional)</label>
+            <select
+              v-model="quoteForm.printer_id"
+              class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="">Sin impresora (energía = $0)</option>
+              <option v-for="p in printers" :key="p.id" :value="p.id">
+                {{ p.brand ? `${p.brand} ${p.name}` : p.name }} ({{ p.power_watts }}W)
+              </option>
+            </select>
+          </div>
         </div>
 
         <!-- Desglose detallado del cálculo -->
@@ -151,6 +198,51 @@
           </AppButton>
           <AppButton size="sm" :loading="creatingQuote" :disabled="!quotePreview" @click="handleCreateQuote">
             Crear cotización
+          </AppButton>
+        </div>
+      </AppCard>
+
+      <!-- Cotización activa -->
+      <AppCard v-if="activeQuote" class="mb-4">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-medium text-gray-400">Cotización activa</h3>
+          <div class="flex items-center gap-2">
+            <span :class="['px-2 py-0.5 rounded-full text-xs font-medium border', quoteStatusClass(activeQuote.quote_status)]">
+              {{ QUOTE_STATUS_LABELS[activeQuote.quote_status] }}
+            </span>
+            <AppButton size="sm" variant="ghost" :loading="downloadingPDF" title="Descargar PDF" @click="handleDownloadPDF">
+              📄 PDF
+            </AppButton>
+          </div>
+        </div>
+
+        <p class="text-2xl font-semibold text-white mb-3">{{ formatMXN(activeQuote.total_price) }}</p>
+
+        <div class="space-y-1 text-sm">
+          <div class="flex justify-between text-gray-400">
+            <span>Material</span><span class="text-gray-300">{{ formatMXN(activeQuote.material_cost) }}</span>
+          </div>
+          <div class="flex justify-between text-gray-400">
+            <span>Energía</span><span class="text-gray-300">{{ formatMXN(activeQuote.energy_cost) }}</span>
+          </div>
+          <div class="flex justify-between text-gray-400">
+            <span>Mano de obra</span><span class="text-gray-300">{{ formatMXN(activeQuote.labor_cost) }}</span>
+          </div>
+          <div v-if="Number(activeQuote.post_processing_cost) > 0" class="flex justify-between text-gray-400">
+            <span>Post-procesado</span><span class="text-gray-300">{{ formatMXN(activeQuote.post_processing_cost) }}</span>
+          </div>
+          <div v-if="Number(activeQuote.shipping_cost) > 0" class="flex justify-between text-gray-400">
+            <span>Envío</span><span class="text-gray-300">{{ formatMXN(activeQuote.shipping_cost) }}</span>
+          </div>
+        </div>
+
+        <p v-if="activeQuote.expires_at" class="mt-2 text-xs text-gray-500">
+          {{ activeQuote.quote_status === 'PENDING' ? 'Expira' : 'Expiró' }}: {{ formatDate(activeQuote.expires_at) }}
+        </p>
+
+        <div v-if="activeQuote.quote_status === 'PENDING'" class="mt-3">
+          <AppButton size="sm" variant="ghost" :loading="expiringQuote" @click="handleExpireQuote">
+            Expirar cotización
           </AppButton>
         </div>
       </AppCard>
@@ -261,12 +353,13 @@ import AppAlert from '@/components/ui/AppAlert.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import {
   getAdminOrder, updateOrderStatus, cancelOrderAdmin,
-  createQuote, calculateQuote, createShipment, markDelivered,
+  createQuote, calculateQuote, createShipment, markDelivered, expireQuote, listPrinters,
 } from '../services/adminService'
-import { listProductionHistory } from '@/modules/orders/services/orderService'
+import { listProductionHistory, listOrderFiles } from '@/modules/orders/services/orderService'
+import { downloadQuotePDF } from '@/modules/quotes/services/quoteService'
 import { formatMXN, formatDate, formatDateTime, ORDER_STATUS_LABELS, PRIORITY_LABELS, REQUEST_TYPE_LABELS, DELIVERY_METHOD_LABELS } from '@/utils/formatters'
 import { useToast } from '@/composables/useToast'
-import type { Order, ProductionHistoryEntry, QuoteCalculation } from '@/types'
+import type { Order, ProductionHistoryEntry, QuoteCalculation, Quote, Printer } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -275,6 +368,7 @@ const orderId = String(route.params.id)
 
 const order = ref<Order | null>(null)
 const history = ref<ProductionHistoryEntry[]>([])
+const files = ref<any[]>([])
 const loading = ref(true)
 const errorMessage = ref('')
 const selectedStatus = ref('')
@@ -287,10 +381,32 @@ const calculating = ref(false)
 const creatingQuote = ref(false)
 const quotePreview = ref<QuoteCalculation | null>(null)
 const quoteErrors = ref<Record<string, string>>({})
-const quoteForm = ref({ weight_grams: '', print_time_hours: '', shipping_cost: '0' })
+const quoteForm = ref({ weight_grams: '', print_time_hours: '', shipping_cost: '0', printer_id: '' as string | null })
+const printers = ref<Printer[]>([])
 const creatingShipment = ref(false)
 const markingDelivered = ref(false)
 const shipmentForm = ref({ carrier_name: '', tracking_number: '', shipping_cost: '0', shipping_notes: '' })
+const downloadingPDF = ref(false)
+const expiringQuote = ref(false)
+
+const activeQuote = computed((): Quote | null => order.value?.active_quote ?? null)
+const webModelFiles = computed(() => files.value.filter((f: any) => f.file_type === 'WEB_MODEL'))
+
+const QUOTE_STATUS_LABELS: Record<string, string> = {
+  PENDING: 'Pendiente',
+  ACCEPTED: 'Aceptada',
+  REJECTED: 'Rechazada',
+  EXPIRED: 'Expirada',
+}
+
+function quoteStatusClass(s: string): string {
+  return ({
+    PENDING: 'bg-yellow-600/20 text-yellow-300 border-yellow-700',
+    ACCEPTED: 'bg-green-600/20 text-green-300 border-green-700',
+    REJECTED: 'bg-red-600/20 text-red-300 border-red-700',
+    EXPIRED: 'bg-gray-600/20 text-gray-400 border-gray-600',
+  } as Record<string, string>)[s] ?? 'bg-gray-600/20 text-gray-400 border-gray-600'
+}
 
 // Transiciones válidas según status-flow.md
 const VALID_TRANSITIONS: Record<string, string[]> = {
@@ -336,19 +452,22 @@ const canCreateQuote = computed(() =>
 )
 
 async function reload() {
-  const [orderData, historyData] = await Promise.all([
+  const [orderData, historyData, filesData] = await Promise.all([
     getAdminOrder(orderId),
     listProductionHistory(orderId),
+    listOrderFiles(orderId),
   ])
   order.value = orderData
   history.value = historyData.results
+  files.value = filesData.results
   selectedStatus.value = ''
   statusNotes.value = ''
 }
 
 onMounted(async () => {
   try {
-    await reload()
+    const [, printersData] = await Promise.all([reload(), listPrinters(true)])
+    printers.value = printersData
   } catch {
     errorMessage.value = 'Error al cargar el pedido'
   } finally {
@@ -410,7 +529,8 @@ async function handleCalculate() {
       print_time_hours: quoteForm.value.print_time_hours,
       shipping_cost: quoteForm.value.shipping_cost,
       priority: order.value?.priority ?? 'NORMAL',
-      payment_option: 'DEPOSIT',
+      full_payment_selected: false,
+      printer_id: quoteForm.value.printer_id || null,
     })
     quotePreview.value = result
   } catch (err: any) {
@@ -424,10 +544,15 @@ async function handleCreateQuote() {
   creatingQuote.value = true
   errorMessage.value = ''
   try {
-    await createQuote(orderId, quoteForm.value)
+    await createQuote(orderId, {
+      weight_grams: quoteForm.value.weight_grams,
+      print_time_hours: quoteForm.value.print_time_hours,
+      shipping_cost: quoteForm.value.shipping_cost,
+      printer_id: quoteForm.value.printer_id || null,
+    })
     toast.show('Cotización creada y enviada al cliente.')
     quotePreview.value = null
-    quoteForm.value = { weight_grams: '', print_time_hours: '', shipping_cost: '0' }
+    quoteForm.value = { weight_grams: '', print_time_hours: '', shipping_cost: '0', printer_id: '' }
     await reload()
   } catch (err: any) {
     errorMessage.value = err.response?.data?.message ?? 'Error al crear la cotización'
@@ -462,6 +587,34 @@ async function handleMarkDelivered() {
     errorMessage.value = err.response?.data?.message ?? 'Error al marcar como entregado'
   } finally {
     markingDelivered.value = false
+  }
+}
+
+async function handleDownloadPDF() {
+  if (!activeQuote.value) return
+  downloadingPDF.value = true
+  try {
+    const shortId = activeQuote.value.id.split('-')[0]
+    await downloadQuotePDF(activeQuote.value.id, `cotizacion-${shortId}.pdf`)
+  } catch {
+    errorMessage.value = 'Error al descargar el PDF. Intenta de nuevo.'
+  } finally {
+    downloadingPDF.value = false
+  }
+}
+
+async function handleExpireQuote() {
+  if (!activeQuote.value) return
+  expiringQuote.value = true
+  errorMessage.value = ''
+  try {
+    await expireQuote(activeQuote.value.id)
+    toast.show('Cotización expirada.')
+    await reload()
+  } catch (err: any) {
+    errorMessage.value = err.response?.data?.message ?? 'Error al expirar la cotización'
+  } finally {
+    expiringQuote.value = false
   }
 }
 </script>

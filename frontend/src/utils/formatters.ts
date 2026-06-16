@@ -74,6 +74,7 @@ export const QUOTE_STATUS_LABELS: Record<string, string> = {
 export const REQUEST_TYPE_LABELS: Record<string, string> = {
   REFERENCE: 'Por referencia',
   PRINTABLE_FILE: 'Archivo 3D',
+  WEB_MODEL: 'Enlace web',
 }
 
 export const DELIVERY_METHOD_LABELS: Record<string, string> = {

@@ -59,6 +59,29 @@
         </dl>
       </AppCard>
 
+      <!-- Archivos adjuntos -->
+      <AppCard v-if="files.length > 0" class="mb-4">
+        <h3 class="text-sm font-medium text-gray-400 mb-3">Archivos adjuntos</h3>
+        <ul class="space-y-2">
+          <li v-for="file in files" :key="file.id" class="flex items-center gap-2 text-sm">
+            <template v-if="file.file_type === 'WEB_MODEL'">
+              <span class="text-gray-500">🔗</span>
+              <a :href="file.file_url" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:underline truncate">
+                {{ file.original_filename || file.file_url }}
+              </a>
+              <span class="text-xs text-gray-600 shrink-0">Enlace web</span>
+            </template>
+            <template v-else>
+              <span class="text-gray-500">📎</span>
+              <a :href="file.file_url" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:underline truncate">
+                {{ file.original_filename }}
+              </a>
+              <span class="text-xs text-gray-600 shrink-0 uppercase">{{ file.file_type }}</span>
+            </template>
+          </li>
+        </ul>
+      </AppCard>
+
       <!-- Cotización activa -->
       <AppCard v-if="activeQuote" class="mb-4">
         <div class="flex items-center justify-between mb-3">
@@ -66,6 +89,15 @@
           <div class="flex items-center gap-2">
             <span class="text-xs text-gray-500">{{ formatDate(activeQuote.created_at) }}</span>
             <StatusBadge :status="activeQuote.quote_status" type="quote" />
+            <AppButton
+              size="sm"
+              variant="ghost"
+              :loading="downloadingPDF"
+              @click="handleDownloadPDF"
+              title="Descargar PDF"
+            >
+              📄 PDF
+            </AppButton>
           </div>
         </div>
 
@@ -238,8 +270,8 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppAlert from '@/components/ui/AppAlert.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
-import { getOrder, listProductionHistory, cancelOrder } from '../services/orderService'
-import { listOrderQuotes, acceptQuote, rejectQuote } from '@/modules/quotes/services/quoteService'
+import { getOrder, listProductionHistory, cancelOrder, listOrderFiles } from '../services/orderService'
+import { listOrderQuotes, acceptQuote, rejectQuote, downloadQuotePDF } from '@/modules/quotes/services/quoteService'
 import { listOrderPayments, uploadPaymentProof } from '@/modules/payments/services/paymentService'
 import { formatMXN, formatDate, formatDateTime, ORDER_STATUS_LABELS, PRIORITY_LABELS, PAYMENT_TYPE_LABELS, REQUEST_TYPE_LABELS, DELIVERY_METHOD_LABELS } from '@/utils/formatters'
 import { useToast } from '@/composables/useToast'
@@ -254,6 +286,7 @@ const order = ref<Order | null>(null)
 const activeQuote = ref<Quote | null>(null)
 const payments = ref<Payment[]>([])
 const history = ref<ProductionHistoryEntry[]>([])
+const files = ref<any[]>([])
 const loading = ref(true)
 const errorMessage = ref('')
 const accepting = ref(false)
@@ -262,6 +295,7 @@ const cancelling = ref(false)
 const uploadingProof = ref(false)
 const showRejectModal = ref(false)
 const showCancelModal = ref(false)
+const downloadingPDF = ref(false)
 const rejectReason = ref('')
 const cancelReason = ref('')
 const proofInput = ref<HTMLInputElement | null>(null)
@@ -272,16 +306,18 @@ const canCancel = computed(() => order.value && CANCELLABLE_STATUSES.includes(or
 const pendingPayment = computed(() => payments.value.find(p => p.payment_status === 'PENDING'))
 
 async function reload() {
-  const [orderData, quotesData, paymentsData, historyData] = await Promise.all([
+  const [orderData, quotesData, paymentsData, historyData, filesData] = await Promise.all([
     getOrder(orderId),
     listOrderQuotes(orderId),
     listOrderPayments(orderId),
     listProductionHistory(orderId),
+    listOrderFiles(orderId),
   ])
   order.value = orderData
   activeQuote.value = quotesData.results[0] ?? null
   payments.value = paymentsData.results
   history.value = historyData.results
+  files.value = filesData.results
 }
 
 onMounted(async () => {
@@ -338,9 +374,29 @@ async function handleCancel() {
   }
 }
 
+async function handleDownloadPDF() {
+  if (!activeQuote.value) return
+  downloadingPDF.value = true
+  try {
+    const shortId = activeQuote.value.id.split('-')[0]
+    await downloadQuotePDF(activeQuote.value.id, `cotizacion-${shortId}.pdf`)
+  } catch {
+    errorMessage.value = 'Error al descargar el PDF. Intenta de nuevo.'
+  } finally {
+    downloadingPDF.value = false
+  }
+}
+
 async function handleProofUpload(event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (!file || !pendingPayment.value) return
+
+  const MAX_SIZE = 10 * 1024 * 1024 // 10 MB
+  if (file.size > MAX_SIZE) {
+    errorMessage.value = 'El archivo no puede superar los 10 MB.'
+    return
+  }
+
   uploadingProof.value = true
   try {
     await uploadPaymentProof(pendingPayment.value.id, file)

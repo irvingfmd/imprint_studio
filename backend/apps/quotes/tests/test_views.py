@@ -15,7 +15,7 @@ Endpoints cubiertos:
 import pytest
 from decimal import Decimal
 
-from apps.configuration.models import BusinessConfig
+from apps.configuration.models import BusinessConfig, Printer
 from apps.orders.models import Order, OrderStatus, RequestType
 from apps.quotes.models import Quote, QuoteSnapshot, QuoteStatus
 from apps.quotes.services import QuoteService
@@ -43,6 +43,10 @@ def snapshot_url(quote_id):
     return f"/api/v1/quotes/{quote_id}/snapshot/"
 
 
+def pdf_url(quote_id):
+    return f"/api/v1/quotes/{quote_id}/pdf/"
+
+
 def admin_create_quote_url(order_id):
     return f"/api/v1/admin/orders/{order_id}/quote/"
 
@@ -56,10 +60,14 @@ CALCULATOR_URL = "/api/v1/admin/calculator/calculate/"
 
 # --- Helpers de datos ---
 
+def _make_printer(power_watts: int = 250) -> Printer:
+    return Printer.objects.create(name="Prueba", brand="Test", power_watts=power_watts)
+
+
 def _make_config(**kwargs) -> BusinessConfig:
     defaults = dict(
         material_cost_per_kg=Decimal("25.00"),
-        energy_cost_per_hour=Decimal("0.50"),
+        electricity_rate_kwh=Decimal("2.0000"),
         labor_cost_per_hour=Decimal("15.00"),
         post_processing_cost_per_gram=Decimal("0.05"),
         packaging_cost=Decimal("2.00"),
@@ -112,7 +120,7 @@ def _make_snapshot(quote) -> QuoteSnapshot:
     return QuoteSnapshot.objects.create(
         quote=quote,
         material_cost_per_kg=Decimal("25.00"),
-        energy_cost_per_hour=Decimal("0.50"),
+        electricity_rate_kwh=Decimal("2.0000"),
         labor_cost_per_hour=Decimal("15.00"),
         post_processing_cost_per_gram=Decimal("0.05"),
         packaging_cost=Decimal("2.00"),
@@ -431,8 +439,9 @@ class TestAdminExpireQuoteView:
 @pytest.mark.django_db
 class TestCalculatorView:
     def test_admin_calcula_precio_normal(self, admin_client):
-        """Caso 24: resultado con valores del ejemplo oficial."""
+        """Caso 24: resultado con valores del ejemplo oficial (impresora 250W)."""
         _make_config()
+        printer = _make_printer(power_watts=250)
         resp = admin_client.post(
             CALCULATOR_URL,
             {
@@ -441,6 +450,7 @@ class TestCalculatorView:
                 "priority": "NORMAL",
                 "shipping_cost": "120.00",
                 "full_payment_selected": False,
+                "printer_id": str(printer.id),
             },
             format="json",
         )
@@ -450,8 +460,9 @@ class TestCalculatorView:
         assert data["discount_amount"] == Decimal("0.00")
 
     def test_calcula_con_pago_completo(self, admin_client):
-        """Caso 27: descuento de 5% aplicado."""
+        """Caso 27: descuento de 5% aplicado (impresora 250W)."""
         _make_config()
+        printer = _make_printer(power_watts=250)
         resp = admin_client.post(
             CALCULATOR_URL,
             {
@@ -460,6 +471,7 @@ class TestCalculatorView:
                 "priority": "NORMAL",
                 "shipping_cost": "120.00",
                 "full_payment_selected": True,
+                "printer_id": str(printer.id),
             },
             format="json",
         )
@@ -492,3 +504,53 @@ class TestCalculatorView:
             format="json",
         )
         assert resp.status_code == 400
+
+
+# --- PDF de cotización ---
+
+@pytest.mark.django_db
+class TestQuotePDFView:
+    def test_propietario_descarga_pdf(self, auth_client, customer, admin_user):
+        _make_config()
+        order, quote = _setup_quoted_order(customer, admin_user)
+        resp = auth_client.get(pdf_url(quote.id))
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/pdf"
+        assert b"%PDF" in resp.content
+
+    def test_admin_descarga_pdf_de_cualquier_pedido(self, admin_client, customer, admin_user):
+        _make_config()
+        order, quote = _setup_quoted_order(customer, admin_user)
+        resp = admin_client.get(pdf_url(quote.id))
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/pdf"
+
+    def test_pdf_incluye_header_de_descarga(self, auth_client, customer, admin_user):
+        _make_config()
+        order, quote = _setup_quoted_order(customer, admin_user)
+        resp = auth_client.get(pdf_url(quote.id))
+        assert "Content-Disposition" in resp
+        assert "attachment" in resp["Content-Disposition"]
+        assert "cotizacion-" in resp["Content-Disposition"]
+
+    def test_cliente_ajeno_recibe_403(self, api_client, admin_user):
+        from apps.authentication.models import User
+        _make_config()
+        otro = User.objects.create_user(phone="+529611099910", first_name="Otro")
+        order = _make_order(otro)
+        quote = _make_quote_direct(order, admin_user)
+        cliente2 = User.objects.create_user(phone="+529611099911", first_name="Cliente2")
+        api_client.force_authenticate(user=cliente2)
+        resp = api_client.get(pdf_url(quote.id))
+        assert resp.status_code == 403
+
+    def test_cotizacion_inexistente_devuelve_404(self, auth_client):
+        import uuid
+        resp = auth_client.get(pdf_url(uuid.uuid4()))
+        assert resp.status_code == 404
+
+    def test_sin_token_devuelve_401(self, api_client, customer, admin_user):
+        _make_config()
+        order, quote = _setup_quoted_order(customer, admin_user)
+        resp = api_client.get(pdf_url(quote.id))
+        assert resp.status_code == 401

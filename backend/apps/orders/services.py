@@ -14,7 +14,7 @@ class OrderService:
     def create_order(customer, data: dict) -> Order:
         """
         Crea un nuevo pedido.
-        Estado inicial: RECEIVED para REFERENCE, PENDING_ANALYSIS para PRINTABLE_FILE.
+        Estado inicial: RECEIVED para REFERENCE, PENDING_ANALYSIS para PRINTABLE_FILE y WEB_MODEL.
         """
         request_type = data["request_type"]
         initial_status = (

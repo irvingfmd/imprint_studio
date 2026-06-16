@@ -9,7 +9,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from django.db import transaction
 from django.utils import timezone
 
-from apps.configuration.models import BusinessConfig
+from apps.configuration.models import BusinessConfig, Printer
 from apps.orders.models import EventType, Order, OrderEvent, OrderPaymentStatus, OrderStatus
 from apps.notifications.services import NotificationService
 
@@ -36,11 +36,13 @@ class QuoteCalculatorService:
         priority: str,
         shipping_cost: Decimal,
         full_payment_selected: bool,
+        printer: "Printer | None" = None,
         config: BusinessConfig | None = None,
     ) -> dict:
         """
         Calcula el desglose de costos.
         Si no se pasa config, obtiene el registro activo de BusinessConfig.
+        energy_cost = (printer.power_watts / 1000) × horas × tarifa_kwh
         """
         if config is None:
             config = BusinessConfig.objects.filter(is_active=True).first()
@@ -48,7 +50,15 @@ class QuoteCalculatorService:
                 raise ValueError("No existe configuración de negocio activa.")
 
         material_cost = (weight_grams / Decimal("1000")) * config.material_cost_per_kg
-        energy_cost = print_time_hours * config.energy_cost_per_hour
+
+        if printer is not None:
+            energy_cost = (
+                Decimal(printer.power_watts) / Decimal("1000")
+            ) * print_time_hours * config.electricity_rate_kwh
+        else:
+            # Fallback: sin impresora usa solo la tarifa por hora equivalente a 0W
+            energy_cost = Decimal("0.00")
+
         labor_cost = print_time_hours * config.labor_cost_per_hour
         post_processing_cost = weight_grams * config.post_processing_cost_per_gram
         packaging_cost = config.packaging_cost
@@ -97,6 +107,7 @@ class QuoteCalculatorService:
             "discount_amount": _round_money(discount_amount),
             "total_price": _round_money(total_price),
             "config": config,
+            "printer": printer,
         }
 
 
@@ -110,6 +121,7 @@ class QuoteService:
         print_time_hours: Decimal,
         shipping_cost: Decimal,
         created_by,
+        printer_id: str | None = None,
     ) -> Quote:
         """
         Crea una cotización para el pedido con datos reales de Bambu Studio.
@@ -117,6 +129,13 @@ class QuoteService:
         Crea el QuoteSnapshot y el evento QUOTE_CREATED.
         Notifica al cliente.
         """
+        printer: Printer | None = None
+        if printer_id:
+            try:
+                printer = Printer.objects.get(id=printer_id, is_active=True)
+            except Printer.DoesNotExist:
+                raise ValueError("Impresora no encontrada o inactiva.")
+
         # Invalida cotizaciones PENDING previas
         Quote.objects.filter(
             order=order,
@@ -130,12 +149,17 @@ class QuoteService:
             priority=order.priority,
             shipping_cost=shipping_cost,
             full_payment_selected=False,
+            printer=printer,
         )
         config: BusinessConfig = result["config"]
+
+        # Las cotizaciones vencen a los 7 días si el cliente no responde.
+        quote_expires_at = timezone.now() + timezone.timedelta(days=7)
 
         quote = Quote.objects.create(
             order=order,
             created_by=created_by,
+            printer=printer,
             weight_grams=weight_grams,
             print_time_hours=print_time_hours,
             material_cost=result["material_cost"],
@@ -150,12 +174,13 @@ class QuoteService:
             discount_amount=Decimal("0.00"),
             total_price=result["total_price"],
             quote_status=QuoteStatus.PENDING,
+            expires_at=quote_expires_at,
         )
 
         QuoteSnapshot.objects.create(
             quote=quote,
             material_cost_per_kg=config.material_cost_per_kg,
-            energy_cost_per_hour=config.energy_cost_per_hour,
+            electricity_rate_kwh=config.electricity_rate_kwh,
             labor_cost_per_hour=config.labor_cost_per_hour,
             post_processing_cost_per_gram=config.post_processing_cost_per_gram,
             packaging_cost=config.packaging_cost,
@@ -164,6 +189,8 @@ class QuoteService:
             urgent_multiplier=config.urgent_multiplier,
             express_multiplier=config.express_multiplier,
             full_payment_discount_percentage=config.full_payment_discount_percentage,
+            printer_name=str(printer) if printer else "",
+            printer_power_watts=printer.power_watts if printer else None,
         )
 
         # Transición de estado: RECEIVED/PENDING_ANALYSIS → QUOTED

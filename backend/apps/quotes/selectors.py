@@ -8,7 +8,7 @@ from .models import Quote, QuoteStatus
 
 def get_quote_by_id(quote_id: str) -> Quote | None:
     try:
-        return Quote.objects.select_related("order", "snapshot").get(
+        return Quote.objects.select_related("order__customer", "snapshot").get(
             id=quote_id, is_deleted=False
         )
     except Quote.DoesNotExist:

@@ -12,10 +12,12 @@ class QuoteSnapshotSerializer(serializers.ModelSerializer):
     class Meta:
         model = QuoteSnapshot
         fields = [
-            "material_cost_per_kg", "energy_cost_per_hour", "labor_cost_per_hour",
+            "material_cost_per_kg", "electricity_rate_kwh", "labor_cost_per_hour",
             "post_processing_cost_per_gram", "packaging_cost", "failure_percentage",
             "profit_margin_percentage", "urgent_multiplier", "express_multiplier",
-            "full_payment_discount_percentage", "created_at",
+            "full_payment_discount_percentage",
+            "printer_name", "printer_power_watts",
+            "created_at",
         ]
 
 
@@ -45,6 +47,7 @@ class CreateQuoteSerializer(serializers.Serializer):
         min_value=Decimal("0.00"),
         default=Decimal("0.00"),
     )
+    printer_id = serializers.UUIDField(required=False, allow_null=True, default=None)
 
 
 class AcceptQuoteSerializer(serializers.Serializer):
@@ -72,3 +75,4 @@ class CalculateSerializer(serializers.Serializer):
         default=Decimal("0.00"),
     )
     full_payment_selected = serializers.BooleanField(default=False)
+    printer_id = serializers.UUIDField(required=False, allow_null=True, default=None)

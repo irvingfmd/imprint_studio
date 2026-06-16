@@ -3,7 +3,7 @@ Serializers para la app configuration.
 """
 from rest_framework import serializers
 
-from .models import BusinessConfig, BusinessHours, Holiday, PaymentInstructions
+from .models import BusinessConfig, BusinessHours, Holiday, PaymentInstructions, Printer
 
 
 class BusinessConfigSerializer(serializers.ModelSerializer):
@@ -13,7 +13,7 @@ class BusinessConfigSerializer(serializers.ModelSerializer):
         model = BusinessConfig
         fields = [
             "material_cost_per_kg",
-            "energy_cost_per_hour",
+            "electricity_rate_kwh",
             "labor_cost_per_hour",
             "post_processing_cost_per_gram",
             "packaging_cost",
@@ -88,3 +88,22 @@ class PaymentInstructionsSerializer(serializers.ModelSerializer):
             "card_number",
             "additional_notes",
         ]
+
+
+class PrinterSerializer(serializers.ModelSerializer):
+    """Impresora 3D del catálogo."""
+
+    class Meta:
+        model = Printer
+        fields = ["id", "name", "brand", "power_watts", "max_power_watts", "is_active", "created_at", "updated_at"]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+
+class CreateUpdatePrinterSerializer(serializers.Serializer):
+    """Creación y actualización de impresoras."""
+
+    name = serializers.CharField(max_length=150)
+    brand = serializers.CharField(max_length=100, required=False, default="", allow_blank=True)
+    power_watts = serializers.IntegerField(min_value=1)
+    max_power_watts = serializers.IntegerField(min_value=1, required=False, allow_null=True, default=None)
+    is_active = serializers.BooleanField(default=True)

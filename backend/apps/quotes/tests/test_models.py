@@ -47,7 +47,7 @@ def _make_snapshot(quote) -> QuoteSnapshot:
     return QuoteSnapshot.objects.create(
         quote=quote,
         material_cost_per_kg=Decimal("25.00"),
-        energy_cost_per_hour=Decimal("0.50"),
+        electricity_rate_kwh=Decimal("2.0000"),
         labor_cost_per_hour=Decimal("15.00"),
         post_processing_cost_per_gram=Decimal("0.05"),
         packaging_cost=Decimal("2.00"),
@@ -56,6 +56,8 @@ def _make_snapshot(quote) -> QuoteSnapshot:
         urgent_multiplier=Decimal("1.30"),
         express_multiplier=Decimal("1.50"),
         full_payment_discount_percentage=Decimal("5.00"),
+        printer_name="Bambu Lab X1C",
+        printer_power_watts=350,
     )
 
 

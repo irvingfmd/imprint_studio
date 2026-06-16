@@ -40,7 +40,9 @@ const router = createRouter({
         { path: 'orders', name: 'admin-orders', component: () => import('@/modules/admin/views/AdminOrderListView.vue') },
         { path: 'orders/:id', name: 'admin-order-detail', component: () => import('@/modules/admin/views/AdminOrderDetailView.vue') },
         { path: 'payments', name: 'admin-payments', component: () => import('@/modules/admin/views/AdminPaymentsView.vue') },
+        { path: 'users', name: 'admin-users', component: () => import('@/modules/admin/views/AdminUsersView.vue') },
         { path: 'config', name: 'admin-config', component: () => import('@/modules/admin/views/AdminConfigView.vue') },
+        { path: 'printers', name: 'admin-printers', component: () => import('@/modules/admin/views/AdminPrintersView.vue') },
       ],
     },
 

@@ -81,6 +81,8 @@ const adminLinks = [
   { to: '/admin/dashboard', icon: '📊', label: 'Dashboard' },
   { to: '/admin/orders', icon: '📦', label: 'Pedidos' },
   { to: '/admin/payments', icon: '💳', label: 'Pagos' },
+  { to: '/admin/users', icon: '👥', label: 'Usuarios' },
+  { to: '/admin/printers', icon: '🖨️', label: 'Impresoras' },
   { to: '/admin/config', icon: '⚙️', label: 'Configuración' },
 ]
 

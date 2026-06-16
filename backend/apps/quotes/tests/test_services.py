@@ -8,7 +8,7 @@ QuoteService: create, accept, reject, expire.
 import pytest
 from decimal import Decimal
 
-from apps.configuration.models import BusinessConfig
+from apps.configuration.models import BusinessConfig, Printer
 from apps.orders.models import EventType, Order, OrderEvent, OrderStatus, RequestType
 from apps.payments.models import Payment, PaymentType
 from apps.quotes.models import Quote, QuoteSnapshot, QuoteStatus
@@ -18,10 +18,13 @@ from apps.quotes.services import QuoteCalculatorService, QuoteService
 # --- Helpers de fixtures ---
 
 def _make_config(**kwargs) -> BusinessConfig:
-    """Crea BusinessConfig con valores recomendados del documento 05-cost-calculator.md."""
+    """
+    Crea BusinessConfig con valores del documento 05-cost-calculator.md.
+    electricity_rate_kwh=2.0 MXN/kWh (tarifa CFE inicial).
+    """
     defaults = dict(
         material_cost_per_kg=Decimal("25.00"),
-        energy_cost_per_hour=Decimal("0.50"),
+        electricity_rate_kwh=Decimal("2.0000"),
         labor_cost_per_hour=Decimal("15.00"),
         post_processing_cost_per_gram=Decimal("0.05"),
         packaging_cost=Decimal("2.00"),
@@ -35,6 +38,19 @@ def _make_config(**kwargs) -> BusinessConfig:
     )
     defaults.update(kwargs)
     return BusinessConfig.objects.create(**defaults)
+
+
+def _make_printer(power_watts: int = 250, **kwargs) -> Printer:
+    """
+    Crea una impresora en el catálogo.
+    250W reproduce el ejemplo oficial: (250/1000) × 12.5h × 2.0 MXN/kWh = 6.25 MXN.
+    """
+    kwargs.setdefault("name", "Prueba")
+    kwargs.setdefault("brand", "Test")
+    return Printer.objects.create(
+        power_watts=power_watts,
+        **kwargs,
+    )
 
 
 def _make_order(customer, status=OrderStatus.RECEIVED, priority="NORMAL") -> Order:
@@ -81,14 +97,17 @@ class TestQuoteCalculatorService:
         """
         Caso 24: ejemplo del documento 05-cost-calculator.md.
         weight=250g, time=12.5h, NORMAL, shipping=120, full_payment=False.
+        Impresora 250W + tarifa 2.0 MXN/kWh → energy = (250/1000)×12.5×2.0 = 6.25 MXN.
         """
         config = _make_config()
+        printer = _make_printer(power_watts=250)
         result = QuoteCalculatorService.calculate(
             weight_grams=Decimal("250.00"),
             print_time_hours=Decimal("12.50"),
             priority="NORMAL",
             shipping_cost=Decimal("120.00"),
             full_payment_selected=False,
+            printer=printer,
             config=config,
         )
         assert result["material_cost"]          == Decimal("6.25")
@@ -105,21 +124,16 @@ class TestQuoteCalculatorService:
     def test_calculo_urgente_aplica_multiplicador(self, db):
         """Caso 25: prioridad URGENT aplica urgent_multiplier = 1.30."""
         config = _make_config()
+        printer = _make_printer()
         normal = QuoteCalculatorService.calculate(
-            weight_grams=Decimal("250.00"),
-            print_time_hours=Decimal("12.50"),
-            priority="NORMAL",
-            shipping_cost=Decimal("0.00"),
-            full_payment_selected=False,
-            config=config,
+            weight_grams=Decimal("250.00"), print_time_hours=Decimal("12.50"),
+            priority="NORMAL", shipping_cost=Decimal("0.00"),
+            full_payment_selected=False, printer=printer, config=config,
         )
         urgent = QuoteCalculatorService.calculate(
-            weight_grams=Decimal("250.00"),
-            print_time_hours=Decimal("12.50"),
-            priority="URGENT",
-            shipping_cost=Decimal("0.00"),
-            full_payment_selected=False,
-            config=config,
+            weight_grams=Decimal("250.00"), print_time_hours=Decimal("12.50"),
+            priority="URGENT", shipping_cost=Decimal("0.00"),
+            full_payment_selected=False, printer=printer, config=config,
         )
         assert urgent["priority_multiplier"] == Decimal("1.30")
         assert urgent["total_price"] > normal["total_price"]
@@ -127,21 +141,16 @@ class TestQuoteCalculatorService:
     def test_calculo_express_aplica_multiplicador(self, db):
         """Caso 26: prioridad EXPRESS aplica express_multiplier = 1.50."""
         config = _make_config()
+        printer = _make_printer()
         normal = QuoteCalculatorService.calculate(
-            weight_grams=Decimal("250.00"),
-            print_time_hours=Decimal("12.50"),
-            priority="NORMAL",
-            shipping_cost=Decimal("0.00"),
-            full_payment_selected=False,
-            config=config,
+            weight_grams=Decimal("250.00"), print_time_hours=Decimal("12.50"),
+            priority="NORMAL", shipping_cost=Decimal("0.00"),
+            full_payment_selected=False, printer=printer, config=config,
         )
         express = QuoteCalculatorService.calculate(
-            weight_grams=Decimal("250.00"),
-            print_time_hours=Decimal("12.50"),
-            priority="EXPRESS",
-            shipping_cost=Decimal("0.00"),
-            full_payment_selected=False,
-            config=config,
+            weight_grams=Decimal("250.00"), print_time_hours=Decimal("12.50"),
+            priority="EXPRESS", shipping_cost=Decimal("0.00"),
+            full_payment_selected=False, printer=printer, config=config,
         )
         assert express["priority_multiplier"] == Decimal("1.50")
         assert express["total_price"] > normal["total_price"]
@@ -149,13 +158,11 @@ class TestQuoteCalculatorService:
     def test_descuento_pago_completo_es_cinco_porciento(self, db):
         """Caso 27: descuento de pago completo = 5% sobre total antes de descuento."""
         config = _make_config()
+        printer = _make_printer(power_watts=250)
         result = QuoteCalculatorService.calculate(
-            weight_grams=Decimal("250.00"),
-            print_time_hours=Decimal("12.50"),
-            priority="NORMAL",
-            shipping_cost=Decimal("120.00"),
-            full_payment_selected=True,
-            config=config,
+            weight_grams=Decimal("250.00"), print_time_hours=Decimal("12.50"),
+            priority="NORMAL", shipping_cost=Decimal("120.00"),
+            full_payment_selected=True, printer=printer, config=config,
         )
         # El documento muestra 414.66, pero usa total_before_discount redondeado (436.48).
         # El código opera con el valor exacto (436.475), por eso el total real es 414.65.
@@ -165,58 +172,70 @@ class TestQuoteCalculatorService:
     def test_sin_pago_completo_no_hay_descuento(self, db):
         config = _make_config()
         result = QuoteCalculatorService.calculate(
-            weight_grams=Decimal("100.00"),
-            print_time_hours=Decimal("5.00"),
-            priority="NORMAL",
-            shipping_cost=Decimal("0.00"),
-            full_payment_selected=False,
-            config=config,
+            weight_grams=Decimal("100.00"), print_time_hours=Decimal("5.00"),
+            priority="NORMAL", shipping_cost=Decimal("0.00"),
+            full_payment_selected=False, config=config,
         )
         assert result["discount_amount"] == Decimal("0.00")
 
     def test_sin_envio_shipping_cost_es_cero(self, db):
         config = _make_config()
         result = QuoteCalculatorService.calculate(
-            weight_grams=Decimal("100.00"),
-            print_time_hours=Decimal("5.00"),
-            priority="NORMAL",
-            shipping_cost=Decimal("0.00"),
-            full_payment_selected=False,
-            config=config,
+            weight_grams=Decimal("100.00"), print_time_hours=Decimal("5.00"),
+            priority="NORMAL", shipping_cost=Decimal("0.00"),
+            full_payment_selected=False, config=config,
         )
         assert result["shipping_cost"] == Decimal("0.00")
 
     def test_con_envio_incluye_en_subtotal(self, db):
         config = _make_config()
         sin_envio = QuoteCalculatorService.calculate(
-            weight_grams=Decimal("100.00"),
-            print_time_hours=Decimal("5.00"),
-            priority="NORMAL",
-            shipping_cost=Decimal("0.00"),
-            full_payment_selected=False,
-            config=config,
+            weight_grams=Decimal("100.00"), print_time_hours=Decimal("5.00"),
+            priority="NORMAL", shipping_cost=Decimal("0.00"),
+            full_payment_selected=False, config=config,
         )
         con_envio = QuoteCalculatorService.calculate(
-            weight_grams=Decimal("100.00"),
-            print_time_hours=Decimal("5.00"),
-            priority="NORMAL",
-            shipping_cost=Decimal("100.00"),
-            full_payment_selected=False,
-            config=config,
+            weight_grams=Decimal("100.00"), print_time_hours=Decimal("5.00"),
+            priority="NORMAL", shipping_cost=Decimal("100.00"),
+            full_payment_selected=False, config=config,
         )
         assert con_envio["subtotal"] > sin_envio["subtotal"]
         assert con_envio["total_price"] > sin_envio["total_price"]
+
+    def test_sin_impresora_energy_cost_es_cero(self, db):
+        """Sin impresora no se puede calcular energía → energy_cost = 0.00."""
+        config = _make_config()
+        result = QuoteCalculatorService.calculate(
+            weight_grams=Decimal("200.00"), print_time_hours=Decimal("8.00"),
+            priority="NORMAL", shipping_cost=Decimal("0.00"),
+            full_payment_selected=False, config=config,
+        )
+        assert result["energy_cost"] == Decimal("0.00")
+
+    def test_impresora_mas_potente_genera_mayor_energy_cost(self, db):
+        """Impresora de 400W consume más que una de 150W al mismo tiempo."""
+        config = _make_config()
+        low = _make_printer(power_watts=150, name="Low", brand="A")
+        high = _make_printer(power_watts=400, name="High", brand="B")
+        r_low = QuoteCalculatorService.calculate(
+            weight_grams=Decimal("100.00"), print_time_hours=Decimal("5.00"),
+            priority="NORMAL", shipping_cost=Decimal("0.00"),
+            full_payment_selected=False, printer=low, config=config,
+        )
+        r_high = QuoteCalculatorService.calculate(
+            weight_grams=Decimal("100.00"), print_time_hours=Decimal("5.00"),
+            priority="NORMAL", shipping_cost=Decimal("0.00"),
+            full_payment_selected=False, printer=high, config=config,
+        )
+        assert r_high["energy_cost"] > r_low["energy_cost"]
 
     def test_prioridad_invalida_lanza_value_error(self, db):
         config = _make_config()
         with pytest.raises(ValueError, match="Prioridad inválida"):
             QuoteCalculatorService.calculate(
-                weight_grams=Decimal("100.00"),
-                print_time_hours=Decimal("5.00"),
-                priority="SUPER",
-                shipping_cost=Decimal("0.00"),
-                full_payment_selected=False,
-                config=config,
+                weight_grams=Decimal("100.00"), print_time_hours=Decimal("5.00"),
+                priority="SUPER", shipping_cost=Decimal("0.00"),
+                full_payment_selected=False, config=config,
             )
 
     def test_sin_config_activa_lanza_value_error(self, db):
@@ -233,12 +252,14 @@ class TestQuoteCalculatorService:
     def test_todos_los_montos_son_decimal(self, db):
         """Caso 31: verificar que no se usan floats en resultados."""
         config = _make_config()
+        printer = _make_printer()
         result = QuoteCalculatorService.calculate(
             weight_grams=Decimal("100.00"),
             print_time_hours=Decimal("5.00"),
             priority="NORMAL",
             shipping_cost=Decimal("50.00"),
             full_payment_selected=False,
+            printer=printer,
             config=config,
         )
         campos_monetarios = [
@@ -252,12 +273,14 @@ class TestQuoteCalculatorService:
     def test_redondeo_a_dos_decimales(self, db):
         """Caso 30: todos los montos tienen exactamente 2 decimales."""
         config = _make_config()
+        printer = _make_printer()
         result = QuoteCalculatorService.calculate(
             weight_grams=Decimal("333.33"),
             print_time_hours=Decimal("7.77"),
             priority="URGENT",
             shipping_cost=Decimal("85.00"),
             full_payment_selected=True,
+            printer=printer,
             config=config,
         )
         campos_monetarios = [
@@ -276,12 +299,9 @@ class TestQuoteCalculatorService:
         """Cuando se pasa config, no debe ir a la DB a buscarla."""
         config = _make_config()
         result = QuoteCalculatorService.calculate(
-            weight_grams=Decimal("100.00"),
-            print_time_hours=Decimal("5.00"),
-            priority="NORMAL",
-            shipping_cost=Decimal("0.00"),
-            full_payment_selected=False,
-            config=config,
+            weight_grams=Decimal("100.00"), print_time_hours=Decimal("5.00"),
+            priority="NORMAL", shipping_cost=Decimal("0.00"),
+            full_payment_selected=False, config=config,
         )
         assert result["config"] == config
 

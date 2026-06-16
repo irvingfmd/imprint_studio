@@ -5,7 +5,7 @@ Toda la lógica de actualización de configuración vive aquí.
 from django.db import transaction
 
 from . import selectors
-from .models import BusinessConfig, BusinessHours, Holiday, PaymentInstructions
+from .models import BusinessConfig, BusinessHours, Holiday, PaymentInstructions, Printer
 
 
 class ConfigurationService:
@@ -65,3 +65,30 @@ class ConfigurationService:
             setattr(instructions, field, value)
         instructions.save()
         return instructions
+
+    @staticmethod
+    @transaction.atomic
+    def create_printer(data: dict) -> Printer:
+        """Crea una nueva impresora en el catálogo."""
+        return Printer.objects.create(**data)
+
+    @staticmethod
+    @transaction.atomic
+    def update_printer(printer_id: str, data: dict) -> Printer:
+        """Actualiza los datos de una impresora."""
+        printer = selectors.get_printer_by_id(printer_id)
+        if not printer:
+            raise ValueError("Impresora no encontrada.")
+        for field, value in data.items():
+            setattr(printer, field, value)
+        printer.save()
+        return printer
+
+    @staticmethod
+    @transaction.atomic
+    def delete_printer(printer_id: str) -> None:
+        """Elimina una impresora del catálogo."""
+        printer = selectors.get_printer_by_id(printer_id)
+        if not printer:
+            raise ValueError("Impresora no encontrada.")
+        printer.delete()

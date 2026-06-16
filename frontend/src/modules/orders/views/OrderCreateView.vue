@@ -31,7 +31,7 @@
 
       <AppCard>
         <h3 class="text-sm font-medium text-gray-300 mb-4">Tipo de solicitud</h3>
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <button
             v-for="opt in requestTypes"
             :key="opt.value"
@@ -48,6 +48,28 @@
             <p class="font-medium text-sm">{{ opt.label }}</p>
             <p class="text-xs text-gray-500 mt-0.5">{{ opt.desc }}</p>
           </button>
+        </div>
+
+        <!-- Campos adicionales para WEB_MODEL -->
+        <div v-if="form.request_type === 'WEB_MODEL'" class="mt-4 space-y-3">
+          <AppInput
+            v-model="webModelUrl"
+            label="URL del modelo"
+            placeholder="https://makerworld.com/models/12345"
+            type="url"
+            :error="errors.webModelUrl"
+            :disabled="loading"
+          />
+          <AppInput
+            v-model="webModelName"
+            label="Nombre del modelo"
+            placeholder="Ej: Yoda Mini"
+            :error="errors.webModelName"
+            :disabled="loading"
+          />
+          <div class="rounded-lg border border-yellow-700/50 bg-yellow-900/20 px-3 py-2 text-xs text-yellow-300">
+            Si el modelo es de pago, el costo de la licencia corre por tu cuenta. Imprint Studio solo cobra el servicio de impresión.
+          </div>
         </div>
       </AppCard>
 
@@ -115,7 +137,7 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppCard from '@/components/ui/AppCard.vue'
 import AppAlert from '@/components/ui/AppAlert.vue'
-import { createOrder } from '../services/orderService'
+import { createOrder, addWebModelLink } from '../services/orderService'
 
 const router = useRouter()
 const loading = ref(false)
@@ -132,9 +154,13 @@ const form = reactive({
   delivery_method: 'PICKUP',
 })
 
+const webModelUrl = ref('')
+const webModelName = ref('')
+
 const requestTypes = [
   { value: 'REFERENCE', label: 'Por referencia', desc: 'Subes fotos o imágenes de lo que quieres' },
   { value: 'PRINTABLE_FILE', label: 'Archivo 3D', desc: 'Tienes un archivo STL, OBJ o 3MF' },
+  { value: 'WEB_MODEL', label: 'Enlace web', desc: 'Encontraste el modelo en MakerWorld, Thingiverse u otro sitio' },
 ]
 
 const priorities = [
@@ -167,6 +193,14 @@ async function handleCreate() {
   if (Number(form.quantity) < 1) {
     errors.value.quantity = 'La cantidad mínima es 1'
   }
+  if (form.request_type === 'WEB_MODEL') {
+    if (!webModelUrl.value.trim()) {
+      errors.value.webModelUrl = 'La URL del modelo es obligatoria'
+    }
+    if (!webModelName.value.trim()) {
+      errors.value.webModelName = 'El nombre del modelo es obligatorio'
+    }
+  }
   if (Object.keys(errors.value).length > 0 || errorMessage.value) return
 
   loading.value = true
@@ -175,6 +209,9 @@ async function handleCreate() {
       ...form,
       quantity: Number(form.quantity),
     })
+    if (form.request_type === 'WEB_MODEL') {
+      await addWebModelLink(result.id, webModelUrl.value.trim(), webModelName.value.trim())
+    }
     router.push(`/orders/${result.id}`)
   } catch (err: any) {
     const data = err.response?.data

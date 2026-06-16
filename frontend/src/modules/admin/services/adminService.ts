@@ -1,8 +1,8 @@
 // Servicios administrativos
 import api from '@/services/api'
 import type {
-  Order, AdminOrderSummary, Payment, BusinessConfig,
-  PaymentInstructions, DashboardMetrics, PaginatedResponse,
+  Order, AdminOrderSummary, AdminUser, Payment, BusinessConfig,
+  PaymentInstructions, DashboardMetrics, PaginatedResponse, Printer,
 } from '@/types'
 
 // --- Dashboard ---
@@ -38,6 +38,7 @@ export async function createQuote(orderId: string, payload: {
   weight_grams: string
   print_time_hours: string
   shipping_cost: string
+  printer_id?: string | null
 }): Promise<{ quote_id: string; total_price: string }> {
   const { data } = await api.post(`/admin/orders/${orderId}/quote/`, payload)
   return data.data
@@ -52,7 +53,8 @@ export async function calculateQuote(payload: {
   print_time_hours: string
   shipping_cost: string
   priority: string
-  payment_option: string
+  full_payment_selected: boolean
+  printer_id?: string | null
 }): Promise<any> {
   const { data } = await api.post('/admin/calculator/calculate/', payload)
   return data.data
@@ -157,4 +159,56 @@ export async function createHoliday(payload: {
 
 export async function deleteHoliday(holidayId: string): Promise<void> {
   await api.delete(`/admin/holidays/${holidayId}/`)
+}
+
+// --- Usuarios ---
+
+export async function listAdminUsers(params?: { page?: number; page_size?: number }): Promise<PaginatedResponse<AdminUser>> {
+  const { data } = await api.get('/admin/users/', { params })
+  return data.data
+}
+
+export async function getAdminUser(userId: string): Promise<AdminUser> {
+  const { data } = await api.get(`/admin/users/${userId}/`)
+  return data.data
+}
+
+export async function updateUserRole(userId: string, role: 'CUSTOMER' | 'ADMIN'): Promise<AdminUser> {
+  const { data } = await api.put(`/admin/users/${userId}/role/`, { role })
+  return data.data
+}
+
+// --- Impresoras ---
+
+export async function listPrinters(activeOnly = false): Promise<Printer[]> {
+  const { data } = await api.get('/admin/printers/', { params: activeOnly ? { active_only: 'true' } : {} })
+  return data.data.results
+}
+
+export async function createPrinter(payload: { name: string; brand: string; power_watts: number; max_power_watts?: number | null; is_active: boolean }): Promise<Printer> {
+  const { data } = await api.post('/admin/printers/', payload)
+  return data.data
+}
+
+export async function updatePrinter(printerId: string, payload: { name?: string; brand?: string; power_watts?: number; max_power_watts?: number | null; is_active?: boolean }): Promise<Printer> {
+  const { data } = await api.put(`/admin/printers/${printerId}/`, payload)
+  return data.data
+}
+
+export async function deletePrinter(printerId: string): Promise<void> {
+  await api.delete(`/admin/printers/${printerId}/`)
+}
+
+// --- Tarifas CFE ---
+
+export interface CfeRateLookup {
+  postal_code: string
+  tariff_zone: string
+  rate_kwh: string
+  zone_description: string
+}
+
+export async function lookupElectricityRate(postalCode: string): Promise<CfeRateLookup> {
+  const { data } = await api.get('/admin/electricity-rate-lookup/', { params: { postal_code: postalCode } })
+  return data.data
 }

@@ -9,6 +9,7 @@ import uuid
 from django.db import models
 
 from apps.authentication.models import User
+from apps.configuration.models import Printer
 from apps.orders.models import Order
 
 
@@ -42,6 +43,14 @@ class Quote(models.Model):
         User,
         on_delete=models.RESTRICT,
         related_name="created_quotes",
+    )
+
+    printer = models.ForeignKey(
+        Printer,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="quotes",
     )
 
     # Datos del laminado
@@ -122,7 +131,7 @@ class QuoteSnapshot(models.Model):
 
     # Copia de business_config al momento de cotizar
     material_cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2)
-    energy_cost_per_hour = models.DecimalField(max_digits=10, decimal_places=2)
+    electricity_rate_kwh = models.DecimalField(max_digits=10, decimal_places=4, default="2.0000")
     labor_cost_per_hour = models.DecimalField(max_digits=10, decimal_places=2)
     post_processing_cost_per_gram = models.DecimalField(max_digits=10, decimal_places=2)
     packaging_cost = models.DecimalField(max_digits=10, decimal_places=2)
@@ -131,6 +140,10 @@ class QuoteSnapshot(models.Model):
     urgent_multiplier = models.DecimalField(max_digits=5, decimal_places=2)
     express_multiplier = models.DecimalField(max_digits=5, decimal_places=2)
     full_payment_discount_percentage = models.DecimalField(max_digits=5, decimal_places=2)
+
+    # Copia de la impresora usada
+    printer_name = models.CharField(max_length=255, blank=True, default="")
+    printer_power_watts = models.PositiveIntegerField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 

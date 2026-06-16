@@ -30,12 +30,27 @@ class OrderDetailSerializer(serializers.ModelSerializer):
 
 
 class AdminOrderDetailSerializer(OrderDetailSerializer):
-    """Serializer de detalle para admins. Incluye datos de envío anidados."""
+    """Serializer de detalle para admins. Incluye envío anidado y cotización activa."""
 
     shipment = serializers.SerializerMethodField()
+    active_quote = serializers.SerializerMethodField()
 
     class Meta(OrderDetailSerializer.Meta):
-        fields = OrderDetailSerializer.Meta.fields + ["shipment"]
+        fields = OrderDetailSerializer.Meta.fields + ["shipment", "active_quote"]
+
+    def get_active_quote(self, obj) -> dict | None:
+        from apps.quotes.models import Quote
+        from apps.quotes.serializers import QuoteSerializer
+
+        quote = (
+            Quote.objects
+            .filter(order=obj, is_deleted=False)
+            .order_by("-created_at")
+            .first()
+        )
+        if not quote:
+            return None
+        return QuoteSerializer(quote).data
 
     def get_shipment(self, obj) -> dict | None:
         try:
@@ -77,8 +92,17 @@ class RequestFileUploadSerializer(serializers.Serializer):
     file_url = serializers.URLField(max_length=2048)
     file_type = serializers.ChoiceField(choices=FileType.choices)
     original_filename = serializers.CharField(max_length=255)
-    mime_type = serializers.CharField(max_length=100)
-    file_size_bytes = serializers.IntegerField(min_value=1)
+    mime_type = serializers.CharField(max_length=100, required=False, default="text/uri-list")
+    file_size_bytes = serializers.IntegerField(min_value=0, required=False, default=0)
+
+    def validate(self, attrs: dict) -> dict:
+        # Los archivos físicos deben tener MIME y tamaño reales
+        if attrs["file_type"] != FileType.WEB_MODEL:
+            if not attrs.get("mime_type") or attrs["mime_type"] == "text/uri-list":
+                raise serializers.ValidationError({"mime_type": "Este campo es requerido para archivos físicos."})
+            if attrs["file_size_bytes"] < 1:
+                raise serializers.ValidationError({"file_size_bytes": "Debe ser mayor a 0 para archivos físicos."})
+        return attrs
 
 
 class AssignShippingAddressSerializer(serializers.Serializer):

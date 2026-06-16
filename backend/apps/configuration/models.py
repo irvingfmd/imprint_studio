@@ -6,6 +6,7 @@ Configuración global del negocio:
 - BusinessHours: horarios de atención
 - Holiday: días festivos
 - PaymentInstructions: datos bancarios
+- Printer: catálogo de impresoras con consumo eléctrico
 """
 import uuid
 
@@ -26,7 +27,7 @@ class BusinessConfig(models.Model):
 
     # Costos de producción
     material_cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2)
-    energy_cost_per_hour = models.DecimalField(max_digits=10, decimal_places=2)
+    electricity_rate_kwh = models.DecimalField(max_digits=10, decimal_places=4, default="2.0000")
     labor_cost_per_hour = models.DecimalField(max_digits=10, decimal_places=2)
     post_processing_cost_per_gram = models.DecimalField(max_digits=10, decimal_places=2)
     packaging_cost = models.DecimalField(max_digits=10, decimal_places=2)
@@ -146,3 +147,32 @@ class PaymentInstructions(models.Model):
 
     def __str__(self) -> str:
         return f"{self.bank_name} — {self.account_holder}"
+
+
+class Printer(models.Model):
+    """
+    Impresora 3D registrada en el catálogo del negocio.
+    La potencia en watts se usa para calcular el costo energético de cada cotización.
+    """
+
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+
+    name = models.CharField(max_length=150)
+    brand = models.CharField(max_length=100, blank=True, default="")
+    power_watts = models.PositiveIntegerField()
+    max_power_watts = models.PositiveIntegerField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "printers"
+        ordering = ["brand", "name"]
+
+    def __str__(self) -> str:
+        return f"{self.brand} {self.name} ({self.power_watts}W)"

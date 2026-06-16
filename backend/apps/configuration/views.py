@@ -13,8 +13,10 @@ from .serializers import (
     BusinessConfigSerializer,
     BusinessHoursSerializer,
     CreateHolidaySerializer,
+    CreateUpdatePrinterSerializer,
     HolidaySerializer,
     PaymentInstructionsSerializer,
+    PrinterSerializer,
     UpdateBusinessHoursSerializer,
 )
 
@@ -141,6 +143,63 @@ class AdminHolidayDeleteView(APIView):
         return success_response(data={}, message="Holiday deleted")
 
 
+class AdminPrinterListCreateView(APIView):
+    """Lista todas las impresoras y crea nuevas. Solo admin."""
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        printers = selectors.get_all_printers()
+        serializer = PrinterSerializer(printers, many=True)
+        return success_response(
+            data={"count": printers.count(), "results": serializer.data},
+            message="Printers retrieved",
+        )
+
+    def post(self, request):
+        serializer = CreateUpdatePrinterSerializer(data=request.data)
+        if not serializer.is_valid():
+            return error_response("Validation error", errors=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+
+        printer = services.ConfigurationService.create_printer(serializer.validated_data)
+        return created_response(data=PrinterSerializer(printer).data, message="Printer created")
+
+
+class AdminPrinterDetailView(APIView):
+    """Obtiene, actualiza o elimina una impresora. Solo admin."""
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request, printer_id):
+        printer = selectors.get_printer_by_id(str(printer_id))
+        if not printer:
+            return error_response("Printer not found", status_code=status.HTTP_404_NOT_FOUND)
+        return success_response(data=PrinterSerializer(printer).data, message="Printer retrieved")
+
+    def put(self, request, printer_id):
+        printer = selectors.get_printer_by_id(str(printer_id))
+        if not printer:
+            return error_response("Printer not found", status_code=status.HTTP_404_NOT_FOUND)
+
+        serializer = CreateUpdatePrinterSerializer(data=request.data, partial=True)
+        if not serializer.is_valid():
+            return error_response("Validation error", errors=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            updated = services.ConfigurationService.update_printer(str(printer_id), serializer.validated_data)
+        except ValueError as e:
+            return error_response(str(e), status_code=status.HTTP_400_BAD_REQUEST)
+
+        return success_response(data=PrinterSerializer(updated).data, message="Printer updated")
+
+    def delete(self, request, printer_id):
+        try:
+            services.ConfigurationService.delete_printer(str(printer_id))
+        except ValueError as e:
+            return error_response(str(e), status_code=status.HTTP_404_NOT_FOUND)
+        return success_response(data={}, message="Printer deleted")
+
+
 class AdminPaymentInstructionsView(APIView):
     """Instrucciones de pago. Solo admin."""
 
@@ -171,3 +230,25 @@ class AdminPaymentInstructionsView(APIView):
             data=PaymentInstructionsSerializer(updated).data,
             message="Payment instructions updated",
         )
+
+
+class ElectricityRateLookupView(APIView):
+    """Consulta la zona CFE y tarifa de referencia para un código postal mexicano."""
+
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        from .utils.cfe_rates import lookup_cfe
+
+        postal_code = request.query_params.get("postal_code", "").strip()
+        if not postal_code or not postal_code.isdigit() or len(postal_code) != 5:
+            return error_response("Ingresa un código postal de 5 dígitos.")
+
+        result = lookup_cfe(postal_code)
+        if result is None:
+            return error_response(
+                f"No se encontró información CFE para el CP {postal_code}. "
+                "Verifica tu tarifa en tu recibo o en cfe.mx"
+            )
+
+        return success_response(data=result, message="Tarifa CFE consultada")

@@ -22,4 +22,13 @@ urlpatterns = [
 
     # GET/PUT /api/v1/admin/payment-instructions/
     path("payment-instructions/", views.AdminPaymentInstructionsView.as_view(), name="admin-payment-instructions"),
+
+    # GET/POST /api/v1/admin/printers/
+    path("printers/", views.AdminPrinterListCreateView.as_view(), name="admin-printers"),
+
+    # GET/PUT/DELETE /api/v1/admin/printers/{printer_id}/
+    path("printers/<uuid:printer_id>/", views.AdminPrinterDetailView.as_view(), name="admin-printer-detail"),
+
+    # GET /api/v1/admin/electricity-rate-lookup/?postal_code=29000
+    path("electricity-rate-lookup/", views.ElectricityRateLookupView.as_view(), name="electricity-rate-lookup"),
 ]

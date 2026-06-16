@@ -3,7 +3,7 @@ URLs de la app quotes para clientes.
 """
 from django.urls import path
 
-from .views import AcceptQuoteView, QuoteDetailView, QuoteSnapshotView, RejectQuoteView
+from .views import AcceptQuoteView, QuoteDetailView, QuotePDFView, QuoteSnapshotView, RejectQuoteView
 
 urlpatterns = [
     # GET /api/v1/quotes/{quote_id}/
@@ -17,4 +17,7 @@ urlpatterns = [
 
     # GET /api/v1/quotes/{quote_id}/snapshot/
     path("<uuid:quote_id>/snapshot/", QuoteSnapshotView.as_view(), name="quote-snapshot"),
+
+    # GET /api/v1/quotes/{quote_id}/pdf/
+    path("<uuid:quote_id>/pdf/", QuotePDFView.as_view(), name="quote-pdf"),
 ]

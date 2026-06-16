@@ -28,11 +28,54 @@
           <h3 class="text-sm font-medium text-gray-400 mb-4">Costos de producción</h3>
           <div class="grid grid-cols-2 gap-4">
             <AppInput v-model="config.material_cost_per_kg" label="Costo material (MXN/kg)" type="number" />
-            <AppInput v-model="config.energy_cost_per_hour" label="Costo energía (MXN/h)" type="number" />
             <AppInput v-model="config.labor_cost_per_hour" label="Costo mano de obra (MXN/h)" type="number" />
             <AppInput v-model="config.post_processing_cost_per_gram" label="Costo postprocesado (MXN/g)" type="number" />
             <AppInput v-model="config.packaging_cost" label="Costo empaque (MXN)" type="number" />
             <AppInput v-model="config.failure_percentage" label="Porcentaje de riesgo (%)" type="number" />
+          </div>
+
+          <!-- Tarifa eléctrica con lookup CFE -->
+          <div class="mt-4 pt-4 border-t border-gray-700">
+            <h4 class="text-xs font-medium text-gray-400 mb-3">Tarifa eléctrica</h4>
+            <div class="flex items-end gap-3">
+              <div class="flex-1">
+                <AppInput v-model="config.electricity_rate_kwh" label="Tarifa actual (MXN/kWh)" type="number" />
+              </div>
+              <div class="flex-1">
+                <label class="block text-xs text-gray-400 mb-1">Consultar por código postal</label>
+                <div class="flex gap-2">
+                  <input
+                    v-model="cfePostalCode"
+                    maxlength="5"
+                    placeholder="29000"
+                    class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    @keyup.enter="handleCfeLookup"
+                  />
+                  <AppButton size="sm" variant="secondary" :loading="lookingUpCfe" @click="handleCfeLookup">
+                    Consultar
+                  </AppButton>
+                </div>
+              </div>
+            </div>
+
+            <!-- Resultado del lookup -->
+            <div v-if="cfeResult" class="mt-3 p-3 bg-gray-900/60 rounded-lg border border-gray-700 text-sm">
+              <div class="flex items-start justify-between gap-4">
+                <div>
+                  <p class="text-gray-200 font-medium">Tarifa CFE {{ cfeResult.tariff_zone }}</p>
+                  <p class="text-gray-500 text-xs mt-0.5">{{ cfeResult.zone_description }}</p>
+                  <p class="text-gray-400 text-xs mt-1">
+                    Tarifa de referencia (bloque intermedio 2025):
+                    <span class="text-white font-medium">${{ cfeResult.rate_kwh }} MXN/kWh</span>
+                  </p>
+                  <p class="text-yellow-500/70 text-xs mt-1">
+                    Referencia aproximada. Verifica tu tarifa real en tu recibo CFE.
+                  </p>
+                </div>
+                <AppButton size="sm" @click="applyCfeRate">Aplicar</AppButton>
+              </div>
+            </div>
+            <p v-if="cfeError" class="mt-2 text-xs text-red-400">{{ cfeError }}</p>
           </div>
         </AppCard>
         <AppCard>
@@ -143,7 +186,9 @@ import {
   getBusinessConfig, updateBusinessConfig,
   getPaymentInstructions, updatePaymentInstructions,
   listHolidays, createHoliday, deleteHoliday,
+  lookupElectricityRate,
 } from '../services/adminService'
+import type { CfeRateLookup } from '../services/adminService'
 import { formatDate } from '@/utils/formatters'
 import type { BusinessConfig, PaymentInstructions } from '@/types'
 
@@ -167,6 +212,35 @@ const loadingInstructions = ref(true)
 const savingInstructions = ref(false)
 const instructionsError = ref('')
 const instructionsSuccess = ref('')
+
+// --- Lookup tarifa CFE ---
+const cfePostalCode = ref('')
+const cfeResult = ref<CfeRateLookup | null>(null)
+const cfeError = ref('')
+const lookingUpCfe = ref(false)
+
+async function handleCfeLookup() {
+  if (!cfePostalCode.value || cfePostalCode.value.length !== 5) {
+    cfeError.value = 'Ingresa un CP de 5 dígitos.'
+    return
+  }
+  lookingUpCfe.value = true
+  cfeError.value = ''
+  cfeResult.value = null
+  try {
+    cfeResult.value = await lookupElectricityRate(cfePostalCode.value)
+  } catch (err: any) {
+    cfeError.value = err.response?.data?.message ?? 'No se encontró información para ese CP.'
+  } finally {
+    lookingUpCfe.value = false
+  }
+}
+
+function applyCfeRate() {
+  if (config.value && cfeResult.value) {
+    config.value.electricity_rate_kwh = cfeResult.value.rate_kwh
+  }
+}
 
 // --- Días festivos ---
 const holidays = ref<any[]>([])

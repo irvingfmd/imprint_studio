@@ -45,6 +45,7 @@ class OrderPriority(models.TextChoices):
 class RequestType(models.TextChoices):
     REFERENCE      = "REFERENCE",       "Reference"
     PRINTABLE_FILE = "PRINTABLE_FILE",  "Printable File"
+    WEB_MODEL      = "WEB_MODEL",       "Web Model"
 
 
 class DeliveryMethod(models.TextChoices):
@@ -57,6 +58,7 @@ class FileType(models.TextChoices):
     STL           = "STL",           "STL"
     OBJ           = "OBJ",           "OBJ"
     THREE_MF      = "THREE_MF",      "3MF"
+    WEB_MODEL     = "WEB_MODEL",     "Web Model"
     PAYMENT_PROOF = "PAYMENT_PROOF", "Payment Proof"
 
 

@@ -1,6 +1,7 @@
 """
 Vistas para la app quotes.
 """
+from django.http import HttpResponse
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -11,6 +12,7 @@ from core.responses import created_response, error_response, success_response
 from apps.orders.selectors import get_order_by_id
 
 from . import selectors, services
+from .pdf_service import QuotePDFService
 from .serializers import (
     AcceptQuoteSerializer,
     CalculateSerializer,
@@ -114,6 +116,25 @@ class RejectQuoteView(APIView):
         return success_response(data={}, message="Quote rejected")
 
 
+class QuotePDFView(APIView):
+    """Descarga el PDF de una cotización. Propietario del pedido o admin."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, quote_id):
+        quote = selectors.get_quote_by_id(str(quote_id))
+        if not quote:
+            return error_response("Quote not found", status_code=status.HTTP_404_NOT_FOUND)
+        if quote.order.customer_id != request.user.id and not request.user.is_admin:
+            return error_response("Permission denied", status_code=status.HTTP_403_FORBIDDEN)
+
+        pdf_bytes = QuotePDFService.generate(quote)
+        short_id = str(quote.id)[:8]
+        response = HttpResponse(pdf_bytes, content_type="application/pdf")
+        response["Content-Disposition"] = f'attachment; filename="cotizacion-{short_id}.pdf"'
+        return response
+
+
 class QuoteSnapshotView(APIView):
     """Snapshot de configuración usado al generar la cotización. Solo admin."""
 
@@ -154,6 +175,7 @@ class AdminCreateQuoteView(APIView):
                 print_time_hours=serializer.validated_data["print_time_hours"],
                 shipping_cost=serializer.validated_data.get("shipping_cost", 0),
                 created_by=request.user,
+                printer_id=str(serializer.validated_data["printer_id"]) if serializer.validated_data.get("printer_id") else None,
             )
         except ValueError as e:
             return error_response(str(e), status_code=status.HTTP_400_BAD_REQUEST)
@@ -192,6 +214,15 @@ class CalculatorView(APIView):
         if not serializer.is_valid():
             return error_response("Validation error", errors=serializer.errors)
 
+        printer_id = serializer.validated_data.get("printer_id")
+        printer = None
+        if printer_id:
+            from apps.configuration.models import Printer
+            try:
+                printer = Printer.objects.get(id=printer_id, is_active=True)
+            except Printer.DoesNotExist:
+                return error_response("Impresora no encontrada o inactiva.", status_code=status.HTTP_400_BAD_REQUEST)
+
         try:
             result = services.QuoteCalculatorService.calculate(
                 weight_grams=serializer.validated_data["weight_grams"],
@@ -199,10 +230,11 @@ class CalculatorView(APIView):
                 priority=serializer.validated_data["priority"],
                 shipping_cost=serializer.validated_data.get("shipping_cost", 0),
                 full_payment_selected=serializer.validated_data.get("full_payment_selected", False),
+                printer=printer,
             )
         except ValueError as e:
             return error_response(str(e), status_code=status.HTTP_400_BAD_REQUEST)
 
-        # Excluye el objeto config del resultado antes de retornar
         result.pop("config", None)
+        result.pop("printer", None)
         return success_response(data=result, message="Calculation completed")

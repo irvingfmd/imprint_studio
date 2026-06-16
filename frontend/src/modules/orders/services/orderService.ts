@@ -47,6 +47,14 @@ export async function uploadOrderFile(orderId: string, file: File, fileType: str
   })
 }
 
+export async function addWebModelLink(orderId: string, url: string, modelName: string): Promise<void> {
+  await api.post(`/orders/${orderId}/files/`, {
+    file_url: url,
+    file_type: 'WEB_MODEL',
+    original_filename: modelName,
+  })
+}
+
 export async function listProductionHistory(orderId: string): Promise<PaginatedResponse<ProductionHistoryEntry>> {
   const { data } = await api.get(`/orders/${orderId}/production-history/`)
   return data.data
