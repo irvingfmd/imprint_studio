@@ -19,3 +19,13 @@ export async function acceptQuote(quoteId: string, paymentOption: 'DEPOSIT' | 'F
 export async function rejectQuote(quoteId: string, reason: string): Promise<void> {
   await api.put(`/quotes/${quoteId}/reject/`, { reason })
 }
+
+export async function downloadQuotePDF(quoteId: string, filename: string): Promise<void> {
+  const response = await api.get(`/quotes/${quoteId}/pdf/`, { responseType: 'blob' })
+  const url = URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(url)
+}

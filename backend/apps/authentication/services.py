@@ -4,6 +4,7 @@ Servicios de la app authentication.
 Contiene toda la lógica de negocio para registro,
 generación y verificación de OTP, y autenticación JWT.
 """
+import hashlib
 import hmac
 import logging
 import secrets
@@ -14,6 +15,15 @@ from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.authentication.models import OTPCode, User
+
+
+def _hash_otp(code: str) -> str:
+    """
+    Devuelve el HMAC-SHA256 del código OTP usando SECRET_KEY como clave.
+    Nunca se almacena el código en claro.
+    """
+    key = settings.SECRET_KEY.encode("utf-8")
+    return hmac.new(key, code.encode("utf-8"), hashlib.sha256).hexdigest()
 
 logger = logging.getLogger(__name__)
 
@@ -71,16 +81,18 @@ class OTPService:
         expiry_minutes = getattr(settings, "OTP_EXPIRY_MINUTES", 10)
         expires_at = timezone.now() + timedelta(minutes=expiry_minutes)
 
-        # Guardar en base de datos.
+        # Guardar hash — nunca el código en claro.
         otp = OTPCode.objects.create(
             phone=phone,
-            code=code,
+            code=_hash_otp(code),
             expires_at=expires_at,
         )
 
-        # Enviar código.
+        # Enviar el código en claro al usuario.
         self._send(phone, code)
 
+        # Adjuntar código en claro para que la vista lo exponga en modo DEBUG.
+        otp._raw_code = code
         return otp
 
     def verify(self, phone: str, code: str) -> User:
@@ -105,8 +117,8 @@ class OTPService:
         if otp.attempts >= max_attempts:
             raise ValueError("Demasiados intentos fallidos. Solicita un nuevo código.")
 
-        # Comparación en tiempo constante para evitar timing attacks.
-        if not hmac.compare_digest(otp.code, code):
+        # Comparación en tiempo constante contra el hash almacenado.
+        if not hmac.compare_digest(otp.code, _hash_otp(code)):
             # Registrar intento fallido.
             otp.attempts += 1
             otp.save(update_fields=["attempts"])

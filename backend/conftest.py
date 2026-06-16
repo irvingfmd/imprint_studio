@@ -7,6 +7,7 @@ from datetime import timedelta
 from rest_framework.test import APIClient
 
 from apps.authentication.models import OTPCode, User, UserRole
+from apps.authentication.services import _hash_otp
 
 
 @pytest.fixture
@@ -63,9 +64,9 @@ def shipping_address(customer):
 
 
 def make_otp(phone: str, code: str = "123456", minutes: int = 10) -> OTPCode:
-    """Crea un OTPCode válido para pruebas."""
+    """Crea un OTPCode válido para pruebas. Almacena el hash como en producción."""
     return OTPCode.objects.create(
         phone=phone,
-        code=code,
+        code=_hash_otp(code),
         expires_at=timezone.now() + timedelta(minutes=minutes),
     )

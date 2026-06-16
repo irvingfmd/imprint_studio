@@ -2,7 +2,7 @@
 
 ## Imprint Studio
 
-Versión: 1.0
+Versión: 1.1
 
 Estado: Aprobado para implementación
 
@@ -144,6 +144,30 @@ OBJ
 ```text
 PENDING_ANALYSIS
 ```
+
+---
+
+# Type C - Web Model Request
+
+Solicitud basada en un enlace a un modelo 3D disponible en internet.
+
+El cliente proporciona una URL a un modelo en plataformas como Printables, Thingiverse u otras.
+
+---
+
+## Estado Inicial
+
+```text
+RECEIVED
+```
+
+El administrador revisará el enlace y determinará si el modelo es imprimible.
+
+---
+
+## Regla de Licencia
+
+Si el modelo es de pago, la licencia corre por cuenta del cliente, no del negocio.
 
 ---
 
@@ -778,6 +802,46 @@ Durante el MVP no se permite:
 * Reembolsos automáticos.
 * Decisiones financieras automatizadas.
 * Cambios de configuración por IA.
+
+---
+
+# Cancelación Automática de Anticipos Vencidos
+
+El sistema cancela automáticamente los pedidos que no reciben pago de anticipo dentro del plazo configurado.
+
+---
+
+## Condición
+
+El pedido lleva más de `BusinessConfig.deposit_deadline_hours` (default: 72 horas) en estado `PENDING_DEPOSIT` sin que se haya confirmado un pago de anticipo.
+
+---
+
+## Acción
+
+El sistema transiciona el pedido a:
+
+```text
+CANCELLED
+```
+
+---
+
+## Implementación
+
+Job `cancel_expired_deposits` ejecutado por el scheduler cada hora.
+
+---
+
+## Registro en production_history
+
+Cuando una acción es realizada por el sistema (scheduler), el campo `changed_by` en `production_history` queda en:
+
+```text
+NULL
+```
+
+`changed_by = NULL` indica acción automática del sistema, no intervención humana.
 
 ---
 

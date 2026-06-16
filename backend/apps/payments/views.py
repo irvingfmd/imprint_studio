@@ -95,6 +95,13 @@ class PaymentProofView(APIView):
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
 
+        max_size = 10 * 1024 * 1024  # 10 MB
+        if uploaded_file.size > max_size:
+            return error_response(
+                "El archivo no puede superar los 10 MB.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
         save_path = default_storage.save(
             f"proofs/{payment_id}{ext}",
             uploaded_file,
@@ -124,6 +131,16 @@ class AdminPaymentListView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def get(self, request):
+        from django.core.paginator import Paginator
+
+        try:
+            page_size = max(1, min(int(request.query_params.get("page_size", 20)), 100))
+        except (ValueError, TypeError):
+            return error_response(
+                "page_size debe ser un entero positivo.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
         payments = selectors.get_all_payments(
             payment_type=request.query_params.get("payment_type"),
             payment_method=request.query_params.get("payment_method"),
@@ -132,9 +149,15 @@ class AdminPaymentListView(APIView):
             created_from=request.query_params.get("created_from"),
             created_to=request.query_params.get("created_to"),
         )
-        serializer = PaymentSerializer(payments, many=True)
+        paginator = Paginator(payments, page_size)
+        page = paginator.get_page(request.query_params.get("page", 1))
+        serializer = PaymentSerializer(page.object_list, many=True)
         return success_response(
-            data={"count": payments.count(), "results": serializer.data},
+            data={
+                "count": paginator.count,
+                "num_pages": paginator.num_pages,
+                "results": serializer.data,
+            },
             message="Payments retrieved",
         )
 

@@ -58,6 +58,17 @@
       </AppCard>
     </div>
 
+    <!-- Paginación -->
+    <div v-if="totalPages > 1" class="flex items-center justify-between mt-4 text-sm text-gray-400">
+      <AppButton size="sm" variant="ghost" :disabled="currentPage <= 1" @click="goToPage(currentPage - 1)">
+        ← Anterior
+      </AppButton>
+      <span>Página {{ currentPage }} de {{ totalPages }}</span>
+      <AppButton size="sm" variant="ghost" :disabled="currentPage >= totalPages" @click="goToPage(currentPage + 1)">
+        Siguiente →
+      </AppButton>
+    </div>
+
     <AppAlert :message="errorMessage" class="mt-4" />
 
     <!-- Modal: rechazar pago -->
@@ -104,6 +115,9 @@ const rejecting = ref<string | null>(null)
 const showRejectModal = ref(false)
 const rejectReason = ref('')
 const rejectTargetId = ref<string | null>(null)
+const currentPage = ref(1)
+const totalPages = ref(1)
+const PAGE_SIZE = 20
 
 const statusFilters = [
   { value: 'PENDING', label: 'Pendientes' },
@@ -116,14 +130,19 @@ function setFilter(value: string) {
   activeFilter.value = value
 }
 
-async function loadPayments() {
+async function loadPayments(page = 1) {
   loading.value = true
   errorMessage.value = ''
   try {
-    const params: Record<string, string> = {}
+    const params: Record<string, string> = {
+      page: String(page),
+      page_size: String(PAGE_SIZE),
+    }
     if (activeFilter.value) params.payment_status = activeFilter.value
     const result = await listAdminPayments(params)
     payments.value = result.results
+    totalPages.value = result.num_pages ?? 1
+    currentPage.value = page
   } catch {
     errorMessage.value = 'Error al cargar los pagos'
   } finally {
@@ -131,12 +150,16 @@ async function loadPayments() {
   }
 }
 
+async function goToPage(page: number) {
+  await loadPayments(page)
+}
+
 async function handleConfirm(paymentId: string) {
   confirming.value = paymentId
   try {
     await confirmPayment(paymentId)
     toast.show('Pago confirmado correctamente.')
-    await loadPayments()
+    await loadPayments(currentPage.value)
   } catch (err: any) {
     errorMessage.value = err.response?.data?.message ?? 'Error al confirmar'
   } finally {
@@ -157,7 +180,7 @@ async function handleReject() {
     await rejectPayment(rejectTargetId.value, rejectReason.value)
     showRejectModal.value = false
     toast.show('Pago rechazado.', 'info')
-    await loadPayments()
+    await loadPayments(currentPage.value)
   } catch (err: any) {
     errorMessage.value = err.response?.data?.message ?? 'Error al rechazar'
   } finally {
@@ -165,6 +188,6 @@ async function handleReject() {
   }
 }
 
-watch(activeFilter, loadPayments)
-onMounted(loadPayments)
+watch(activeFilter, () => loadPayments(1))
+onMounted(() => loadPayments(1))
 </script>

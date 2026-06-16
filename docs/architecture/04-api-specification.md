@@ -2,7 +2,7 @@
 
 ## Imprint Studio
 
-Versión: 2.0
+Versión: 2.1
 
 Estado: Aprobado para implementación
 
@@ -485,6 +485,7 @@ Valores permitidos:
 ```text
 REFERENCE
 PRINTABLE_FILE
+WEB_MODEL
 ```
 
 ---
@@ -673,13 +674,11 @@ file_type
 ## File Types
 
 ```text
-IMAGE
+REFERENCE
 
-STL
+PRINTABLE_FILE
 
-OBJ
-
-THREE_MF
+WEB_MODEL
 
 PAYMENT_PROOF
 ```
@@ -912,11 +911,13 @@ ADMIN únicamente.
 ```json
 {
   "material_cost_per_kg": 25.00,
-  "energy_cost_per_hour": 0.50,
+  "electricity_rate_kwh": 1.50,
   "labor_cost_per_hour": 15.00,
   "post_processing_cost_per_gram": 0.05,
   "failure_percentage": 10.00,
-  "profit_margin_percentage": 30.00
+  "profit_margin_percentage": 30.00,
+  "printer_name": "Bambu Lab X1C",
+  "printer_power_watts": 200
 }
 ```
 
@@ -1571,7 +1572,8 @@ ADMIN.
 {
   "weight_grams": 250.00,
   "print_time_hours": 12.50,
-  "shipping_cost": 120.00
+  "shipping_cost": 120.00,
+  "printer_id": "uuid-de-la-impresora-o-null"
 }
 ```
 
@@ -1973,7 +1975,7 @@ GET /api/v1/admin/business-config/
 ```json
 {
   "material_cost_per_kg": 25.00,
-  "energy_cost_per_hour": 0.50,
+  "electricity_rate_kwh": 1.50,
   "labor_cost_per_hour": 15.00,
   "post_processing_cost_per_gram": 0.05,
   "packaging_cost": 2.00,
@@ -2004,7 +2006,7 @@ PUT /api/v1/admin/business-config/
 ```json
 {
   "material_cost_per_kg": 25.00,
-  "energy_cost_per_hour": 0.50,
+  "electricity_rate_kwh": 1.50,
   "labor_cost_per_hour": 15.00,
   "post_processing_cost_per_gram": 0.05,
   "packaging_cost": 2.00,
@@ -2393,5 +2395,418 @@ Fuente oficial para:
 * Frontend Vue
 * Pruebas QA
 * Futuras integraciones
+
+---
+
+# Admin Printers Module
+
+Base Path:
+
+```http
+/api/v1/admin/printers/
+```
+
+Permiso requerido: `IsAdmin`
+
+---
+
+# List Printers
+
+## Endpoint
+
+```http
+GET /api/v1/admin/printers/
+```
+
+---
+
+## Query Params
+
+```text
+active_only=true   (default: false — devuelve todas)
+```
+
+---
+
+## Response
+
+```json
+{
+  "success": true,
+  "message": "OK",
+  "data": [
+    {
+      "id": "uuid",
+      "name": "X1 Carbon",
+      "brand": "Bambu Lab",
+      "power_watts": 200,
+      "max_power_watts": 350,
+      "is_active": true
+    }
+  ]
+}
+```
+
+---
+
+# Create Printer
+
+## Endpoint
+
+```http
+POST /api/v1/admin/printers/
+```
+
+---
+
+## Request
+
+```json
+{
+  "name": "X1 Carbon",
+  "brand": "Bambu Lab",
+  "power_watts": 200,
+  "max_power_watts": 350,
+  "is_active": true
+}
+```
+
+---
+
+## Response
+
+```json
+{
+  "success": true,
+  "message": "Printer created",
+  "data": {
+    "id": "uuid",
+    "name": "X1 Carbon",
+    "brand": "Bambu Lab",
+    "power_watts": 200,
+    "max_power_watts": 350,
+    "is_active": true
+  }
+}
+```
+
+---
+
+# Retrieve Printer
+
+## Endpoint
+
+```http
+GET /api/v1/admin/printers/{printer_id}/
+```
+
+---
+
+# Update Printer
+
+## Endpoint
+
+```http
+PUT /api/v1/admin/printers/{printer_id}/
+```
+
+---
+
+## Request
+
+```json
+{
+  "name": "X1 Carbon",
+  "brand": "Bambu Lab",
+  "power_watts": 200,
+  "max_power_watts": 350,
+  "is_active": true
+}
+```
+
+---
+
+# Delete Printer
+
+## Endpoint
+
+```http
+DELETE /api/v1/admin/printers/{printer_id}/
+```
+
+---
+
+## Response
+
+```json
+{
+  "success": true,
+  "message": "Printer deleted"
+}
+```
+
+---
+
+# Admin CFE Rate Lookup
+
+## Endpoint
+
+```http
+GET /api/v1/admin/electricity-rate-lookup/
+```
+
+Permiso requerido: `IsAdmin`
+
+---
+
+## Query Params
+
+```text
+postal_code=29000
+```
+
+---
+
+## Response
+
+```json
+{
+  "success": true,
+  "message": "OK",
+  "data": {
+    "postal_code": "29000",
+    "cfe_zone": "DAC",
+    "reference_rate_kwh": 1.50,
+    "notes": "Tarifa de referencia. Verificar recibo CFE para valor exacto."
+  }
+}
+```
+
+---
+
+# Admin Calculator — Calculate
+
+## Endpoint
+
+```http
+POST /api/v1/admin/calculator/calculate/
+```
+
+---
+
+## Request
+
+```json
+{
+  "weight_grams": 250.00,
+  "print_time_hours": 12.50,
+  "priority": "NORMAL",
+  "shipping_cost": 120.00,
+  "printer_id": "uuid-de-la-impresora-o-null",
+  "full_payment_selected": false
+}
+```
+
+---
+
+## Nota sobre `printer_id`
+
+Si se envía `null` o se omite, `energy_cost = 0`.
+
+---
+
+## Response
+
+```json
+{
+  "material_cost": 6.25,
+  "energy_cost": 0.60,
+  "labor_cost": 187.50,
+  "post_processing_cost": 12.50,
+  "packaging_cost": 2.00,
+  "risk_cost": 0.69,
+  "base_cost": 209.54,
+  "priority_multiplier": 1.00,
+  "priority_cost": 209.54,
+  "shipping_cost": 120.00,
+  "subtotal": 329.54,
+  "profit_amount": 98.86,
+  "discount_amount": 0.00,
+  "total_price": 428.40
+}
+```
+
+---
+
+# Admin Users Module
+
+Base Path:
+
+```http
+/api/v1/admin/users/
+```
+
+Permiso requerido: `IsAdmin`
+
+---
+
+# List Admin Users
+
+## Endpoint
+
+```http
+GET /api/v1/admin/users/
+```
+
+---
+
+## Query Params
+
+| Param | Type | Default | Description |
+|---|---|---|---|
+| page | int | 1 | Número de página |
+| page_size | int | 20 | Resultados por página |
+
+---
+
+## Response 200
+
+```json
+{
+  "success": true,
+  "message": "OK",
+  "data": {
+    "count": 42,
+    "num_pages": 3,
+    "results": [
+      {
+        "id": "uuid",
+        "phone": "+529611234567",
+        "email": "user@email.com",
+        "first_name": "Ana",
+        "last_name": "López",
+        "role": "CUSTOMER",
+        "is_active": true,
+        "created_at": "2026-01-01T00:00:00Z"
+      }
+    ]
+  }
+}
+```
+
+---
+
+# Retrieve Admin User
+
+## Endpoint
+
+```http
+GET /api/v1/admin/users/{user_id}/
+```
+
+---
+
+## Response 200
+
+```json
+{
+  "success": true,
+  "message": "OK",
+  "data": {
+    "id": "uuid",
+    "phone": "+529611234567",
+    "email": "user@email.com",
+    "first_name": "Ana",
+    "last_name": "López",
+    "role": "CUSTOMER",
+    "is_active": true,
+    "created_at": "2026-01-01T00:00:00Z"
+  }
+}
+```
+
+---
+
+# Update User Role
+
+## Endpoint
+
+```http
+PUT /api/v1/admin/users/{user_id}/role/
+```
+
+---
+
+## Request Body
+
+```json
+{
+  "role": "ADMIN"
+}
+```
+
+Valores válidos: `CUSTOMER`, `ADMIN`.
+
+---
+
+## Regla de Negocio
+
+Un administrador no puede cambiar su propio rol para evitar auto-degradación accidental.
+
+---
+
+## Response 200
+
+```json
+{
+  "success": true,
+  "message": "Rol actualizado.",
+  "data": {
+    "id": "uuid",
+    "phone": "+529611234567",
+    "role": "ADMIN",
+    "is_active": true,
+    "created_at": "2026-01-01T00:00:00Z"
+  }
+}
+```
+
+---
+
+## Response 400 (auto-degradación)
+
+```json
+{
+  "success": false,
+  "message": "No puedes cambiar tu propio rol."
+}
+```
+
+---
+
+# Quote PDF
+
+## Endpoint
+
+```http
+GET /api/v1/quotes/{quote_id}/pdf/
+```
+
+Permiso requerido: propietario del pedido o `IsAdmin`.
+
+---
+
+## Response 200
+
+```text
+Content-Type: application/pdf
+Content-Disposition: attachment; filename="cotizacion-{short_id}.pdf"
+
+<binary PDF data>
+```
+
+El PDF incluye: datos del pedido, desglose de costos, opciones de pago e instrucciones de transferencia.
+
+---
 
 Fin del documento.

@@ -88,7 +88,7 @@ imprint_studio/
 ├── backend/
 │   ├── apps/
 │   │   ├── authentication/   # User, OTPCode, JWT
-│   │   ├── configuration/    # BusinessConfig, BusinessHours, Holiday, PaymentInstructions
+│   │   ├── configuration/    # BusinessConfig, BusinessHours, Holiday, PaymentInstructions, Printer
 │   │   ├── orders/           # Order, RequestFile
 │   │   ├── quotes/           # Quote, QuoteSnapshot
 │   │   ├── payments/         # Payment
@@ -109,10 +109,10 @@ imprint_studio/
 ### Completado
 - Estructura base del proyecto Django
 - App `authentication`: User, OTPCode, managers, serializers, services, views, urls
-- App `configuration`: BusinessConfig, BusinessHours, Holiday, PaymentInstructions, seed_initial_data
+- App `configuration`: BusinessConfig (`electricity_rate_kwh`), BusinessHours, Holiday, PaymentInstructions, Printer (catálogo de impresoras), seed_initial_data, CFE rate lookup por CP
 - App `shipping`: ShippingAddress, Shipment — modelos, serializers, services, selectors, views, urls, admin, migración
 - App `orders`: Order, RequestFile, OrderEvent (EventType) — modelos, serializers, services, selectors, views, urls, admin, migración
-- App `quotes`: Quote, QuoteSnapshot — modelos, serializers, services (QuoteCalculatorService + QuoteService), selectors, views, urls, admin, migración
+- App `quotes`: Quote, QuoteSnapshot (`electricity_rate_kwh`, `printer_name`, `printer_power_watts`) — modelos, serializers, services (QuoteCalculatorService + QuoteService), selectors, views, urls, admin, migración
 - App `payments`: Payment — modelos, serializers, services, selectors, views, urls, admin, migración
 - App `production`: ProductionHistory, OrderStatusTransitionService — modelos, serializers, services, selectors, views, admin, migración
 - App `notifications`: WhatsAppService, EmailService, NotificationService — servicios puros (sin modelos ni endpoints)
@@ -191,6 +191,21 @@ imprint_studio/
 - DELETE /api/v1/admin/holidays/{holiday_id}/
 - GET/PUT /api/v1/admin/payment-instructions/
 
+#### Admin — impresoras
+- GET  /api/v1/admin/printers/  (param: `?active_only=true`)
+- POST /api/v1/admin/printers/
+- GET  /api/v1/admin/printers/{printer_id}/
+- PUT  /api/v1/admin/printers/{printer_id}/
+- DELETE /api/v1/admin/printers/{printer_id}/
+
+#### Admin — CFE
+- GET /api/v1/admin/electricity-rate-lookup/?postal_code=29000
+
+#### Admin — usuarios
+- GET /api/v1/admin/users/  (params: `?page=`, `?page_size=`)
+- GET /api/v1/admin/users/{user_id}/
+- PUT /api/v1/admin/users/{user_id}/role/
+
 #### Instrucciones de pago (público autenticado)
 - GET /api/v1/payment-instructions/
 
@@ -200,7 +215,7 @@ imprint_studio/
 - Proxy a backend en /api/v1/
 - Auth: Login (OTP), Register, OTP verify con cooldown
 - Portal cliente: lista de pedidos, crear pedido, detalle (cotización, pagos, producción, cancelar)
-- Panel admin: Dashboard, lista de pedidos con filtros, detalle (cambiar estado, cotizar), pagos (confirmar/rechazar), configuración (costos, instrucciones de pago, festivos)
+- Panel admin: Dashboard, lista de pedidos con filtros, detalle (cambiar estado, cotizar), pagos (confirmar/rechazar), configuración (costos, instrucciones de pago, festivos), lista de usuarios con cambio de rol
 - Componentes: AppButton, AppInput, AppCard, AppAlert, StatusBadge
 - Servicios: authService, orderService, quoteService, paymentService, adminService
 - Store: authStore (JWT tokens, user, isAdmin)
@@ -213,14 +228,14 @@ Entorno: `backend/venv/` — ejecutar con `.\venv\Scripts\python -m pytest` desd
 
 | App | test_models | test_serializers | test_services | test_selectors | test_views |
 |---|---|---|---|---|---|
-| authentication | ✅ | ✅ | ✅ | — | ✅ |
+| authentication | ✅ | ✅ | ✅ | ✅ | ✅ |
 | orders | ✅ | ✅ | ✅ | ✅ | ✅ |
 | quotes | ✅ | ✅ | ✅ | ✅ | ✅ |
 | payments | ✅ | ✅ | ✅ | ✅ | ✅ |
 | production | ✅ | ✅ | ✅ | ✅ | ✅ |
 | shipping | ✅ | ✅ | ✅ | ✅ | ✅ |
 
-Total: 524 tests — todos pasando ✅
+Total: 591 tests — todos pasando ✅
 
 | Archivo | Tests |
 |---|---|

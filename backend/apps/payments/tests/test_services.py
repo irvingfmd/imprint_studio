@@ -46,7 +46,7 @@ def _make_payment(order, ptype=PaymentType.DEPOSIT, pstatus=PaymentStatus.PENDIN
 
 @pytest.mark.django_db
 class TestUploadProof:
-    def test_sube_comprobante_a_pago_pending(self, customer):
+    def test_uploads_proof_to_pending_payment(self, customer):
         """Caso 32: comprobante almacenado."""
         order = _make_order(customer)
         payment = _make_payment(order)
@@ -58,7 +58,7 @@ class TestUploadProof:
         result.refresh_from_db()
         assert result.proof_file_url == "https://cdn.example.com/comprobante.pdf"
 
-    def test_crea_evento_payment_proof_uploaded(self, customer):
+    def test_creates_payment_proof_uploaded_event(self, customer):
         order = _make_order(customer)
         payment = _make_payment(order)
         PaymentService.upload_proof(
@@ -71,7 +71,7 @@ class TestUploadProof:
             event_type=EventType.PAYMENT_PROOF_UPLOADED,
         ).exists()
 
-    def test_pago_inexistente_lanza_error(self):
+    def test_nonexistent_payment_raises_error(self):
         import uuid
         with pytest.raises(ValueError, match="no encontrado"):
             PaymentService.upload_proof(
@@ -80,7 +80,7 @@ class TestUploadProof:
                 user=None,
             )
 
-    def test_pago_ya_confirmado_lanza_error(self, customer):
+    def test_already_confirmed_payment_raises_error(self, customer):
         order = _make_order(customer)
         payment = _make_payment(order, pstatus=PaymentStatus.CONFIRMED)
         with pytest.raises(ValueError, match="PENDING"):
@@ -93,7 +93,7 @@ class TestUploadProof:
 
 @pytest.mark.django_db
 class TestConfirmPayment:
-    def test_confirma_anticipo(self, customer, admin_user):
+    def test_confirms_deposit(self, customer, admin_user):
         """Caso 33: confirmar anticipo → DEPOSIT_PAID."""
         order = _make_order(customer)
         payment = _make_payment(order, ptype=PaymentType.DEPOSIT)
@@ -108,7 +108,7 @@ class TestConfirmPayment:
         assert payment.confirmed_at is not None
         assert order.payment_status == OrderPaymentStatus.DEPOSIT_PAID
 
-    def test_confirma_saldo_final(self, customer, admin_user):
+    def test_confirms_balance(self, customer, admin_user):
         """Caso 34: confirmar saldo → FULLY_PAID."""
         order = _make_order(customer, status=OrderStatus.PENDING_BALANCE)
         order.payment_status = OrderPaymentStatus.DEPOSIT_PAID
@@ -121,7 +121,7 @@ class TestConfirmPayment:
         order.refresh_from_db()
         assert order.payment_status == OrderPaymentStatus.FULLY_PAID
 
-    def test_confirma_pago_completo(self, customer, admin_user):
+    def test_confirms_full_payment(self, customer, admin_user):
         """Confirmar pago completo → FULLY_PAID."""
         order = _make_order(customer)
         payment = _make_payment(order, ptype=PaymentType.FULL_PAYMENT)
@@ -132,7 +132,7 @@ class TestConfirmPayment:
         order.refresh_from_db()
         assert order.payment_status == OrderPaymentStatus.FULLY_PAID
 
-    def test_guarda_notas_en_pago(self, customer, admin_user):
+    def test_saves_notes_on_payment(self, customer, admin_user):
         order = _make_order(customer)
         payment = _make_payment(order)
         PaymentService.confirm_payment(
@@ -143,7 +143,7 @@ class TestConfirmPayment:
         payment.refresh_from_db()
         assert payment.notes == "Verificado por transferencia SPEI"
 
-    def test_crea_evento_deposit_confirmed(self, customer, admin_user):
+    def test_creates_deposit_confirmed_event(self, customer, admin_user):
         """Caso 37: evento de pago generado."""
         order = _make_order(customer)
         payment = _make_payment(order, ptype=PaymentType.DEPOSIT)
@@ -156,7 +156,7 @@ class TestConfirmPayment:
             event_type=EventType.DEPOSIT_CONFIRMED,
         ).exists()
 
-    def test_pago_inexistente_lanza_error(self, admin_user):
+    def test_nonexistent_payment_raises_error(self, admin_user):
         import uuid
         with pytest.raises(ValueError, match="no encontrado"):
             PaymentService.confirm_payment(
@@ -164,7 +164,7 @@ class TestConfirmPayment:
                 confirmed_by=admin_user,
             )
 
-    def test_pago_ya_confirmado_lanza_error(self, customer, admin_user):
+    def test_already_confirmed_payment_raises_error(self, customer, admin_user):
         order = _make_order(customer)
         payment = _make_payment(order, pstatus=PaymentStatus.CONFIRMED)
         with pytest.raises(ValueError, match="PENDING"):
@@ -176,7 +176,7 @@ class TestConfirmPayment:
 
 @pytest.mark.django_db
 class TestRejectPayment:
-    def test_rechaza_pago_pending(self, customer, admin_user):
+    def test_rejects_pending_payment(self, customer, admin_user):
         """Caso 36: pago rechazado."""
         order = _make_order(customer)
         payment = _make_payment(order)
@@ -191,7 +191,7 @@ class TestRejectPayment:
         assert payment.confirmed_by == admin_user
         assert payment.confirmed_at is not None
 
-    def test_crea_evento_payment_rejected(self, customer, admin_user):
+    def test_creates_payment_rejected_event(self, customer, admin_user):
         order = _make_order(customer)
         payment = _make_payment(order)
         PaymentService.reject_payment(
@@ -204,7 +204,7 @@ class TestRejectPayment:
             event_type=EventType.PAYMENT_REJECTED,
         ).exists()
 
-    def test_pago_inexistente_lanza_error(self, admin_user):
+    def test_nonexistent_payment_raises_error(self, admin_user):
         import uuid
         with pytest.raises(ValueError, match="no encontrado"):
             PaymentService.reject_payment(
@@ -213,7 +213,7 @@ class TestRejectPayment:
                 reason="x",
             )
 
-    def test_pago_no_pending_lanza_error(self, customer, admin_user):
+    def test_non_pending_payment_raises_error(self, customer, admin_user):
         order = _make_order(customer)
         payment = _make_payment(order, pstatus=PaymentStatus.REJECTED)
         with pytest.raises(ValueError, match="PENDING"):
@@ -226,7 +226,7 @@ class TestRejectPayment:
 
 @pytest.mark.django_db
 class TestManualConfirmation:
-    def test_crea_pago_confirmado_manualmente(self, customer, admin_user):
+    def test_creates_manually_confirmed_payment(self, customer, admin_user):
         """Caso 35: confirmación manual → manual_confirmation = True."""
         order = _make_order(customer)
         payment = PaymentService.create_manual_confirmation(
@@ -241,7 +241,7 @@ class TestManualConfirmation:
         assert payment.manual_confirmation is True
         assert payment.confirmed_by == admin_user
 
-    def test_actualiza_payment_status_del_pedido(self, customer, admin_user):
+    def test_updates_order_payment_status(self, customer, admin_user):
         order = _make_order(customer)
         PaymentService.create_manual_confirmation(
             order_id=str(order.id),
@@ -254,7 +254,7 @@ class TestManualConfirmation:
         order.refresh_from_db()
         assert order.payment_status == OrderPaymentStatus.DEPOSIT_PAID
 
-    def test_crea_evento_de_pago(self, customer, admin_user):
+    def test_creates_payment_event(self, customer, admin_user):
         order = _make_order(customer)
         PaymentService.create_manual_confirmation(
             order_id=str(order.id),
@@ -269,7 +269,7 @@ class TestManualConfirmation:
             event_type=EventType.DEPOSIT_CONFIRMED,
         ).exists()
 
-    def test_pedido_inexistente_lanza_error(self, admin_user):
+    def test_nonexistent_order_raises_error(self, admin_user):
         import uuid
         with pytest.raises(ValueError, match="no encontrado"):
             PaymentService.create_manual_confirmation(
@@ -284,7 +284,7 @@ class TestManualConfirmation:
 
 @pytest.mark.django_db
 class TestProcessRefund:
-    def test_registra_reembolso(self, customer, admin_user):
+    def test_registers_refund(self, customer, admin_user):
         """Caso 41: crea registro de tipo REFUND."""
         order = _make_order(customer, status=OrderStatus.CANCELLED)
         payment = PaymentService.process_refund(
@@ -297,7 +297,7 @@ class TestProcessRefund:
         assert payment.payment_status == PaymentStatus.CONFIRMED
         assert payment.manual_confirmation is True
 
-    def test_actualiza_payment_status_a_refunded(self, customer, admin_user):
+    def test_updates_payment_status_to_refunded(self, customer, admin_user):
         """Caso 38-40: pedido queda en REFUNDED."""
         order = _make_order(customer, status=OrderStatus.CANCELLED)
         PaymentService.process_refund(
@@ -309,7 +309,7 @@ class TestProcessRefund:
         order.refresh_from_db()
         assert order.payment_status == OrderPaymentStatus.REFUNDED
 
-    def test_crea_evento_refund_processed(self, customer, admin_user):
+    def test_creates_refund_processed_event(self, customer, admin_user):
         """Caso 42: evento REFUND_PROCESSED generado."""
         order = _make_order(customer, status=OrderStatus.CANCELLED)
         PaymentService.process_refund(
@@ -323,7 +323,7 @@ class TestProcessRefund:
             event_type=EventType.REFUND_PROCESSED,
         ).exists()
 
-    def test_metadata_incluye_monto_y_razon(self, customer, admin_user):
+    def test_metadata_includes_amount_and_reason(self, customer, admin_user):
         order = _make_order(customer, status=OrderStatus.CANCELLED)
         PaymentService.process_refund(
             order_id=str(order.id),
@@ -331,11 +331,11 @@ class TestProcessRefund:
             reason="Falla de impresora",
             confirmed_by=admin_user,
         )
-        evento = OrderEvent.objects.get(order=order, event_type=EventType.REFUND_PROCESSED)
-        assert evento.metadata["amount"] == "75.00"
-        assert "Falla de impresora" in evento.metadata["reason"]
+        event = OrderEvent.objects.get(order=order, event_type=EventType.REFUND_PROCESSED)
+        assert event.metadata["amount"] == "75.00"
+        assert "Falla de impresora" in event.metadata["reason"]
 
-    def test_pedido_inexistente_lanza_error(self, admin_user):
+    def test_nonexistent_order_raises_error(self, admin_user):
         import uuid
         with pytest.raises(ValueError, match="no encontrado"):
             PaymentService.process_refund(

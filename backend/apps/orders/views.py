@@ -179,6 +179,16 @@ class AdminOrderListView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def get(self, request):
+        from django.core.paginator import Paginator
+
+        try:
+            page_size = max(1, min(int(request.query_params.get("page_size", 20)), 100))
+        except (ValueError, TypeError):
+            return error_response(
+                "page_size debe ser un entero positivo.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
         orders = selectors.get_all_orders(
             status=request.query_params.get("status"),
             priority=request.query_params.get("priority"),
@@ -188,9 +198,15 @@ class AdminOrderListView(APIView):
             created_from=request.query_params.get("created_from"),
             created_to=request.query_params.get("created_to"),
         )
-        serializer = AdminOrderListSerializer(orders, many=True)
+        paginator = Paginator(orders, page_size)
+        page = paginator.get_page(request.query_params.get("page", 1))
+        serializer = AdminOrderListSerializer(page.object_list, many=True)
         return success_response(
-            data={"count": orders.count(), "results": serializer.data},
+            data={
+                "count": paginator.count,
+                "num_pages": paginator.num_pages,
+                "results": serializer.data,
+            },
             message="Orders retrieved",
         )
 

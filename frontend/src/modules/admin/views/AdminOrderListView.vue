@@ -60,6 +60,17 @@
       </RouterLink>
     </div>
 
+    <!-- Paginación -->
+    <div v-if="totalPages > 1" class="flex items-center justify-between mt-4 text-sm text-gray-400">
+      <AppButton size="sm" variant="ghost" :disabled="currentPage <= 1" @click="goToPage(currentPage - 1)">
+        ← Anterior
+      </AppButton>
+      <span>Página {{ currentPage }} de {{ totalPages }}</span>
+      <AppButton size="sm" variant="ghost" :disabled="currentPage >= totalPages" @click="goToPage(currentPage + 1)">
+        Siguiente →
+      </AppButton>
+    </div>
+
     <AppAlert :message="errorMessage" class="mt-4" />
   </div>
 </template>
@@ -68,6 +79,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AppAlert from '@/components/ui/AppAlert.vue'
+import AppButton from '@/components/ui/AppButton.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { listAdminOrders } from '../services/adminService'
 import { formatDateTime, PRIORITY_LABELS } from '@/utils/formatters'
@@ -79,6 +91,9 @@ const orders = ref<AdminOrderSummary[]>([])
 const loading = ref(true)
 const errorMessage = ref('')
 const activeFilter = ref(String(route.query.status ?? ''))
+const currentPage = ref(1)
+const totalPages = ref(1)
+const PAGE_SIZE = 20
 
 const statusFilters = [
   { value: '', label: 'Todos' },
@@ -105,14 +120,19 @@ function setFilter(value: string) {
   router.replace({ query: value ? { status: value } : {} })
 }
 
-async function loadOrders() {
+async function loadOrders(page = 1) {
   loading.value = true
   errorMessage.value = ''
   try {
-    const params: Record<string, string> = {}
+    const params: Record<string, string> = {
+      page: String(page),
+      page_size: String(PAGE_SIZE),
+    }
     if (activeFilter.value) params.status = activeFilter.value
     const result = await listAdminOrders(params)
     orders.value = result.results
+    totalPages.value = result.num_pages ?? 1
+    currentPage.value = page
   } catch {
     errorMessage.value = 'Error al cargar los pedidos'
   } finally {
@@ -120,6 +140,10 @@ async function loadOrders() {
   }
 }
 
-watch(activeFilter, loadOrders)
-onMounted(loadOrders)
+async function goToPage(page: number) {
+  await loadOrders(page)
+}
+
+watch(activeFilter, () => loadOrders(1))
+onMounted(() => loadOrders(1))
 </script>

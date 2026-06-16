@@ -10,6 +10,40 @@ from django.utils import timezone
 logger = logging.getLogger(__name__)
 
 
+def expire_pending_quotes() -> None:
+    """
+    Expira cotizaciones PENDING que superaron su expires_at.
+    Corre diariamente.
+    """
+    from apps.orders.models import EventType, OrderEvent
+    from apps.quotes.models import Quote, QuoteStatus
+
+    expired_qs = Quote.objects.filter(
+        quote_status=QuoteStatus.PENDING,
+        expires_at__lt=timezone.now(),
+        is_deleted=False,
+    )
+
+    count = 0
+    for quote in expired_qs:
+        try:
+            quote.quote_status = QuoteStatus.EXPIRED
+            quote.save(update_fields=["quote_status", "updated_at"])
+            OrderEvent.objects.create(
+                order=quote.order,
+                event_type=EventType.STATUS_CHANGED,
+                event_description=f"Cotización {quote.id} expirada automáticamente.",
+                metadata={"quote_id": str(quote.id)},
+                created_by=None,
+            )
+            count += 1
+        except Exception as exc:
+            logger.error("Error al expirar cotización %s: %s", quote.id, exc)
+
+    if count:
+        logger.info("Scheduler: %d cotización(es) expirada(s) automáticamente.", count)
+
+
 def cancel_expired_deposits() -> None:
     """
     Cancela pedidos en PENDING_DEPOSIT que superaron deposit_deadline_hours.

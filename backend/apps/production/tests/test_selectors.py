@@ -41,13 +41,13 @@ def _make_event(order, customer, event_type=EventType.ORDER_CREATED) -> OrderEve
 
 @pytest.mark.django_db
 class TestGetProductionHistoryForOrder:
-    def test_retorna_historial_del_pedido(self, customer, admin_user):
+    def test_returns_order_history(self, customer, admin_user):
         order = _make_order(customer)
         _make_history(order, admin_user)
         qs = selectors.get_production_history_for_order(str(order.id))
         assert qs.count() == 1
 
-    def test_excluye_historial_de_otro_pedido(self, customer, admin_user):
+    def test_excludes_other_order_history(self, customer, admin_user):
         order1 = _make_order(customer)
         order2 = _make_order(customer)
         _make_history(order1, admin_user)
@@ -56,14 +56,14 @@ class TestGetProductionHistoryForOrder:
         assert qs.count() == 1
         assert all(h.order_id == order1.id for h in qs)
 
-    def test_ordenado_por_changed_at_ascendente(self, customer, admin_user):
+    def test_ordered_by_changed_at_asc(self, customer, admin_user):
         order = _make_order(customer)
         _make_history(order, admin_user, new_status=OrderStatus.QUOTED)
         _make_history(order, admin_user, new_status=OrderStatus.APPROVED)
         qs = list(selectors.get_production_history_for_order(str(order.id)))
         assert qs[0].changed_at <= qs[-1].changed_at
 
-    def test_retorna_queryset_vacio_si_no_hay_historial(self, customer):
+    def test_returns_empty_queryset_when_no_history(self, customer):
         order = _make_order(customer)
         qs = selectors.get_production_history_for_order(str(order.id))
         assert qs.count() == 0
@@ -71,14 +71,14 @@ class TestGetProductionHistoryForOrder:
 
 @pytest.mark.django_db
 class TestGetEventsForOrder:
-    def test_retorna_eventos_del_pedido(self, customer):
+    def test_returns_order_events(self, customer):
         order = _make_order(customer)
         _make_event(order, customer)
         _make_event(order, customer, event_type=EventType.STATUS_CHANGED)
         qs = selectors.get_events_for_order(str(order.id))
         assert qs.count() == 2
 
-    def test_excluye_eventos_de_otro_pedido(self, customer):
+    def test_excludes_other_order_events(self, customer):
         order1 = _make_order(customer)
         order2 = _make_order(customer)
         _make_event(order1, customer)
@@ -87,14 +87,14 @@ class TestGetEventsForOrder:
         assert qs.count() == 1
         assert all(e.order_id == order1.id for e in qs)
 
-    def test_ordenado_por_created_at_ascendente(self, customer):
+    def test_ordered_by_created_at_asc(self, customer):
         order = _make_order(customer)
         _make_event(order, customer, event_type=EventType.ORDER_CREATED)
         _make_event(order, customer, event_type=EventType.STATUS_CHANGED)
         qs = list(selectors.get_events_for_order(str(order.id)))
         assert qs[0].created_at <= qs[-1].created_at
 
-    def test_retorna_vacio_si_no_hay_eventos(self, customer):
+    def test_returns_empty_when_no_events(self, customer):
         order = _make_order(customer)
         qs = selectors.get_events_for_order(str(order.id))
         assert qs.count() == 0
@@ -102,20 +102,20 @@ class TestGetEventsForOrder:
 
 @pytest.mark.django_db
 class TestGetEventById:
-    def test_retorna_evento_existente(self, customer):
+    def test_returns_existing_event(self, customer):
         order = _make_order(customer)
         event = _make_event(order, customer)
         result = selectors.get_event_by_id(str(event.id), str(order.id))
         assert result is not None
         assert result.id == event.id
 
-    def test_retorna_none_cuando_no_existe(self, customer):
+    def test_returns_none_when_not_found(self, customer):
         import uuid
         order = _make_order(customer)
         result = selectors.get_event_by_id(str(uuid.uuid4()), str(order.id))
         assert result is None
 
-    def test_retorna_none_cuando_es_de_otro_pedido(self, customer):
+    def test_returns_none_when_from_other_order(self, customer):
         order1 = _make_order(customer)
         order2 = _make_order(customer)
         event = _make_event(order1, customer)

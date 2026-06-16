@@ -21,7 +21,7 @@ def start() -> None:
     if _scheduler is not None and _scheduler.running:
         return
 
-    from apps.orders.jobs import cancel_expired_deposits
+    from apps.orders.jobs import cancel_expired_deposits, expire_pending_quotes
 
     _scheduler = BackgroundScheduler(timezone="America/Mexico_City")
     _scheduler.add_jobstore(DjangoJobStore(), "default")
@@ -38,5 +38,17 @@ def start() -> None:
         coalesce=True,
     )
 
+    _scheduler.add_job(
+        expire_pending_quotes,
+        trigger="interval",
+        hours=24,
+        id="expire_pending_quotes",
+        name="Expirar cotizaciones vencidas",
+        replace_existing=True,
+        jobstore="default",
+        max_instances=1,
+        coalesce=True,
+    )
+
     _scheduler.start()
-    logger.info("Scheduler iniciado — job: cancel_expired_deposits (cada hora).")
+    logger.info("Scheduler iniciado — jobs: cancel_expired_deposits (1h), expire_pending_quotes (24h).")

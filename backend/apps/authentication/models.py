@@ -113,7 +113,8 @@ class OTPCode(models.Model):
     # Sin FK a users: puede generarse antes del registro.
     phone = models.CharField(max_length=20)
 
-    code = models.CharField(max_length=6)
+    # Almacena el HMAC-SHA256 del código (64 hex chars), nunca el código en claro.
+    code = models.CharField(max_length=64)
 
     is_used = models.BooleanField(default=False)
 

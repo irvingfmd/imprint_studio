@@ -2,7 +2,7 @@
 
 ## Imprint Studio
 
-Versión: 2.0
+Versión: 2.1
 
 Estado: Aprobado para implementación
 
@@ -106,15 +106,17 @@ MXN
 
 ---
 
-## energy_cost_per_hour
+## electricity_rate_kwh
 
-Costo energético estimado por hora de impresión.
+Tarifa eléctrica por kWh según zona CFE del negocio.
 
 Unidad:
 
 ```text
-MXN
+MXN por kWh
 ```
+
+El administrador puede consultar la tarifa de referencia por código postal desde el panel admin (`GET /api/v1/admin/electricity-rate-lookup/?postal_code=29000`).
 
 ---
 
@@ -221,7 +223,7 @@ Estos valores son iniciales y deben poder modificarse desde administración.
 | Variable                         | Valor |
 | -------------------------------- | ----- |
 | material_cost_per_kg             | 25.00 |
-| energy_cost_per_hour             | 0.50  |
+| electricity_rate_kwh             | 1.50  |
 | labor_cost_per_hour              | 15.00 |
 | post_processing_cost_per_gram    | 0.05  |
 | packaging_cost                   | 2.00  |
@@ -314,11 +316,17 @@ material_cost = (
 # Energy Cost
 
 ```python
+# Si se seleccionó una impresora:
 energy_cost = (
-    print_time_hours
-    * energy_cost_per_hour
-)
+    Decimal(printer.power_watts) / Decimal("1000")
+) * print_time_hours * electricity_rate_kwh
+
+# Si no se seleccionó impresora:
+energy_cost = Decimal("0.00")
 ```
+
+El costo energético depende de la impresora seleccionada al cotizar.
+`electricity_rate_kwh` proviene de `BusinessConfig` y es configurable desde el panel admin.
 
 ---
 
@@ -505,7 +513,7 @@ def calculate_quote_price(
     weight_grams: Decimal,
     print_time_hours: Decimal,
     material_cost_per_kg: Decimal,
-    energy_cost_per_hour: Decimal,
+    electricity_rate_kwh: Decimal,
     labor_cost_per_hour: Decimal,
     post_processing_cost_per_gram: Decimal,
     packaging_cost: Decimal,
@@ -517,6 +525,7 @@ def calculate_quote_price(
     shipping_cost: Decimal,
     full_payment_discount_percentage: Decimal,
     full_payment_selected: bool,
+    printer_power_watts: int | None = None,
 ) -> dict:
     """
     Calcula el precio final de una cotización usando
@@ -527,10 +536,14 @@ def calculate_quote_price(
         weight_grams / Decimal("1000")
     ) * material_cost_per_kg
 
-    energy_cost = (
-        print_time_hours
-        * energy_cost_per_hour
-    )
+    # Costo energético basado en watts de la impresora seleccionada.
+    # Si no hay impresora, el costo es cero.
+    if printer_power_watts is not None:
+        energy_cost = (
+            Decimal(printer_power_watts) / Decimal("1000")
+        ) * print_time_hours * electricity_rate_kwh
+    else:
+        energy_cost = Decimal("0.00")
 
     labor_cost = (
         print_time_hours
@@ -729,7 +742,7 @@ quote_snapshots
 ```text
 material_cost_per_kg
 
-energy_cost_per_hour
+electricity_rate_kwh
 
 labor_cost_per_hour
 
@@ -746,6 +759,10 @@ urgent_multiplier
 express_multiplier
 
 full_payment_discount_percentage
+
+printer_name        (nombre de la impresora al cotizar, o NULL)
+
+printer_power_watts (watts de la impresora al cotizar, o NULL)
 ```
 
 ---
@@ -782,6 +799,7 @@ POST /api/v1/admin/calculator/calculate/
   "print_time_hours": 12.50,
   "priority": "NORMAL",
   "shipping_cost": 120.00,
+  "printer_id": "uuid-de-la-impresora-o-null",
   "full_payment_selected": false
 }
 ```
@@ -825,7 +843,8 @@ POST /api/v1/admin/orders/{order_id}/quote/
 {
   "weight_grams": 250.00,
   "print_time_hours": 12.50,
-  "shipping_cost": 120.00
+  "shipping_cost": 120.00,
+  "printer_id": "uuid-de-la-impresora-o-null"
 }
 ```
 
@@ -852,7 +871,9 @@ print_time_hours = 12.50
 
 material_cost_per_kg = 25.00
 
-energy_cost_per_hour = 0.50
+electricity_rate_kwh = 1.50
+
+printer_power_watts = 200  (o NULL si no se seleccionó impresora)
 
 labor_cost_per_hour = 15.00
 
@@ -1059,7 +1080,7 @@ Garantizar que toda cotización de Imprint Studio sea:
 
 # Estado del Documento
 
-Versión: 2.0
+Versión: 2.1
 
 Estado:
 

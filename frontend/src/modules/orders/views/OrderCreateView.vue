@@ -50,7 +50,35 @@
           </button>
         </div>
 
-        <!-- Campos adicionales para WEB_MODEL -->
+        <!-- Campos adicionales por tipo de solicitud -->
+        <div v-if="form.request_type === 'REFERENCE'" class="mt-4 space-y-2">
+          <label class="block text-xs text-gray-400">Imágenes de referencia (JPG, PNG, WEBP)</label>
+          <input type="file" accept="image/*" multiple ref="fileInputRef" class="hidden" @change="handleFilesSelected" />
+          <AppButton type="button" size="sm" variant="secondary" :disabled="loading" @click="(fileInputRef as HTMLInputElement)?.click()">
+            + Agregar imágenes
+          </AppButton>
+          <ul v-if="selectedFiles.length" class="space-y-1 mt-2">
+            <li v-for="(f, i) in selectedFiles" :key="i" class="flex items-center gap-2 text-sm text-gray-400">
+              <span class="truncate flex-1">{{ f.name }}</span>
+              <button type="button" class="text-red-400 shrink-0 hover:text-red-300" @click="removeFile(i)">✕</button>
+            </li>
+          </ul>
+        </div>
+
+        <div v-if="form.request_type === 'PRINTABLE_FILE'" class="mt-4 space-y-2">
+          <label class="block text-xs text-gray-400">Archivo 3D (STL, OBJ o 3MF)</label>
+          <input type="file" accept=".stl,.obj,.3mf" multiple ref="fileInputRef" class="hidden" @change="handleFilesSelected" />
+          <AppButton type="button" size="sm" variant="secondary" :disabled="loading" @click="(fileInputRef as HTMLInputElement)?.click()">
+            + Agregar archivo 3D
+          </AppButton>
+          <ul v-if="selectedFiles.length" class="space-y-1 mt-2">
+            <li v-for="(f, i) in selectedFiles" :key="i" class="flex items-center gap-2 text-sm text-gray-400">
+              <span class="truncate flex-1">{{ f.name }}</span>
+              <button type="button" class="text-red-400 shrink-0 hover:text-red-300" @click="removeFile(i)">✕</button>
+            </li>
+          </ul>
+        </div>
+
         <div v-if="form.request_type === 'WEB_MODEL'" class="mt-4 space-y-3">
           <AppInput
             v-model="webModelUrl"
@@ -131,13 +159,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppCard from '@/components/ui/AppCard.vue'
 import AppAlert from '@/components/ui/AppAlert.vue'
-import { createOrder, addWebModelLink } from '../services/orderService'
+import { createOrder, addWebModelLink, uploadOrderFile } from '../services/orderService'
 
 const router = useRouter()
 const loading = ref(false)
@@ -156,6 +184,21 @@ const form = reactive({
 
 const webModelUrl = ref('')
 const webModelName = ref('')
+const selectedFiles = ref<File[]>([])
+const fileInputRef = ref<HTMLInputElement | null>(null)
+
+watch(() => form.request_type, () => { selectedFiles.value = [] })
+
+function handleFilesSelected(event: Event) {
+  const files = (event.target as HTMLInputElement).files
+  if (!files) return
+  selectedFiles.value = [...selectedFiles.value, ...Array.from(files)]
+  if (fileInputRef.value) fileInputRef.value.value = ''
+}
+
+function removeFile(index: number) {
+  selectedFiles.value.splice(index, 1)
+}
 
 const requestTypes = [
   { value: 'REFERENCE', label: 'Por referencia', desc: 'Subes fotos o imágenes de lo que quieres' },
@@ -211,6 +254,9 @@ async function handleCreate() {
     })
     if (form.request_type === 'WEB_MODEL') {
       await addWebModelLink(result.id, webModelUrl.value.trim(), webModelName.value.trim())
+    } else if (selectedFiles.value.length) {
+      const fileType = form.request_type === 'REFERENCE' ? 'REFERENCE' : 'PRINTABLE_FILE'
+      await Promise.all(selectedFiles.value.map(f => uploadOrderFile(result.id, f, fileType)))
     }
     router.push(`/orders/${result.id}`)
   } catch (err: any) {

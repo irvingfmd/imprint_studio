@@ -23,13 +23,14 @@ Centralizar y automatizar la operación del negocio de impresión 3D mediante un
 ## Objetivos Específicos
 
 * Gestionar clientes.
-* Gestionar solicitudes de impresión.
-* Gestionar archivos STL, 3MF y OBJ.
-* Generar cotizaciones basadas en datos reales.
+* Gestionar solicitudes de impresión (referencia, archivo 3D, enlace web).
+* Gestionar archivos STL, 3MF, OBJ e imágenes de referencia.
+* Generar cotizaciones basadas en datos reales de laminado.
 * Gestionar anticipos y pagos.
 * Gestionar producción.
 * Gestionar entregas y envíos.
-* Automatizar tareas operativas.
+* Automatizar tareas operativas (cancelación de anticipos vencidos).
+* Catálogo de impresoras con cálculo de costo energético por wattaje.
 * Preparar la arquitectura para futuros agentes de IA.
 
 ---
@@ -70,21 +71,19 @@ Ejemplos:
 
 ---
 
-# Alcance del MVP
+# Alcance del MVP ✅ Completado
 
-La primera versión debe permitir:
-
-* Registro de usuarios.
-* Autenticación mediante OTP.
-* Creación de solicitudes.
-* Subida de imágenes.
-* Subida de archivos STL.
-* Generación de cotizaciones.
-* Gestión de pagos.
-* Gestión de producción.
-* Gestión de entregas.
-* Automatizaciones básicas.
-* Administración completa mediante panel web.
+* ✅ Registro de usuarios y autenticación por OTP (WhatsApp / consola en dev).
+* ✅ Creación de solicitudes con subida de archivos (imágenes, STL, OBJ, 3MF, enlace web).
+* ✅ Catálogo de impresoras con `power_watts` y `max_power_watts`.
+* ✅ Generación de cotizaciones con cálculo de energía por wattaje de impresora.
+* ✅ Consulta de tarifa CFE por código postal.
+* ✅ Gestión de pagos (anticipos, saldo, pago completo, reembolsos).
+* ✅ Gestión de producción y seguimiento de estados.
+* ✅ Gestión de entregas y envíos.
+* ✅ Cancelación automática de anticipos vencidos (scheduler APScheduler).
+* ✅ Panel de administración completo (Vue 3).
+* ✅ Portal de cliente completo con estimado de entrega.
 
 ---
 
@@ -93,9 +92,10 @@ La primera versión debe permitir:
 ## Backend
 
 * Python 3.12+
-* Django 5
+* Django 5.1.4
 * Django REST Framework
 * SimpleJWT
+* APScheduler (cancelación automática de anticipos)
 
 ---
 
@@ -128,7 +128,7 @@ PostgreSQL
 
 ## Almacenamiento de Archivos
 
-Opciones soportadas:
+Opciones soportadas (pendiente de configurar en producción):
 
 * Cloudinary
 * Supabase Storage
@@ -278,17 +278,30 @@ def calculate_price(
 ```text
 docs/
 │
-├── README.md
+├── architecture/
+│   ├── 01-business-rules.md
+│   ├── 02-system-architecture.md
+│   ├── 03-database-design.md
+│   └── 04-api-specification.md
 │
-├── 01-business-rules.md
-├── 02-system-architecture.md
-├── 03-database-design.md
-├── 04-api-specification.md
-├── 05-cost-calculator.md
-├── 06-payments-and-refunds.md
-├── 07-testing-plan.md
-├── 08-ai-roadmap.md
-└── 09-deployment.md
+├── business/
+│   ├── 05-cost-calculator.md
+│   └── 06-payments-and-refunds.md
+│
+├── quality/
+│   └── 07-testing-plan.md
+│
+├── future/
+│   └── 08-ai-roadmap.md
+│
+├── deployment/
+│   └── 09-deployment.md
+│
+└── appendices/
+    ├── coding-standards.md
+    ├── glossary.md
+    ├── initial-config.md
+    └── status-flow.md
 ```
 
 ---
@@ -485,18 +498,22 @@ Ejemplo:
 # Estado Actual del Proyecto
 
 ```text
-Planning / Architecture Phase
+MVP completo — listo para despliegue en producción
 ```
+
+**Backend:** 591 tests — todos pasando ✅
+**Frontend:** Vue 3 — portal cliente + panel admin implementados ✅
+**Siguiente paso:** despliegue en producción (`docs/deployment/09-deployment.md`)
 
 ---
 
 # Estado de IA
 
 ```text
-Disabled
+Deshabilitada — contemplada en arquitectura para fases futuras
 ```
 
-La inteligencia artificial únicamente se encuentra contemplada a nivel de arquitectura y modelo de datos.
+La inteligencia artificial únicamente se encuentra contemplada a nivel de arquitectura y modelo de datos (`docs/future/08-ai-roadmap.md`).
 
 No forma parte del MVP.
 

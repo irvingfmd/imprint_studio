@@ -11,7 +11,6 @@ from rest_framework.views import APIView
 from core.permissions import IsAdmin
 from core.responses import error_response, success_response
 
-from apps.orders.models import Order
 from apps.orders.selectors import get_order_by_id
 
 from . import selectors, services
@@ -100,9 +99,8 @@ class AdminUpdateOrderStatusView(APIView):
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
 
-        try:
-            order = Order.objects.get(id=order_id, is_deleted=False)
-        except Order.DoesNotExist:
+        order = get_order_by_id(str(order_id))
+        if not order:
             return error_response("Order not found", status_code=status.HTTP_404_NOT_FOUND)
 
         try:
@@ -135,9 +133,8 @@ class AdminCancelOrderView(APIView):
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
 
-        try:
-            order = Order.objects.get(id=order_id, is_deleted=False)
-        except Order.DoesNotExist:
+        order = get_order_by_id(str(order_id))
+        if not order:
             return error_response("Order not found", status_code=status.HTTP_404_NOT_FOUND)
 
         try:

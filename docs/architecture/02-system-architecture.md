@@ -2,7 +2,7 @@
 
 ## Imprint Studio
 
-Versión: 1.0
+Versión: 1.1
 
 Estado: Aprobado para implementación
 
@@ -409,6 +409,8 @@ Responsabilidades:
 * Horarios.
 * Festivos.
 * Configuración general.
+* Catálogo de impresoras.
+* Consulta de tarifas CFE por código postal.
 
 ---
 
@@ -419,6 +421,7 @@ business_config
 business_hours
 holidays
 payment_instructions
+printers
 ```
 
 ---
@@ -687,8 +690,25 @@ Las tareas automáticas deben ejecutarse fuera del request principal.
 Tecnología:
 
 ```text
-django-cron
+APScheduler (BackgroundScheduler)
 ```
+
+Implementación:
+
+```text
+backend/scheduler.py        — inicialización del scheduler
+backend/apps/orders/jobs.py — jobs registrados
+```
+
+Job activo:
+
+```text
+cancel_expired_deposits — corre cada hora
+```
+
+En desarrollo el scheduler se inicia automáticamente con `runserver` (proceso hijo, `RUN_MAIN=true`).
+
+En producción se controla con la variable de entorno `SCHEDULER_AUTOSTART=true`.
 
 ---
 

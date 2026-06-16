@@ -27,4 +27,7 @@ urlpatterns = [
 
     # Configuración del negocio
     path("", include("apps.configuration.admin_urls")),
+
+    # Usuarios
+    path("users/", include("apps.authentication.admin_urls")),
 ]

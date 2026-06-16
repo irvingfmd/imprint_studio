@@ -76,38 +76,38 @@ def _make_event(order, user) -> OrderEvent:
 
 @pytest.mark.django_db
 class TestProductionHistoryListView:
-    def test_sin_token_devuelve_401(self, api_client, customer):
+    def test_unauthenticated_returns_401(self, api_client, customer):
         order = _make_order(customer)
         resp = api_client.get(history_url(order.id))
         assert resp.status_code == 401
 
-    def test_cliente_ajeno_devuelve_403(self, api_client, customer):
-        otro = User.objects.create_user(phone="+529611099901", first_name="Otro")
-        order = _make_order(otro)
+    def test_foreign_user_returns_403(self, api_client, customer):
+        other_user = User.objects.create_user(phone="+529611099901", first_name="Otro")
+        order = _make_order(other_user)
         api_client.force_authenticate(user=customer)
         resp = api_client.get(history_url(order.id))
         assert resp.status_code == 403
 
-    def test_pedido_inexistente_devuelve_404(self, auth_client):
+    def test_nonexistent_order_returns_404(self, auth_client):
         import uuid
         resp = auth_client.get(history_url(uuid.uuid4()))
         assert resp.status_code == 404
 
-    def test_propietario_ve_historial(self, auth_client, admin_user, customer):
+    def test_owner_sees_history(self, auth_client, admin_user, customer):
         order = _make_order(customer)
         _make_history(order, admin_user)
         resp = auth_client.get(history_url(order.id))
         assert resp.status_code == 200
         assert resp.data["data"]["count"] == 1
 
-    def test_admin_ve_historial_de_cualquier_pedido(self, admin_client, admin_user, customer):
+    def test_admin_sees_any_order_history(self, admin_client, admin_user, customer):
         order = _make_order(customer)
         _make_history(order, admin_user)
         resp = admin_client.get(history_url(order.id))
         assert resp.status_code == 200
         assert resp.data["data"]["count"] == 1
 
-    def test_historial_vacio_retorna_count_cero(self, auth_client, customer):
+    def test_empty_history_returns_zero_count(self, auth_client, customer):
         order = _make_order(customer)
         resp = auth_client.get(history_url(order.id))
         assert resp.status_code == 200
@@ -118,24 +118,24 @@ class TestProductionHistoryListView:
 
 @pytest.mark.django_db
 class TestOrderEventListView:
-    def test_sin_token_devuelve_401(self, api_client, customer):
+    def test_unauthenticated_returns_401(self, api_client, customer):
         order = _make_order(customer)
         resp = api_client.get(events_url(order.id))
         assert resp.status_code == 401
 
-    def test_cliente_ajeno_devuelve_403(self, api_client, customer):
-        otro = User.objects.create_user(phone="+529611099902", first_name="Otro")
-        order = _make_order(otro)
+    def test_foreign_user_returns_403(self, api_client, customer):
+        other_user = User.objects.create_user(phone="+529611099902", first_name="Otro")
+        order = _make_order(other_user)
         api_client.force_authenticate(user=customer)
         resp = api_client.get(events_url(order.id))
         assert resp.status_code == 403
 
-    def test_pedido_inexistente_devuelve_404(self, auth_client):
+    def test_nonexistent_order_returns_404(self, auth_client):
         import uuid
         resp = auth_client.get(events_url(uuid.uuid4()))
         assert resp.status_code == 404
 
-    def test_propietario_ve_sus_eventos(self, auth_client, admin_user, customer):
+    def test_owner_sees_own_events(self, auth_client, admin_user, customer):
         order = _make_order(customer)
         _make_event(order, admin_user)
         _make_event(order, admin_user)
@@ -143,7 +143,7 @@ class TestOrderEventListView:
         assert resp.status_code == 200
         assert resp.data["data"]["count"] == 2
 
-    def test_admin_ve_eventos_de_cualquier_pedido(self, admin_client, admin_user, customer):
+    def test_admin_sees_any_order_events(self, admin_client, admin_user, customer):
         order = _make_order(customer)
         _make_event(order, admin_user)
         resp = admin_client.get(events_url(order.id))
@@ -155,39 +155,39 @@ class TestOrderEventListView:
 
 @pytest.mark.django_db
 class TestOrderEventDetailView:
-    def test_sin_token_devuelve_401(self, api_client, customer, admin_user):
+    def test_unauthenticated_returns_401(self, api_client, customer, admin_user):
         order = _make_order(customer)
         event = _make_event(order, admin_user)
         resp = api_client.get(event_detail_url(order.id, event.id))
         assert resp.status_code == 401
 
-    def test_cliente_ajeno_devuelve_403(self, api_client, customer, admin_user):
-        otro = User.objects.create_user(phone="+529611099903", first_name="Otro")
-        order = _make_order(otro)
+    def test_foreign_user_returns_403(self, api_client, customer, admin_user):
+        other_user = User.objects.create_user(phone="+529611099903", first_name="Otro")
+        order = _make_order(other_user)
         event = _make_event(order, admin_user)
         api_client.force_authenticate(user=customer)
         resp = api_client.get(event_detail_url(order.id, event.id))
         assert resp.status_code == 403
 
-    def test_evento_inexistente_devuelve_404(self, auth_client, customer):
+    def test_nonexistent_event_returns_404(self, auth_client, customer):
         import uuid
         order = _make_order(customer)
         resp = auth_client.get(event_detail_url(order.id, uuid.uuid4()))
         assert resp.status_code == 404
 
-    def test_pedido_inexistente_devuelve_404(self, auth_client):
+    def test_nonexistent_order_returns_404(self, auth_client):
         import uuid
         resp = auth_client.get(event_detail_url(uuid.uuid4(), uuid.uuid4()))
         assert resp.status_code == 404
 
-    def test_propietario_ve_evento(self, auth_client, admin_user, customer):
+    def test_owner_sees_event(self, auth_client, admin_user, customer):
         order = _make_order(customer)
         event = _make_event(order, admin_user)
         resp = auth_client.get(event_detail_url(order.id, event.id))
         assert resp.status_code == 200
         assert str(event.id) in str(resp.data["data"]["id"])
 
-    def test_admin_ve_evento_de_cualquier_pedido(self, admin_client, admin_user, customer):
+    def test_admin_sees_any_order_event(self, admin_client, admin_user, customer):
         order = _make_order(customer)
         event = _make_event(order, admin_user)
         resp = admin_client.get(event_detail_url(order.id, event.id))
@@ -198,22 +198,22 @@ class TestOrderEventDetailView:
 
 @pytest.mark.django_db
 class TestAdminUpdateOrderStatusView:
-    def test_sin_token_devuelve_401(self, api_client, customer):
+    def test_unauthenticated_returns_401(self, api_client, customer):
         order = _make_order(customer)
         resp = api_client.put(admin_status_url(order.id), {"status": "QUOTED"}, format="json")
         assert resp.status_code == 401
 
-    def test_cliente_devuelve_403(self, auth_client, customer):
+    def test_customer_returns_403(self, auth_client, customer):
         order = _make_order(customer)
         resp = auth_client.put(admin_status_url(order.id), {"status": "QUOTED"}, format="json")
         assert resp.status_code == 403
 
-    def test_sin_campo_status_devuelve_400(self, admin_client, customer):
+    def test_missing_status_field_returns_400(self, admin_client, customer):
         order = _make_order(customer)
         resp = admin_client.put(admin_status_url(order.id), {}, format="json")
         assert resp.status_code == 400
 
-    def test_transicion_invalida_devuelve_400(self, admin_client, customer):
+    def test_invalid_transition_returns_400(self, admin_client, customer):
         order = _make_order(customer, status=OrderStatus.RECEIVED)
         resp = admin_client.put(
             admin_status_url(order.id),
@@ -222,7 +222,7 @@ class TestAdminUpdateOrderStatusView:
         )
         assert resp.status_code == 400
 
-    def test_pedido_inexistente_devuelve_404(self, admin_client):
+    def test_nonexistent_order_returns_404(self, admin_client):
         import uuid
         resp = admin_client.put(
             admin_status_url(uuid.uuid4()),
@@ -231,7 +231,7 @@ class TestAdminUpdateOrderStatusView:
         )
         assert resp.status_code == 404
 
-    def test_admin_actualiza_estado_exitosamente(self, admin_client, customer):
+    def test_admin_updates_status_successfully(self, admin_client, customer):
         order = _make_order(customer, status=OrderStatus.RECEIVED)
         resp = admin_client.put(
             admin_status_url(order.id),
@@ -242,7 +242,7 @@ class TestAdminUpdateOrderStatusView:
         order.refresh_from_db()
         assert order.status == OrderStatus.QUOTED
 
-    def test_admin_actualiza_estado_con_notes(self, admin_client, customer):
+    def test_admin_updates_status_with_notes(self, admin_client, customer):
         order = _make_order(customer, status=OrderStatus.RECEIVED)
         resp = admin_client.put(
             admin_status_url(order.id),
@@ -253,7 +253,7 @@ class TestAdminUpdateOrderStatusView:
         history = ProductionHistory.objects.get(order=order, new_status=OrderStatus.QUOTED)
         assert history.notes == "Revisado manualmente"
 
-    def test_delivered_sin_pago_completo_devuelve_400(self, admin_client, customer):
+    def test_delivered_without_full_payment_returns_400(self, admin_client, customer):
         order = _make_order(customer, status=OrderStatus.READY)
         resp = admin_client.put(
             admin_status_url(order.id),
@@ -267,7 +267,7 @@ class TestAdminUpdateOrderStatusView:
 
 @pytest.mark.django_db
 class TestAdminCancelOrderView:
-    def test_sin_token_devuelve_401(self, api_client, customer):
+    def test_unauthenticated_returns_401(self, api_client, customer):
         order = _make_order(customer)
         resp = api_client.put(
             admin_cancel_url(order.id),
@@ -276,7 +276,7 @@ class TestAdminCancelOrderView:
         )
         assert resp.status_code == 401
 
-    def test_cliente_devuelve_403(self, auth_client, customer):
+    def test_customer_returns_403(self, auth_client, customer):
         order = _make_order(customer)
         resp = auth_client.put(
             admin_cancel_url(order.id),
@@ -285,12 +285,12 @@ class TestAdminCancelOrderView:
         )
         assert resp.status_code == 403
 
-    def test_sin_reason_devuelve_400(self, admin_client, customer):
+    def test_missing_reason_returns_400(self, admin_client, customer):
         order = _make_order(customer)
         resp = admin_client.put(admin_cancel_url(order.id), {}, format="json")
         assert resp.status_code == 400
 
-    def test_estado_no_cancelable_devuelve_400(self, admin_client, customer):
+    def test_non_cancelable_state_returns_400(self, admin_client, customer):
         order = _make_order(customer, status=OrderStatus.PRINTING)
         resp = admin_client.put(
             admin_cancel_url(order.id),
@@ -299,7 +299,7 @@ class TestAdminCancelOrderView:
         )
         assert resp.status_code == 400
 
-    def test_pedido_inexistente_devuelve_404(self, admin_client):
+    def test_nonexistent_order_returns_404(self, admin_client):
         import uuid
         resp = admin_client.put(
             admin_cancel_url(uuid.uuid4()),
@@ -308,7 +308,7 @@ class TestAdminCancelOrderView:
         )
         assert resp.status_code == 404
 
-    def test_admin_cancela_exitosamente(self, admin_client, customer):
+    def test_admin_cancels_successfully(self, admin_client, customer):
         order = _make_order(customer, status=OrderStatus.RECEIVED)
         resp = admin_client.put(
             admin_cancel_url(order.id),

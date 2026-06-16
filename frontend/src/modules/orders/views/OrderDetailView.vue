@@ -60,9 +60,9 @@
       </AppCard>
 
       <!-- Archivos adjuntos -->
-      <AppCard v-if="files.length > 0" class="mb-4">
+      <AppCard v-if="files.length > 0 || canUploadFiles" class="mb-4">
         <h3 class="text-sm font-medium text-gray-400 mb-3">Archivos adjuntos</h3>
-        <ul class="space-y-2">
+        <ul v-if="files.length > 0" class="space-y-2 mb-3">
           <li v-for="file in files" :key="file.id" class="flex items-center gap-2 text-sm">
             <template v-if="file.file_type === 'WEB_MODEL'">
               <span class="text-gray-500">🔗</span>
@@ -80,6 +80,20 @@
             </template>
           </li>
         </ul>
+        <p v-else class="text-sm text-gray-500 mb-3">Sin archivos adjuntos aún.</p>
+        <div v-if="canUploadFiles" :class="{ 'pt-3 border-t border-gray-700': files.length > 0 }">
+          <input
+            type="file"
+            :accept="order!.request_type === 'REFERENCE' ? 'image/*' : '.stl,.obj,.3mf'"
+            multiple
+            class="hidden"
+            ref="addFileInput"
+            @change="handleAddFile"
+          />
+          <AppButton size="sm" variant="secondary" :loading="uploadingFile" @click="(addFileInput as HTMLInputElement)?.click()">
+            + Agregar {{ order!.request_type === 'REFERENCE' ? 'imágenes' : 'archivo 3D' }}
+          </AppButton>
+        </div>
       </AppCard>
 
       <!-- Cotización activa -->
@@ -149,6 +163,19 @@
       <!-- Sin cotización aún -->
       <AppCard v-else-if="['RECEIVED', 'PENDING_ANALYSIS'].includes(order.status)" class="mb-4">
         <p class="text-sm text-gray-400">Tu pedido está siendo revisado. Recibirás una cotización pronto.</p>
+      </AppCard>
+
+      <!-- Estimado de entrega -->
+      <AppCard v-if="deliveryEstimate" class="mb-4">
+        <h3 class="text-sm font-medium text-gray-400 mb-1">Tiempo de entrega estimado</h3>
+        <template v-if="deliveryEstimate.type === 'range'">
+          <p class="text-white font-medium">{{ deliveryEstimate.from }} – {{ deliveryEstimate.to }}</p>
+          <p class="text-xs text-gray-500 mt-0.5">No incluye sábados, domingos ni días festivos.</p>
+        </template>
+        <template v-else>
+          <p class="text-gray-300 text-sm">{{ deliveryEstimate.label }}</p>
+          <p class="text-xs text-gray-500 mt-0.5">El plazo inicia una vez que se confirme tu anticipo. No incluye sábados, domingos ni festivos.</p>
+        </template>
       </AppCard>
 
       <!-- Pagos -->
@@ -270,7 +297,7 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppAlert from '@/components/ui/AppAlert.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
-import { getOrder, listProductionHistory, cancelOrder, listOrderFiles } from '../services/orderService'
+import { getOrder, listProductionHistory, cancelOrder, listOrderFiles, uploadOrderFile } from '../services/orderService'
 import { listOrderQuotes, acceptQuote, rejectQuote, downloadQuotePDF } from '@/modules/quotes/services/quoteService'
 import { listOrderPayments, uploadPaymentProof } from '@/modules/payments/services/paymentService'
 import { formatMXN, formatDate, formatDateTime, ORDER_STATUS_LABELS, PRIORITY_LABELS, PAYMENT_TYPE_LABELS, REQUEST_TYPE_LABELS, DELIVERY_METHOD_LABELS } from '@/utils/formatters'
@@ -299,11 +326,56 @@ const downloadingPDF = ref(false)
 const rejectReason = ref('')
 const cancelReason = ref('')
 const proofInput = ref<HTMLInputElement | null>(null)
+const addFileInput = ref<HTMLInputElement | null>(null)
+const uploadingFile = ref(false)
 
 const CANCELLABLE_STATUSES = ['RECEIVED', 'PENDING_ANALYSIS', 'QUOTED', 'APPROVED', 'PENDING_DEPOSIT']
 
 const canCancel = computed(() => order.value && CANCELLABLE_STATUSES.includes(order.value.status))
 const pendingPayment = computed(() => payments.value.find(p => p.payment_status === 'PENDING'))
+const canUploadFiles = computed(() =>
+  order.value &&
+  ['REFERENCE', 'PRINTABLE_FILE'].includes(order.value.request_type) &&
+  ['RECEIVED', 'PENDING_ANALYSIS'].includes(order.value.status)
+)
+
+const DELIVERY_RANGES: Record<string, { min: number; max: number; label: string }> = {
+  NORMAL:  { min: 5, max: 7, label: '5 a 7 días hábiles' },
+  URGENT:  { min: 2, max: 3, label: '2 a 3 días hábiles' },
+  EXPRESS: { min: 1, max: 2, label: '24 a 48 horas hábiles' },
+}
+
+function addWorkingDays(start: Date, days: number): Date {
+  const d = new Date(start)
+  let added = 0
+  while (added < days) {
+    d.setDate(d.getDate() + 1)
+    const day = d.getDay()
+    if (day !== 0 && day !== 6) added++
+  }
+  return d
+}
+
+const deliveryEstimate = computed(() => {
+  if (!order.value) return null
+  if (['CANCELLED', 'DELIVERED'].includes(order.value.status)) return null
+  if (!activeQuote.value || activeQuote.value.quote_status !== 'ACCEPTED') return null
+
+  const range = DELIVERY_RANGES[order.value.priority]
+  if (!range) return null
+
+  const depositEntry = history.value.find(h => ['DEPOSIT_PAID', 'FULLY_PAID'].includes(h.new_status))
+  if (depositEntry) {
+    const start = new Date(depositEntry.changed_at)
+    return {
+      type: 'range' as const,
+      from: formatDate(addWorkingDays(start, range.min).toISOString()),
+      to: formatDate(addWorkingDays(start, range.max).toISOString()),
+    }
+  }
+
+  return { type: 'pending' as const, label: range.label }
+})
 
 async function reload() {
   const [orderData, quotesData, paymentsData, historyData, filesData] = await Promise.all([
@@ -384,6 +456,24 @@ async function handleDownloadPDF() {
     errorMessage.value = 'Error al descargar el PDF. Intenta de nuevo.'
   } finally {
     downloadingPDF.value = false
+  }
+}
+
+async function handleAddFile(event: Event) {
+  const input = event.target as HTMLInputElement
+  const fileList = input.files
+  if (!fileList || !order.value) return
+  const fileType = order.value.request_type === 'REFERENCE' ? 'REFERENCE' : 'PRINTABLE_FILE'
+  uploadingFile.value = true
+  try {
+    await Promise.all(Array.from(fileList).map(f => uploadOrderFile(orderId, f, fileType)))
+    toast.show('Archivo(s) agregado(s) correctamente.')
+    files.value = (await listOrderFiles(orderId)).results
+  } catch (err: any) {
+    errorMessage.value = err.response?.data?.message ?? 'Error al subir el archivo'
+  } finally {
+    uploadingFile.value = false
+    if (addFileInput.value) addFileInput.value.value = ''
   }
 }
 

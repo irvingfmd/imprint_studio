@@ -31,14 +31,14 @@ def _make_history(order, admin_user, previous=None, new_status=OrderStatus.QUOTE
 
 @pytest.mark.django_db
 class TestProductionHistoryModel:
-    def test_str_con_previous_status(self, customer, admin_user):
+    def test_str_with_previous_status(self, customer, admin_user):
         order = _make_order(customer)
         history = _make_history(order, admin_user, previous=OrderStatus.RECEIVED, new_status=OrderStatus.QUOTED)
         s = str(history)
         assert "RECEIVED" in s
         assert "QUOTED" in s
 
-    def test_str_sin_previous_status(self, customer, admin_user):
+    def test_str_without_previous_status(self, customer, admin_user):
         # El primer cambio no tiene previous_status
         order = _make_order(customer)
         history = _make_history(order, admin_user, previous=None, new_status=OrderStatus.RECEIVED)
@@ -63,12 +63,12 @@ class TestProductionHistoryModel:
         history = _make_history(order, admin_user)
         assert not hasattr(history, "updated_at")
 
-    def test_notes_default_vacio(self, customer, admin_user):
+    def test_notes_default_empty(self, customer, admin_user):
         order = _make_order(customer)
         history = _make_history(order, admin_user)
         assert history.notes == ""
 
-    def test_notes_almacenadas(self, customer, admin_user):
+    def test_notes_stored(self, customer, admin_user):
         order = _make_order(customer)
         history = ProductionHistory.objects.create(
             order=order,
@@ -89,7 +89,7 @@ class TestProductionHistoryModel:
         history = _make_history(order, admin_user)
         assert history in order.production_history.all()
 
-    def test_changed_by_almacenado(self, customer, admin_user):
+    def test_changed_by_stored(self, customer, admin_user):
         order = _make_order(customer)
         history = _make_history(order, admin_user)
         assert history.changed_by == admin_user

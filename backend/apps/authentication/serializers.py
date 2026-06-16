@@ -8,7 +8,7 @@ from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
-from apps.authentication.models import User
+from apps.authentication.models import User, UserRole
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -121,6 +121,34 @@ class UserSerializer(serializers.ModelSerializer):
     Endpoint: GET /api/v1/auth/me/
     """
 
+    permissions = serializers.SerializerMethodField()
+
+    def get_permissions(self, obj: User) -> list[str]:
+        if obj.is_admin:
+            return [
+                "view_all_orders",
+                "create_quote",
+                "confirm_payment",
+                "reject_payment",
+                "process_refund",
+                "change_order_status",
+                "manage_shipments",
+                "manage_configuration",
+                "view_dashboard",
+                "manage_users",
+            ]
+        return [
+            "create_order",
+            "view_own_orders",
+            "view_own_quotes",
+            "download_quote_pdf",
+            "upload_files",
+            "upload_payment_proof",
+            "view_own_payments",
+            "manage_addresses",
+            "request_cancellation",
+        ]
+
     class Meta:
         model = User
         fields = [
@@ -130,5 +158,35 @@ class UserSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "role",
+            "permissions",
         ]
         read_only_fields = fields
+
+
+class AdminUserSerializer(serializers.ModelSerializer):
+    """
+    Serializer para listar y ver detalle de usuarios desde el panel admin.
+    """
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "phone",
+            "email",
+            "first_name",
+            "last_name",
+            "role",
+            "is_active",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+
+class UpdateUserRoleSerializer(serializers.Serializer):
+    """
+    Serializer para cambiar el rol de un usuario.
+    Endpoint: PUT /api/v1/admin/users/{user_id}/role/
+    """
+
+    role = serializers.ChoiceField(choices=UserRole.choices)

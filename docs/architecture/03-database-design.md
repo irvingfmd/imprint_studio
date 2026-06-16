@@ -2,7 +2,7 @@
 
 ## Imprint Studio
 
-Versión: 3.0
+Versión: 3.1
 
 Estado: Aprobado para implementación
 
@@ -200,6 +200,7 @@ class UserRole(models.TextChoices):
 class RequestType(models.TextChoices):
     REFERENCE = "REFERENCE", "Reference"
     PRINTABLE_FILE = "PRINTABLE_FILE", "Printable File"
+    WEB_MODEL = "WEB_MODEL", "Web Model"
 ```
 
 ---
@@ -437,6 +438,13 @@ users
      ├── order_events
      │
      └── shipments
+
+configuration (independiente)
+├── business_config
+├── business_hours
+├── holidays
+├── payment_instructions
+└── printers
 ```
 
 ---
@@ -1019,6 +1027,8 @@ Si `request_type = REFERENCE` el estado inicial será `RECEIVED`.
 
 Si `request_type = PRINTABLE_FILE` el estado inicial será `PENDING_ANALYSIS`.
 
+Si `request_type = WEB_MODEL` el estado inicial será `RECEIVED`.
+
 Los campos `ai_analysis`, `ai_notes`, `ai_confidence`, `ai_category`
 deben permanecer vacíos durante el MVP.
 
@@ -1053,10 +1063,9 @@ Puede contener imágenes de referencia, STL, OBJ, 3MF y comprobantes de pago.
 ## File Types
 
 ```text
-IMAGE
-STL
-OBJ
-THREE_MF
+REFERENCE
+PRINTABLE_FILE
+WEB_MODEL
 PAYMENT_PROOF
 ```
 
@@ -1168,7 +1177,7 @@ No tienen `updated_at` por diseño.
 | id                               | UUID         | No       |
 | quote_id                         | UUID         | No       |
 | material_cost_per_kg             | DECIMAL(10,2)| No       |
-| energy_cost_per_hour             | DECIMAL(10,2)| No       |
+| electricity_rate_kwh             | DECIMAL(10,2)| No       |
 | labor_cost_per_hour              | DECIMAL(10,2)| No       |
 | post_processing_cost_per_gram    | DECIMAL(10,2)| No       |
 | packaging_cost                   | DECIMAL(10,2)| No       |
@@ -1177,6 +1186,8 @@ No tienen `updated_at` por diseño.
 | urgent_multiplier                | DECIMAL(5,2) | No       |
 | express_multiplier               | DECIMAL(5,2) | No       |
 | full_payment_discount_percentage | DECIMAL(5,2) | No       |
+| printer_name                     | VARCHAR(255) | Sí       |
+| printer_power_watts              | INTEGER      | Sí       |
 | created_at                       | TIMESTAMP    | No       |
 
 ---
@@ -1265,9 +1276,15 @@ ni eliminarse información histórica.
 | order_id        | UUID        | No       |
 | previous_status | VARCHAR(50) | Sí       |
 | new_status      | VARCHAR(50) | No       |
-| changed_by      | UUID        | No       |
+| changed_by      | UUID        | Sí       |
 | notes           | TEXT        | Sí       |
 | changed_at      | TIMESTAMP   | No       |
+
+---
+
+## Regla de Negocio
+
+`changed_by = NULL` indica que el cambio fue realizado por una acción automática del sistema (scheduler), no por un usuario.
 
 ---
 
@@ -1411,7 +1428,7 @@ Debe existir únicamente un registro activo.
 | -------------------------------- | ------------ | -------- |
 | id                               | UUID         | No       |
 | material_cost_per_kg             | DECIMAL(10,2)| No       |
-| energy_cost_per_hour             | DECIMAL(10,2)| No       |
+| electricity_rate_kwh             | DECIMAL(10,2)| No       |
 | labor_cost_per_hour              | DECIMAL(10,2)| No       |
 | post_processing_cost_per_gram    | DECIMAL(10,2)| No       |
 | packaging_cost                   | DECIMAL(10,2)| No       |
@@ -1433,7 +1450,7 @@ Debe existir únicamente un registro activo.
 | Configuración                    | Valor |
 | -------------------------------- | ----- |
 | material_cost_per_kg             | 25.00 |
-| energy_cost_per_hour             | 0.50  |
+| electricity_rate_kwh             | 1.50  |
 | labor_cost_per_hour              | 15.00 |
 | post_processing_cost_per_gram    | 0.05  |
 | packaging_cost                   | 2.00  |
@@ -1558,6 +1575,51 @@ Debe existir únicamente un registro activo.
 
 ---
 
+# Tabla: printers
+
+## Propósito
+
+Almacenar el catálogo de impresoras 3D disponibles en el taller.
+
+Se usa para calcular el costo energético real de cada cotización basándose en los watts de la impresora seleccionada.
+
+---
+
+## Campos
+
+| Campo           | Tipo         | Nullable |
+| --------------- | ------------ | -------- |
+| id              | UUID         | No       |
+| name            | VARCHAR(100) | No       |
+| brand           | VARCHAR(100) | No       |
+| power_watts     | INTEGER      | No       |
+| max_power_watts | INTEGER      | Sí       |
+| is_active       | BOOLEAN      | No       |
+| created_at      | TIMESTAMP    | No       |
+| updated_at      | TIMESTAMP    | No       |
+
+---
+
+## Descripción de Campos
+
+| Campo           | Descripción |
+| --------------- | ----------- |
+| power_watts     | Consumo promedio en operación normal (watts) |
+| max_power_watts | Potencia máxima técnica de pico (watts) — referencia, no se usa en cálculos |
+| is_active       | Si está disponible para seleccionar en nuevas cotizaciones |
+
+---
+
+## Reglas de Negocio
+
+El campo `power_watts` es el que se usa en el cálculo de costo energético.
+
+Si no se selecciona impresora al cotizar, `energy_cost = 0`.
+
+Las impresoras inactivas no aparecen en el selector del panel admin.
+
+---
+
 # Recomendaciones para Django Models
 
 ## BaseModel
@@ -1628,7 +1690,7 @@ para futuras expansiones sin requerir rediseños significativos.
 
 # Estado del Documento
 
-Versión: 3.0
+Versión: 3.1
 
 Estado:
 
