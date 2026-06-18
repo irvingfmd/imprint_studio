@@ -287,6 +287,7 @@ class TestProcessRefund:
     def test_registers_refund(self, customer, admin_user):
         """Caso 41: crea registro de tipo REFUND."""
         order = _make_order(customer, status=OrderStatus.CANCELLED)
+        _make_payment(order, ptype=PaymentType.DEPOSIT, pstatus=PaymentStatus.CONFIRMED)
         payment = PaymentService.process_refund(
             order_id=str(order.id),
             amount=Decimal("218.24"),
@@ -300,6 +301,7 @@ class TestProcessRefund:
     def test_updates_payment_status_to_refunded(self, customer, admin_user):
         """Caso 38-40: pedido queda en REFUNDED."""
         order = _make_order(customer, status=OrderStatus.CANCELLED)
+        _make_payment(order, ptype=PaymentType.DEPOSIT, pstatus=PaymentStatus.CONFIRMED)
         PaymentService.process_refund(
             order_id=str(order.id),
             amount=Decimal("150.00"),
@@ -312,6 +314,7 @@ class TestProcessRefund:
     def test_creates_refund_processed_event(self, customer, admin_user):
         """Caso 42: evento REFUND_PROCESSED generado."""
         order = _make_order(customer, status=OrderStatus.CANCELLED)
+        _make_payment(order, ptype=PaymentType.DEPOSIT, pstatus=PaymentStatus.CONFIRMED)
         PaymentService.process_refund(
             order_id=str(order.id),
             amount=Decimal("218.24"),
@@ -325,6 +328,7 @@ class TestProcessRefund:
 
     def test_metadata_includes_amount_and_reason(self, customer, admin_user):
         order = _make_order(customer, status=OrderStatus.CANCELLED)
+        _make_payment(order, ptype=PaymentType.DEPOSIT, pstatus=PaymentStatus.CONFIRMED)
         PaymentService.process_refund(
             order_id=str(order.id),
             amount=Decimal("75.00"),

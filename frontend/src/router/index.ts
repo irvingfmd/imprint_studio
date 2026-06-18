@@ -65,7 +65,7 @@ router.beforeEach(async (to) => {
       const user = await getMe()
       auth.setUser(user)
     } catch {
-      auth.logout()
+      await auth.logout()
       return { name: 'login' }
     }
   }

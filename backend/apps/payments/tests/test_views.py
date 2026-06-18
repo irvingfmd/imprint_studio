@@ -409,6 +409,7 @@ class TestAdminRefundView:
     def test_admin_registers_refund(self, admin_client, customer):
         """Casos 38-42: registrar reembolso."""
         order = _make_order(customer, status=OrderStatus.CANCELLED)
+        _make_payment(order, ptype=PaymentType.DEPOSIT, pstatus=PaymentStatus.CONFIRMED)
         resp = admin_client.post(
             admin_refund_url(order.id),
             {"amount": "218.24", "reason": "Pedido cancelado antes de laminar"},

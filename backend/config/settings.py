@@ -185,6 +185,9 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024  # 20 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024
+
 # ============================================================
 # Django REST Framework
 # ============================================================
@@ -211,7 +214,7 @@ REST_FRAMEWORK = {
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(
-        minutes=int(os.environ.get("JWT_ACCESS_MINUTES", 60))
+        minutes=int(os.environ.get("JWT_ACCESS_MINUTES", 15))
     ),
     "REFRESH_TOKEN_LIFETIME": timedelta(
         days=int(os.environ.get("JWT_REFRESH_DAYS", 7))
@@ -234,6 +237,11 @@ CORS_ALLOWED_ORIGINS = os.environ.get(
 ).split(",")
 
 CORS_ALLOW_CREDENTIALS = True
+
+CSRF_TRUSTED_ORIGINS = os.environ.get(
+    "CSRF_TRUSTED_ORIGINS",
+    "http://localhost:5173",
+).split(",")
 
 # ============================================================
 # OTP

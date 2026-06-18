@@ -93,3 +93,66 @@ def cancel_expired_deposits() -> None:
 
     if cancelled:
         logger.info("Scheduler: %d pedido(s) cancelado(s) por vencimiento de anticipo.", cancelled)
+
+
+def remind_pending_deposits() -> None:
+    """
+    Envía recordatorio a clientes con anticipo pendiente a 24h de vencerse.
+    Solo notifica una vez por pedido (verifica que no se haya enviado antes).
+    """
+    from apps.configuration.selectors import get_active_business_config
+    from apps.notifications.services import NotificationService
+    from apps.orders.models import Order, OrderEvent, OrderStatus, EventType
+    from apps.production.models import ProductionHistory
+
+    config = get_active_business_config()
+    if not config:
+        return
+
+    hours = int(config.deposit_deadline_hours)
+    reminder_hours = 24
+    if hours <= reminder_hours:
+        return
+
+    threshold = timezone.now() - timedelta(hours=hours - reminder_hours)
+
+    pending_since_sq = (
+        ProductionHistory.objects.filter(
+            order=OuterRef("pk"),
+            new_status=OrderStatus.PENDING_DEPOSIT,
+        )
+        .order_by("-changed_at")
+        .values("changed_at")[:1]
+    )
+
+    due_soon = (
+        Order.objects.filter(status=OrderStatus.PENDING_DEPOSIT, is_deleted=False)
+        .annotate(pending_since=Subquery(pending_since_sq))
+        .filter(pending_since__lt=threshold)
+    )
+
+    sent = 0
+    for order in due_soon:
+        already_reminded = OrderEvent.objects.filter(
+            order=order,
+            event_type=EventType.STATUS_CHANGED,
+            event_description__icontains="recordatorio de anticipo",
+        ).exists()
+        if already_reminded:
+            continue
+
+        try:
+            NotificationService.notify_deposit_reminder(order, reminder_hours)
+            OrderEvent.objects.create(
+                order=order,
+                event_type=EventType.STATUS_CHANGED,
+                event_description="Recordatorio de anticipo enviado automáticamente.",
+                metadata={"hours_remaining": reminder_hours},
+                created_by=None,
+            )
+            sent += 1
+        except Exception as exc:
+            logger.error("Error al enviar recordatorio para pedido %s: %s", order.id, exc)
+
+    if sent:
+        logger.info("Scheduler: %d recordatorio(s) de anticipo enviado(s).", sent)

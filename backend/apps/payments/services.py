@@ -160,11 +160,40 @@ class PaymentService:
         """
         Registra un reembolso para un pedido.
         El administrador realiza la transferencia fuera del sistema y la registra aquí.
+        Valida que el monto no exceda lo pagado menos reembolsos previos.
         """
+        from decimal import Decimal
+        from django.db.models import Sum
+
         try:
             order = Order.objects.get(id=order_id, is_deleted=False)
         except Order.DoesNotExist:
             raise ValueError("Pedido no encontrado.")
+
+        total_paid = (
+            Payment.objects.filter(
+                order=order,
+                payment_status=PaymentStatus.CONFIRMED,
+                is_deleted=False,
+            )
+            .exclude(payment_type=PaymentType.REFUND)
+            .aggregate(total=Sum("amount"))["total"]
+        ) or Decimal("0.00")
+
+        total_refunded = (
+            Payment.objects.filter(
+                order=order,
+                payment_type=PaymentType.REFUND,
+                payment_status=PaymentStatus.CONFIRMED,
+                is_deleted=False,
+            ).aggregate(total=Sum("amount"))["total"]
+        ) or Decimal("0.00")
+
+        available = total_paid - total_refunded
+        if amount > available:
+            raise ValueError(
+                f"Monto excede lo disponible para reembolso (${available} MXN)."
+            )
 
         payment = Payment.objects.create(
             order=order,

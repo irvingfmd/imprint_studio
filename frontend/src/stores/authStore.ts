@@ -1,6 +1,7 @@
 // Store de autenticación — gestiona sesión, tokens y usuario actual
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import axios from 'axios'
 import type { User } from '@/types'
 
 export const useAuthStore = defineStore('auth', () => {
@@ -22,7 +23,14 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = u
   }
 
-  function logout() {
+  async function logout() {
+    if (refreshToken.value) {
+      try {
+        await axios.post('/api/v1/auth/logout/', { refresh: refreshToken.value }, {
+          headers: { Authorization: `Bearer ${accessToken.value}` },
+        })
+      } catch {}
+    }
     user.value = null
     accessToken.value = null
     refreshToken.value = null

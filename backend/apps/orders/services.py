@@ -44,6 +44,9 @@ class OrderService:
             created_by=customer,
         )
 
+        from apps.notifications.services import NotificationService
+        NotificationService.notify_admin_new_order(order)
+
         return order
 
     @staticmethod

@@ -97,7 +97,7 @@ const initials = computed(() => {
 })
 
 async function handleLogout() {
-  auth.logout()
+  await auth.logout()
   router.push('/login')
 }
 
@@ -107,7 +107,7 @@ onMounted(async () => {
       const user = await getMe()
       auth.setUser(user)
     } catch {
-      auth.logout()
+      await auth.logout()
       router.push('/login')
     }
   }

@@ -184,3 +184,51 @@ class NotificationService:
             "Recibirás el monto en los próximos días hábiles."
         )
         cls._notify_customer(order, msg, f"Reembolso procesado — {order.title}")
+
+    @classmethod
+    def notify_order_in_production(cls, order) -> None:
+        """Pedido entró a impresión."""
+        msg = (
+            f"Hola {order.customer.first_name}, tu pedido «{order.title}» "
+            "entró a producción. Te avisamos cuando esté listo."
+        )
+        cls._notify_customer(order, msg, f"En producción — {order.title}")
+
+    @classmethod
+    def notify_order_delivered(cls, order) -> None:
+        """Pedido entregado al cliente."""
+        msg = (
+            f"Hola {order.customer.first_name}, tu pedido «{order.title}» "
+            "fue entregado. ¡Gracias por tu preferencia!"
+        )
+        cls._notify_customer(order, msg, f"Pedido entregado — {order.title}")
+
+    @classmethod
+    def notify_deposit_reminder(cls, order, hours_remaining: int) -> None:
+        """Recordatorio de anticipo pendiente antes del vencimiento."""
+        msg = (
+            f"Hola {order.customer.first_name}, tu anticipo para «{order.title}» "
+            f"vence en {hours_remaining} horas. Realiza tu pago para que podamos "
+            "iniciar la producción."
+        )
+        cls._notify_customer(order, msg, f"Recordatorio de anticipo — {order.title}")
+
+    @classmethod
+    def notify_admin_new_order(cls, order) -> None:
+        """Notifica a los administradores que hay un nuevo pedido."""
+        from apps.authentication.models import User, UserRole
+        admins = User.objects.filter(role=UserRole.ADMIN, is_active=True)
+        msg = (
+            f"Nuevo pedido recibido: «{order.title}» "
+            f"de {order.customer.first_name} ({order.customer.phone}). "
+            f"Tipo: {order.request_type}."
+        )
+        for admin in admins:
+            WhatsAppService.send_message(admin.phone, msg)
+            if admin.email:
+                EmailService.send_email(
+                    to_email=admin.email,
+                    subject=f"Nuevo pedido — {order.title}",
+                    body=msg,
+                    to_name=admin.first_name,
+                )

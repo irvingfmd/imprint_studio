@@ -1,6 +1,10 @@
 """
 Vistas para la app orders.
 """
+import os
+import uuid
+
+from django.conf import settings as django_settings
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -146,17 +150,65 @@ class OrderFileListUploadView(APIView):
         )
 
     def post(self, request, order_id):
-        serializer = RequestFileUploadSerializer(data=request.data)
-        if not serializer.is_valid():
-            return error_response("Validation error", errors=serializer.errors)
-
         order = selectors.get_order_by_id(str(order_id))
         if not order:
             return error_response("Order not found", status_code=status.HTTP_404_NOT_FOUND)
         if order.customer_id != request.user.id and not request.user.is_admin:
             return error_response("Permission denied", status_code=status.HTTP_403_FORBIDDEN)
 
-        file = services.OrderService.upload_file(
+        uploaded_file = request.FILES.get("file")
+
+        if uploaded_file:
+            max_file_size = 20 * 1024 * 1024  # 20 MB
+            if uploaded_file.size > max_file_size:
+                return error_response(
+                    "El archivo no puede superar los 20 MB.",
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                )
+
+            ext = os.path.splitext(uploaded_file.name)[1].lower()
+            allowed_extensions = {".stl", ".obj", ".3mf", ".jpg", ".jpeg", ".png", ".webp"}
+            if ext not in allowed_extensions:
+                return error_response(
+                    "Formato no permitido. Usa STL, OBJ, 3MF, JPG, PNG o WEBP.",
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                )
+
+            file_type = request.data.get("file_type", "REFERENCE")
+            safe_name = f"{uuid.uuid4().hex}{ext}"
+            dest_dir = os.path.join(django_settings.MEDIA_ROOT, "orders", str(order_id))
+            os.makedirs(dest_dir, exist_ok=True)
+            dest_path = os.path.join(dest_dir, safe_name)
+            with open(dest_path, "wb") as f:
+                for chunk in uploaded_file.chunks():
+                    f.write(chunk)
+
+            file_url = f"{django_settings.MEDIA_URL}orders/{order_id}/{safe_name}"
+
+            req_file = services.OrderService.upload_file(
+                order=order,
+                file_url=file_url,
+                file_type=file_type,
+                original_filename=uploaded_file.name,
+                mime_type=uploaded_file.content_type or "application/octet-stream",
+                file_size_bytes=uploaded_file.size,
+                user=request.user,
+            )
+
+            auto_quote = _try_auto_quote(order, dest_path, request.user)
+            response_data: dict = {"id": str(req_file.id), "file_type": req_file.file_type}
+            if auto_quote:
+                response_data["auto_quote"] = {
+                    "quote_id": str(auto_quote.id),
+                    "total_price": str(auto_quote.total_price),
+                }
+            return created_response(data=response_data, message="File uploaded")
+
+        serializer = RequestFileUploadSerializer(data=request.data)
+        if not serializer.is_valid():
+            return error_response("Validation error", errors=serializer.errors)
+
+        req_file = services.OrderService.upload_file(
             order=order,
             file_url=serializer.validated_data["file_url"],
             file_type=serializer.validated_data["file_type"],
@@ -166,7 +218,7 @@ class OrderFileListUploadView(APIView):
             user=request.user,
         )
         return created_response(
-            data={"id": str(file.id), "file_type": file.file_type},
+            data={"id": str(req_file.id), "file_type": req_file.file_type},
             message="File uploaded",
         )
 
@@ -273,3 +325,47 @@ class AdminDashboardView(APIView):
             },
             message="Dashboard metrics retrieved",
         )
+
+
+def _try_auto_quote(order, file_path: str, user) -> "Quote | None":
+    """
+    Si el archivo es STL y el pedido no tiene cotización activa, genera una auto-cotización.
+    Errores de análisis se tragan — el admin puede cotizar manualmente.
+    """
+    if not file_path.lower().endswith(".stl"):
+        return None
+
+    from apps.quotes.models import Quote, QuoteStatus
+    if Quote.objects.filter(order=order, quote_status=QuoteStatus.PENDING, is_deleted=False).exists():
+        return None
+
+    import logging
+    logger = logging.getLogger(__name__)
+
+    try:
+        with open(file_path, "rb") as f:
+            data = f.read()
+
+        from apps.quotes.stl_service import estimate_from_stl
+        from apps.quotes.services import QuoteService
+        from decimal import Decimal
+
+        estimate = estimate_from_stl(data)
+        quote = QuoteService.create_quote(
+            order=order,
+            weight_grams=estimate["estimated_weight_grams"],
+            print_time_hours=estimate["estimated_print_time_hours"],
+            shipping_cost=Decimal("0.00"),
+            created_by=user,
+        )
+        logger.info(
+            "Auto-cotización %s generada para pedido %s (vol=%.1f cm³, peso=%.1fg, tiempo=%.1fh)",
+            quote.id, order.id,
+            estimate["volume_cm3"],
+            estimate["estimated_weight_grams"],
+            estimate["estimated_print_time_hours"],
+        )
+        return quote
+    except Exception as exc:
+        logger.warning("No se pudo generar auto-cotización para pedido %s: %s", order.id, exc)
+        return None

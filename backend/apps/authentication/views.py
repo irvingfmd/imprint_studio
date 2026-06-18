@@ -125,6 +125,31 @@ class VerifyOTPView(APIView):
         return success_response(data=tokens, message="OTP verified successfully")
 
 
+class LogoutView(APIView):
+    """
+    Invalida el refresh token en el servidor.
+    POST /api/v1/auth/logout/
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request: Request) -> Response:
+        from rest_framework_simplejwt.tokens import RefreshToken
+        from rest_framework_simplejwt.exceptions import TokenError
+
+        refresh = request.data.get("refresh")
+        if not refresh:
+            return error_response(
+                "Se requiere el refresh token.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            RefreshToken(refresh).blacklist()
+        except TokenError:
+            pass
+        return success_response(data={}, message="Logged out")
+
+
 class MeView(APIView):
     """
     Información del usuario autenticado.

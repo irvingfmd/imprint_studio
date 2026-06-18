@@ -31,6 +31,11 @@ api.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${data.access}`
           return api(originalRequest)
         } catch {
+          try {
+            await axios.post('/api/v1/auth/logout/', { refresh }, {
+              headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+            })
+          } catch {}
           localStorage.removeItem('access_token')
           localStorage.removeItem('refresh_token')
           window.location.href = '/login'

@@ -157,9 +157,13 @@ class OrderStatusTransitionService:
 
 def _send_status_notification(order: Order, new_status: str) -> None:
     """Envía notificación al cliente según el nuevo estado del pedido."""
-    if new_status == OrderStatus.READY:
+    if new_status == OrderStatus.PRINTING:
+        NotificationService.notify_order_in_production(order)
+    elif new_status == OrderStatus.READY:
         from apps.orders.models import OrderPaymentStatus
         if order.payment_status == OrderPaymentStatus.DEPOSIT_PAID:
             NotificationService.notify_balance_pending(order)
         else:
             NotificationService.notify_order_ready(order)
+    elif new_status == OrderStatus.DELIVERED:
+        NotificationService.notify_order_delivered(order)
