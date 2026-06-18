@@ -148,6 +148,62 @@ class OrderStatusTransitionService:
         return order
 
 
+    @staticmethod
+    @transaction.atomic
+    def revert_status(order: Order, reverted_by, reason: str) -> Order:
+        """
+        Revierte el pedido al estado anterior (según ProductionHistory).
+        Solo admin. No permite revertir DELIVERED ni CANCELLED.
+        """
+        NON_REVERTIBLE = {OrderStatus.DELIVERED, OrderStatus.CANCELLED}
+        if order.status in NON_REVERTIBLE:
+            raise ValueError(f"No se puede revertir un pedido en estado {order.status}.")
+
+        last_entry = (
+            ProductionHistory.objects.filter(order=order).order_by("-changed_at").first()
+        )
+        if not last_entry:
+            raise ValueError("No hay historial de estados para revertir.")
+
+        target_status = last_entry.previous_status
+
+        previous_status = order.status
+        order.status = target_status
+        update_fields = ["status", "updated_at"]
+
+        if previous_status == OrderStatus.APPROVED:
+            order.approved_at = None
+            update_fields.append("approved_at")
+        elif previous_status == OrderStatus.READY:
+            order.ready_at = None
+            update_fields.append("ready_at")
+
+        order.save(update_fields=update_fields)
+
+        ProductionHistory.objects.create(
+            order=order,
+            previous_status=previous_status,
+            new_status=target_status,
+            changed_by=reverted_by,
+            notes=f"[REVERSIÓN] {reason}",
+        )
+
+        OrderEvent.objects.create(
+            order=order,
+            event_type=EventType.STATUS_CHANGED,
+            event_description=f"Estado revertido de {previous_status} a {target_status}. Razón: {reason}",
+            metadata={
+                "previous_status": previous_status,
+                "new_status": target_status,
+                "reverted": True,
+                "reason": reason,
+            },
+            created_by=reverted_by,
+        )
+
+        return order
+
+
 def _send_status_notification(order: Order, new_status: str) -> None:
     """Envía notificación al cliente según el nuevo estado del pedido."""
     if new_status == OrderStatus.PRINTING:

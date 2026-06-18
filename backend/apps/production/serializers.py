@@ -56,3 +56,7 @@ class UpdateOrderStatusSerializer(serializers.Serializer):
 
 class CancelOrderSerializer(serializers.Serializer):
     reason = serializers.CharField()
+
+
+class RevertOrderStatusSerializer(serializers.Serializer):
+    reason = serializers.CharField(max_length=1000)

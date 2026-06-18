@@ -311,9 +311,12 @@
         </AppCard>
       </template>
 
-      <!-- Cancelar pedido (admin) -->
-      <div v-if="canCancelAdmin" class="mt-4">
-        <AppButton variant="danger" size="sm" @click="showCancelModal = true">
+      <!-- Revertir / Cancelar pedido (admin) -->
+      <div class="flex gap-2 mt-4">
+        <AppButton v-if="canRevert" variant="secondary" size="sm" @click="showRevertModal = true">
+          ← Revertir estado
+        </AppButton>
+        <AppButton v-if="canCancelAdmin" variant="danger" size="sm" @click="showCancelModal = true">
           Cancelar pedido
         </AppButton>
       </div>
@@ -340,6 +343,26 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal: revertir estado -->
+    <div
+      v-if="showRevertModal"
+      class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="admin-revert-modal-title"
+      @keydown.esc="showRevertModal = false"
+    >
+      <div class="bg-gray-800 rounded-2xl border border-gray-700 p-6 w-full max-w-sm">
+        <h3 id="admin-revert-modal-title" class="text-lg font-semibold text-white mb-2">Revertir estado</h3>
+        <p class="text-xs text-gray-500 mb-3">El pedido regresará al estado anterior. Esto queda registrado en el historial.</p>
+        <AppInput v-model="revertReason" label="Motivo" placeholder="¿Por qué reviertes el estado?" />
+        <div class="flex gap-2 mt-4">
+          <AppButton variant="ghost" class="flex-1" @click="showRevertModal = false">Cancelar</AppButton>
+          <AppButton variant="secondary" class="flex-1" :loading="reverting" :disabled="!revertReason.trim()" @click="handleRevert">Revertir</AppButton>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -352,7 +375,7 @@ import AppInput from '@/components/ui/AppInput.vue'
 import AppAlert from '@/components/ui/AppAlert.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import {
-  getAdminOrder, updateOrderStatus, cancelOrderAdmin,
+  getAdminOrder, updateOrderStatus, cancelOrderAdmin, revertOrderStatus,
   createQuote, calculateQuote, createShipment, markDelivered, expireQuote, listPrinters,
 } from '../services/adminService'
 import { listProductionHistory, listOrderFiles } from '@/modules/orders/services/orderService'
@@ -388,6 +411,9 @@ const markingDelivered = ref(false)
 const shipmentForm = ref({ carrier_name: '', tracking_number: '', shipping_cost: '0', shipping_notes: '' })
 const downloadingPDF = ref(false)
 const expiringQuote = ref(false)
+const showRevertModal = ref(false)
+const revertReason = ref('')
+const reverting = ref(false)
 
 const activeQuote = computed((): Quote | null => order.value?.active_quote ?? null)
 const webModelFiles = computed(() => files.value.filter((f: any) => f.file_type === 'WEB_MODEL'))
@@ -437,6 +463,11 @@ const availableTransitions = computed(() => {
 
 const canCancelAdmin = computed(() =>
   order.value && CANCELLABLE_FROM_ADMIN.includes(order.value.status)
+)
+
+const NON_REVERTIBLE = ['DELIVERED', 'CANCELLED']
+const canRevert = computed(() =>
+  order.value && !NON_REVERTIBLE.includes(order.value.status) && history.value.length > 0
 )
 
 // DELIVERED aparece en READY o FULLY_PAID solo si el pago está completo.
@@ -502,6 +533,24 @@ async function handleCancel() {
     showCancelModal.value = false
   } finally {
     cancelling.value = false
+  }
+}
+
+async function handleRevert() {
+  if (!revertReason.value.trim()) return
+  reverting.value = true
+  errorMessage.value = ''
+  try {
+    await revertOrderStatus(orderId, revertReason.value)
+    showRevertModal.value = false
+    revertReason.value = ''
+    toast.show('Estado revertido correctamente.')
+    await reload()
+  } catch (err: any) {
+    errorMessage.value = err.response?.data?.message ?? 'Error al revertir el estado'
+    showRevertModal.value = false
+  } finally {
+    reverting.value = false
   }
 }
 

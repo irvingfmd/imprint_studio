@@ -18,6 +18,7 @@ from .serializers import (
     CancelOrderSerializer,
     OrderEventSerializer,
     ProductionHistorySerializer,
+    RevertOrderStatusSerializer,
     UpdateOrderStatusSerializer,
 )
 
@@ -148,3 +149,36 @@ class AdminCancelOrderView(APIView):
             return error_response(str(e), status_code=status.HTTP_400_BAD_REQUEST)
 
         return success_response(data={}, message="Order cancelled")
+
+
+class AdminRevertOrderStatusView(APIView):
+    """Revierte un pedido al estado anterior. Solo admin."""
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def put(self, request, order_id):
+        serializer = RevertOrderStatusSerializer(data=request.data)
+        if not serializer.is_valid():
+            return error_response(
+                "Validation error",
+                errors=serializer.errors,
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        order = get_order_by_id(str(order_id))
+        if not order:
+            return error_response("Order not found", status_code=status.HTTP_404_NOT_FOUND)
+
+        try:
+            services.OrderStatusTransitionService.revert_status(
+                order=order,
+                reverted_by=request.user,
+                reason=serializer.validated_data["reason"],
+            )
+        except ValueError as e:
+            return error_response(str(e), status_code=status.HTTP_400_BAD_REQUEST)
+
+        return success_response(
+            data={"status": order.status},
+            message="Order status reverted",
+        )

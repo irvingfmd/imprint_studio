@@ -32,6 +32,10 @@ export async function cancelOrderAdmin(orderId: string, reason: string): Promise
   await api.put(`/admin/orders/${orderId}/cancel/`, { reason })
 }
 
+export async function revertOrderStatus(orderId: string, reason: string): Promise<void> {
+  await api.put(`/admin/orders/${orderId}/revert/`, { reason })
+}
+
 // --- Cotizaciones ---
 
 export async function createQuote(orderId: string, payload: {

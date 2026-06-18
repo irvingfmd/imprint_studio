@@ -6,7 +6,7 @@ Incluye pedidos, pagos manuales, reembolsos, estado, cancelación, cotizaciones 
 from django.urls import path
 
 from apps.payments.views import AdminManualConfirmationView, AdminRefundView
-from apps.production.views import AdminCancelOrderView, AdminUpdateOrderStatusView
+from apps.production.views import AdminCancelOrderView, AdminRevertOrderStatusView, AdminUpdateOrderStatusView
 from apps.quotes.views import AdminCreateQuoteView
 from apps.shipping.views import AdminCreateShipmentView
 
@@ -21,6 +21,8 @@ urlpatterns = [
     path("<uuid:order_id>/status/", AdminUpdateOrderStatusView.as_view(), name="admin-order-status"),
     # PUT /api/v1/admin/orders/{order_id}/cancel/
     path("<uuid:order_id>/cancel/", AdminCancelOrderView.as_view(), name="admin-order-cancel"),
+    # PUT /api/v1/admin/orders/{order_id}/revert/
+    path("<uuid:order_id>/revert/", AdminRevertOrderStatusView.as_view(), name="admin-order-revert"),
     # POST /api/v1/admin/orders/{order_id}/quote/
     path("<uuid:order_id>/quote/", AdminCreateQuoteView.as_view(), name="admin-order-quote"),
     # POST /api/v1/admin/orders/{order_id}/shipment/
