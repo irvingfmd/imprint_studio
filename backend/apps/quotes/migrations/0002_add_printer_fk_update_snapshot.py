@@ -5,35 +5,40 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('configuration', '0002_add_printer_replace_energy_rate'),
-        ('quotes', '0001_initial'),
+        ("configuration", "0002_add_printer_replace_energy_rate"),
+        ("quotes", "0001_initial"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='quotesnapshot',
-            name='energy_cost_per_hour',
+            model_name="quotesnapshot",
+            name="energy_cost_per_hour",
         ),
         migrations.AddField(
-            model_name='quote',
-            name='printer',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='quotes', to='configuration.printer'),
+            model_name="quote",
+            name="printer",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="quotes",
+                to="configuration.printer",
+            ),
         ),
         migrations.AddField(
-            model_name='quotesnapshot',
-            name='electricity_rate_kwh',
-            field=models.DecimalField(decimal_places=4, default='2.0000', max_digits=10),
+            model_name="quotesnapshot",
+            name="electricity_rate_kwh",
+            field=models.DecimalField(decimal_places=4, default="2.0000", max_digits=10),
         ),
         migrations.AddField(
-            model_name='quotesnapshot',
-            name='printer_name',
-            field=models.CharField(blank=True, default='', max_length=255),
+            model_name="quotesnapshot",
+            name="printer_name",
+            field=models.CharField(blank=True, default="", max_length=255),
         ),
         migrations.AddField(
-            model_name='quotesnapshot',
-            name='printer_power_watts',
+            model_name="quotesnapshot",
+            name="printer_power_watts",
             field=models.PositiveIntegerField(blank=True, null=True),
         ),
     ]

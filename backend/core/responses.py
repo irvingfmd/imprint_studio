@@ -8,6 +8,7 @@ Formato documentado en 04-api-specification.md:
         "data": {...}
     }
 """
+
 from rest_framework import status
 from rest_framework.response import Response
 

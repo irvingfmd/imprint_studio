@@ -5,36 +5,36 @@ OrderStatusTransitionService: gestiona las transiciones de estado de pedidos.
 Fuente oficial de transiciones: docs/appendices/status-flow.md
 En caso de conflicto con otro documento, status-flow.md prevalece.
 """
+
 from django.db import transaction
 from django.utils import timezone
 
 from apps.notifications.services import NotificationService
 from apps.orders.models import (
+    EventType,
     Order,
     OrderEvent,
     OrderPaymentStatus,
     OrderStatus,
-    EventType,
 )
 
 from .models import ProductionHistory
 
-
 # Matriz completa de transiciones válidas — fuente: docs/appendices/status-flow.md
 VALID_TRANSITIONS: dict[str, list[str]] = {
-    OrderStatus.RECEIVED:         [OrderStatus.QUOTED,          OrderStatus.CANCELLED],
-    OrderStatus.PENDING_ANALYSIS: [OrderStatus.QUOTED,          OrderStatus.CANCELLED],
-    OrderStatus.QUOTED:           [OrderStatus.APPROVED,        OrderStatus.CANCELLED],
-    OrderStatus.APPROVED:         [OrderStatus.PENDING_DEPOSIT, OrderStatus.FULLY_PAID, OrderStatus.CANCELLED],
-    OrderStatus.PENDING_DEPOSIT:  [OrderStatus.DEPOSIT_PAID,    OrderStatus.CANCELLED],
-    OrderStatus.DEPOSIT_PAID:     [OrderStatus.PRINTING],
-    OrderStatus.PRINTING:         [OrderStatus.POST_PROCESSING],
-    OrderStatus.POST_PROCESSING:  [OrderStatus.READY],
-    OrderStatus.READY:            [OrderStatus.PENDING_BALANCE, OrderStatus.FULLY_PAID, OrderStatus.DELIVERED],
-    OrderStatus.PENDING_BALANCE:  [OrderStatus.FULLY_PAID],
-    OrderStatus.FULLY_PAID:       [OrderStatus.PRINTING, OrderStatus.DELIVERED],
-    OrderStatus.DELIVERED:        [],
-    OrderStatus.CANCELLED:        [],
+    OrderStatus.RECEIVED: [OrderStatus.QUOTED, OrderStatus.CANCELLED],
+    OrderStatus.PENDING_ANALYSIS: [OrderStatus.QUOTED, OrderStatus.CANCELLED],
+    OrderStatus.QUOTED: [OrderStatus.APPROVED, OrderStatus.CANCELLED],
+    OrderStatus.APPROVED: [OrderStatus.PENDING_DEPOSIT, OrderStatus.FULLY_PAID, OrderStatus.CANCELLED],
+    OrderStatus.PENDING_DEPOSIT: [OrderStatus.DEPOSIT_PAID, OrderStatus.CANCELLED],
+    OrderStatus.DEPOSIT_PAID: [OrderStatus.PRINTING],
+    OrderStatus.PRINTING: [OrderStatus.POST_PROCESSING],
+    OrderStatus.POST_PROCESSING: [OrderStatus.READY],
+    OrderStatus.READY: [OrderStatus.PENDING_BALANCE, OrderStatus.FULLY_PAID, OrderStatus.DELIVERED],
+    OrderStatus.PENDING_BALANCE: [OrderStatus.FULLY_PAID],
+    OrderStatus.FULLY_PAID: [OrderStatus.PRINTING, OrderStatus.DELIVERED],
+    OrderStatus.DELIVERED: [],
+    OrderStatus.CANCELLED: [],
 }
 
 # Estados desde los que se puede cancelar
@@ -48,7 +48,6 @@ CANCELLABLE_STATUSES: set[str] = {
 
 
 class OrderStatusTransitionService:
-
     @staticmethod
     @transaction.atomic
     def transition(order: Order, new_status: str, changed_by, notes: str = "") -> Order:
@@ -60,16 +59,12 @@ class OrderStatusTransitionService:
         allowed = VALID_TRANSITIONS.get(current_status, [])
 
         if new_status not in allowed:
-            raise ValueError(
-                f"Transición inválida: {current_status} → {new_status}."
-            )
+            raise ValueError(f"Transición inválida: {current_status} → {new_status}.")
 
         # READY → DELIVERED solo si el pedido ya está completamente pagado
         if new_status == OrderStatus.DELIVERED:
             if order.payment_status != OrderPaymentStatus.FULLY_PAID:
-                raise ValueError(
-                    "No se puede marcar como DELIVERED: el pedido no está completamente pagado."
-                )
+                raise ValueError("No se puede marcar como DELIVERED: el pedido no está completamente pagado.")
 
         previous_status = order.status
         order.status = new_status
@@ -122,9 +117,7 @@ class OrderStatusTransitionService:
         Fuente oficial: docs/appendices/status-flow.md — sección Cancelaciones.
         """
         if order.status not in CANCELLABLE_STATUSES:
-            raise ValueError(
-                f"No se puede cancelar un pedido en estado {order.status}."
-            )
+            raise ValueError(f"No se puede cancelar un pedido en estado {order.status}.")
 
         previous_status = order.status
         now = timezone.now()
@@ -161,6 +154,7 @@ def _send_status_notification(order: Order, new_status: str) -> None:
         NotificationService.notify_order_in_production(order)
     elif new_status == OrderStatus.READY:
         from apps.orders.models import OrderPaymentStatus
+
         if order.payment_status == OrderPaymentStatus.DEPOSIT_PAID:
             NotificationService.notify_balance_pending(order)
         else:

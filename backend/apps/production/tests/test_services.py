@@ -6,6 +6,7 @@ Casos del plan: 43 (PRINTING), 44 (POST_PROCESSING), 45 (READY),
 Cubre la matriz completa de VALID_TRANSITIONS de OrderStatusTransitionService
 y las reglas especiales del status-flow.md.
 """
+
 import pytest
 
 from apps.orders.models import (
@@ -37,6 +38,7 @@ def _make_order(customer, status=OrderStatus.RECEIVED, payment_status=OrderPayme
 
 
 # --- Transiciones válidas individuales ---
+
 
 @pytest.mark.django_db
 class TestValidTransitions:
@@ -142,6 +144,7 @@ class TestValidTransitions:
 
 # --- Registros de auditoría ---
 
+
 @pytest.mark.django_db
 class TestTransitionAuditRecords:
     def test_creates_production_history(self, customer, admin_user):
@@ -165,9 +168,7 @@ class TestTransitionAuditRecords:
 
     def test_history_stores_notes(self, customer, admin_user):
         order = _make_order(customer, status=OrderStatus.RECEIVED)
-        OrderStatusTransitionService.transition(
-            order, OrderStatus.QUOTED, admin_user, notes="Revisado"
-        )
+        OrderStatusTransitionService.transition(order, OrderStatus.QUOTED, admin_user, notes="Revisado")
         history = ProductionHistory.objects.get(order=order, new_status=OrderStatus.QUOTED)
         assert history.notes == "Revisado"
 
@@ -192,6 +193,7 @@ class TestTransitionAuditRecords:
 
 
 # --- Transiciones inválidas ---
+
 
 @pytest.mark.django_db
 class TestInvalidTransitions:
@@ -248,6 +250,7 @@ class TestInvalidTransitions:
 
 
 # --- Cancelaciones ---
+
 
 @pytest.mark.django_db
 class TestCancelOrder:

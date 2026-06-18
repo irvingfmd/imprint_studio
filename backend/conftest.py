@@ -1,9 +1,11 @@
 """
 Fixtures compartidos entre todas las apps.
 """
+
+from datetime import timedelta
+
 import pytest
 from django.utils import timezone
-from datetime import timedelta
 from rest_framework.test import APIClient
 
 from apps.authentication.models import OTPCode, User, UserRole
@@ -52,6 +54,7 @@ def admin_client(api_client, admin_user):
 @pytest.fixture
 def shipping_address(customer):
     from apps.shipping.models import ShippingAddress
+
     return ShippingAddress.objects.create(
         user=customer,
         address_name="Casa",

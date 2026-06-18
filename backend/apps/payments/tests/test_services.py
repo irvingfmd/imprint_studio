@@ -2,8 +2,10 @@
 Tests de servicios de la app payments.
 Casos del plan: 32-42 (pagos, confirmación, rechazo, confirmación manual, reembolsos).
 """
-import pytest
+
 from decimal import Decimal
+
+import pytest
 
 from apps.orders.models import (
     EventType,
@@ -73,6 +75,7 @@ class TestUploadProof:
 
     def test_nonexistent_payment_raises_error(self):
         import uuid
+
         with pytest.raises(ValueError, match="no encontrado"):
             PaymentService.upload_proof(
                 payment_id=str(uuid.uuid4()),
@@ -158,6 +161,7 @@ class TestConfirmPayment:
 
     def test_nonexistent_payment_raises_error(self, admin_user):
         import uuid
+
         with pytest.raises(ValueError, match="no encontrado"):
             PaymentService.confirm_payment(
                 payment_id=str(uuid.uuid4()),
@@ -206,6 +210,7 @@ class TestRejectPayment:
 
     def test_nonexistent_payment_raises_error(self, admin_user):
         import uuid
+
         with pytest.raises(ValueError, match="no encontrado"):
             PaymentService.reject_payment(
                 payment_id=str(uuid.uuid4()),
@@ -271,6 +276,7 @@ class TestManualConfirmation:
 
     def test_nonexistent_order_raises_error(self, admin_user):
         import uuid
+
         with pytest.raises(ValueError, match="no encontrado"):
             PaymentService.create_manual_confirmation(
                 order_id=str(uuid.uuid4()),
@@ -341,6 +347,7 @@ class TestProcessRefund:
 
     def test_nonexistent_order_raises_error(self, admin_user):
         import uuid
+
         with pytest.raises(ValueError, match="no encontrado"):
             PaymentService.process_refund(
                 order_id=str(uuid.uuid4()),

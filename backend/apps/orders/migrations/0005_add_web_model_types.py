@@ -4,20 +4,32 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('orders', '0004_order_status_default'),
+        ("orders", "0004_order_status_default"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='order',
-            name='request_type',
-            field=models.CharField(choices=[('REFERENCE', 'Reference'), ('PRINTABLE_FILE', 'Printable File'), ('WEB_MODEL', 'Web Model')], max_length=30),
+            model_name="order",
+            name="request_type",
+            field=models.CharField(
+                choices=[("REFERENCE", "Reference"), ("PRINTABLE_FILE", "Printable File"), ("WEB_MODEL", "Web Model")],
+                max_length=30,
+            ),
         ),
         migrations.AlterField(
-            model_name='requestfile',
-            name='file_type',
-            field=models.CharField(choices=[('IMAGE', 'Image'), ('STL', 'STL'), ('OBJ', 'OBJ'), ('THREE_MF', '3MF'), ('WEB_MODEL', 'Web Model'), ('PAYMENT_PROOF', 'Payment Proof')], max_length=30),
+            model_name="requestfile",
+            name="file_type",
+            field=models.CharField(
+                choices=[
+                    ("IMAGE", "Image"),
+                    ("STL", "STL"),
+                    ("OBJ", "OBJ"),
+                    ("THREE_MF", "3MF"),
+                    ("WEB_MODEL", "Web Model"),
+                    ("PAYMENT_PROOF", "Payment Proof"),
+                ],
+                max_length=30,
+            ),
         ),
     ]

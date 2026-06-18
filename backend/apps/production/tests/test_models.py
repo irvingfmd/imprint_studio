@@ -2,6 +2,7 @@
 Tests de modelos de la app production.
 Cubre: ProductionHistory — campos, defaults, str, sin updated_at, inmutabilidad.
 """
+
 import pytest
 
 from apps.orders.models import Order, OrderStatus, RequestType

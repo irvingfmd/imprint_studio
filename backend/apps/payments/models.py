@@ -4,6 +4,7 @@ Modelos de la app payments.
 Payment: registro de movimiento financiero asociado a un pedido.
 Los pagos nunca se eliminan físicamente ni se modifican una vez confirmados.
 """
+
 import uuid
 
 from django.db import models
@@ -13,21 +14,21 @@ from apps.orders.models import Order
 
 
 class PaymentType(models.TextChoices):
-    DEPOSIT      = "DEPOSIT",      "Deposit"
-    BALANCE      = "BALANCE",      "Balance"
+    DEPOSIT = "DEPOSIT", "Deposit"
+    BALANCE = "BALANCE", "Balance"
     FULL_PAYMENT = "FULL_PAYMENT", "Full Payment"
-    REFUND       = "REFUND",       "Refund"
+    REFUND = "REFUND", "Refund"
 
 
 class PaymentMethod(models.TextChoices):
     BANK_TRANSFER = "BANK_TRANSFER", "Bank Transfer"
-    CASH          = "CASH",          "Cash"
+    CASH = "CASH", "Cash"
 
 
 class PaymentStatus(models.TextChoices):
-    PENDING   = "PENDING",   "Pending"
+    PENDING = "PENDING", "Pending"
     CONFIRMED = "CONFIRMED", "Confirmed"
-    REJECTED  = "REJECTED",  "Rejected"
+    REJECTED = "REJECTED", "Rejected"
 
 
 class Payment(models.Model):

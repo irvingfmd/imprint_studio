@@ -4,6 +4,7 @@ Servicios de la app authentication.
 Contiene toda la lógica de negocio para registro,
 generación y verificación de OTP, y autenticación JWT.
 """
+
 import hashlib
 import hmac
 import logging
@@ -24,6 +25,7 @@ def _hash_otp(code: str) -> str:
     """
     key = settings.SECRET_KEY.encode("utf-8")
     return hmac.new(key, code.encode("utf-8"), hashlib.sha256).hexdigest()
+
 
 logger = logging.getLogger(__name__)
 
@@ -103,10 +105,14 @@ class OTPService:
         max_attempts = getattr(settings, "OTP_MAX_ATTEMPTS", 5)
 
         # Buscar código activo más reciente.
-        otp = OTPCode.objects.filter(
-            phone=phone,
-            is_used=False,
-        ).order_by("-created_at").first()
+        otp = (
+            OTPCode.objects.filter(
+                phone=phone,
+                is_used=False,
+            )
+            .order_by("-created_at")
+            .first()
+        )
 
         if not otp:
             raise ValueError("No existe un código OTP activo para este teléfono.")
@@ -123,9 +129,7 @@ class OTPService:
             otp.attempts += 1
             otp.save(update_fields=["attempts"])
             intentos_restantes = max_attempts - otp.attempts
-            raise ValueError(
-                f"Código incorrecto. Te quedan {intentos_restantes} intentos."
-            )
+            raise ValueError(f"Código incorrecto. Te quedan {intentos_restantes} intentos.")
 
         # Marcar como usado.
         otp.is_used = True
@@ -156,7 +160,7 @@ class OTPService:
         if settings.DEBUG:
             # En desarrollo mostramos el código directamente en stdout.
             print("\n" + "=" * 40, flush=True)
-            print(f"  OTP DEVELOPMENT MODE", flush=True)
+            print("  OTP DEVELOPMENT MODE", flush=True)
             print(f"  Teléfono : {phone}", flush=True)
             print(f"  Código   : {code}", flush=True)
             print("=" * 40 + "\n", flush=True)

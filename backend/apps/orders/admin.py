@@ -1,6 +1,7 @@
 """
 Registro de modelos de orders en el panel de administración Django.
 """
+
 from django.contrib import admin
 
 from .models import Order, OrderEvent, RequestFile

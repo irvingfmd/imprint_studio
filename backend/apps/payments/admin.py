@@ -1,6 +1,7 @@
 """
 Configuración del panel de administración para la app payments.
 """
+
 from django.contrib import admin
 
 from .models import Payment

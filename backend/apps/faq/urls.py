@@ -1,6 +1,7 @@
 """
 URLs públicas de la app faq.
 """
+
 from django.urls import path
 
 from .views import FAQListView

@@ -1,11 +1,11 @@
 """
 Servicios para la app faq.
 """
+
 from .models import FAQ
 
 
 class FAQService:
-
     @staticmethod
     def create_faq(data: dict) -> FAQ:
         """Crea una nueva FAQ."""

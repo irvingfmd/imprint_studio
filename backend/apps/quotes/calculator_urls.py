@@ -1,6 +1,7 @@
 """
 URLs del módulo calculadora.
 """
+
 from django.urls import path
 
 from .views import CalculatorView

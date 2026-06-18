@@ -4,6 +4,7 @@ Modelos de la app orders.
 Order: solicitud principal de impresión 3D.
 RequestFile: archivos adjuntos a una solicitud.
 """
+
 import uuid
 
 from django.db import models
@@ -12,53 +13,53 @@ from apps.authentication.models import User
 
 
 class OrderStatus(models.TextChoices):
-    RECEIVED         = "RECEIVED",         "Received"
+    RECEIVED = "RECEIVED", "Received"
     PENDING_ANALYSIS = "PENDING_ANALYSIS", "Pending Analysis"
-    QUOTED           = "QUOTED",           "Quoted"
-    APPROVED         = "APPROVED",         "Approved"
-    PENDING_DEPOSIT  = "PENDING_DEPOSIT",  "Pending Deposit"
-    DEPOSIT_PAID     = "DEPOSIT_PAID",     "Deposit Paid"
-    PRINTING         = "PRINTING",         "Printing"
-    POST_PROCESSING  = "POST_PROCESSING",  "Post Processing"
-    READY            = "READY",            "Ready"
-    PENDING_BALANCE  = "PENDING_BALANCE",  "Pending Balance"
-    FULLY_PAID       = "FULLY_PAID",       "Fully Paid"
-    DELIVERED        = "DELIVERED",        "Delivered"
-    CANCELLED        = "CANCELLED",        "Cancelled"
+    QUOTED = "QUOTED", "Quoted"
+    APPROVED = "APPROVED", "Approved"
+    PENDING_DEPOSIT = "PENDING_DEPOSIT", "Pending Deposit"
+    DEPOSIT_PAID = "DEPOSIT_PAID", "Deposit Paid"
+    PRINTING = "PRINTING", "Printing"
+    POST_PROCESSING = "POST_PROCESSING", "Post Processing"
+    READY = "READY", "Ready"
+    PENDING_BALANCE = "PENDING_BALANCE", "Pending Balance"
+    FULLY_PAID = "FULLY_PAID", "Fully Paid"
+    DELIVERED = "DELIVERED", "Delivered"
+    CANCELLED = "CANCELLED", "Cancelled"
 
 
 class OrderPaymentStatus(models.TextChoices):
-    NO_PAYMENT      = "NO_PAYMENT",      "No Payment"
+    NO_PAYMENT = "NO_PAYMENT", "No Payment"
     DEPOSIT_PENDING = "DEPOSIT_PENDING", "Deposit Pending"
-    DEPOSIT_PAID    = "DEPOSIT_PAID",    "Deposit Paid"
+    DEPOSIT_PAID = "DEPOSIT_PAID", "Deposit Paid"
     BALANCE_PENDING = "BALANCE_PENDING", "Balance Pending"
-    FULLY_PAID      = "FULLY_PAID",      "Fully Paid"
-    REFUNDED        = "REFUNDED",        "Refunded"
+    FULLY_PAID = "FULLY_PAID", "Fully Paid"
+    REFUNDED = "REFUNDED", "Refunded"
 
 
 class OrderPriority(models.TextChoices):
-    NORMAL  = "NORMAL",  "Normal"
-    URGENT  = "URGENT",  "Urgent"
+    NORMAL = "NORMAL", "Normal"
+    URGENT = "URGENT", "Urgent"
     EXPRESS = "EXPRESS", "Express"
 
 
 class RequestType(models.TextChoices):
-    REFERENCE      = "REFERENCE",       "Reference"
-    PRINTABLE_FILE = "PRINTABLE_FILE",  "Printable File"
-    WEB_MODEL      = "WEB_MODEL",       "Web Model"
+    REFERENCE = "REFERENCE", "Reference"
+    PRINTABLE_FILE = "PRINTABLE_FILE", "Printable File"
+    WEB_MODEL = "WEB_MODEL", "Web Model"
 
 
 class DeliveryMethod(models.TextChoices):
-    PICKUP   = "PICKUP",   "Pickup"
+    PICKUP = "PICKUP", "Pickup"
     SHIPPING = "SHIPPING", "Shipping"
 
 
 class FileType(models.TextChoices):
-    IMAGE         = "IMAGE",         "Image"
-    STL           = "STL",           "STL"
-    OBJ           = "OBJ",           "OBJ"
-    THREE_MF      = "THREE_MF",      "3MF"
-    WEB_MODEL     = "WEB_MODEL",     "Web Model"
+    IMAGE = "IMAGE", "Image"
+    STL = "STL", "STL"
+    OBJ = "OBJ", "OBJ"
+    THREE_MF = "THREE_MF", "3MF"
+    WEB_MODEL = "WEB_MODEL", "Web Model"
     PAYMENT_PROOF = "PAYMENT_PROOF", "Payment Proof"
 
 
@@ -216,25 +217,25 @@ class RequestFile(models.Model):
 
 
 class EventType(models.TextChoices):
-    ORDER_CREATED            = "ORDER_CREATED",            "Order Created"
-    FILE_UPLOADED            = "FILE_UPLOADED",            "File Uploaded"
-    QUOTE_CREATED            = "QUOTE_CREATED",            "Quote Created"
-    QUOTE_ACCEPTED           = "QUOTE_ACCEPTED",           "Quote Accepted"
-    QUOTE_REJECTED           = "QUOTE_REJECTED",           "Quote Rejected"
-    PAYMENT_PROOF_UPLOADED   = "PAYMENT_PROOF_UPLOADED",   "Payment Proof Uploaded"
-    PAYMENT_CONFIRMED        = "PAYMENT_CONFIRMED",        "Payment Confirmed"
-    PAYMENT_REJECTED         = "PAYMENT_REJECTED",         "Payment Rejected"
-    DEPOSIT_CONFIRMED        = "DEPOSIT_CONFIRMED",        "Deposit Confirmed"
-    BALANCE_CONFIRMED        = "BALANCE_CONFIRMED",        "Balance Confirmed"
-    FULL_PAYMENT_CONFIRMED   = "FULL_PAYMENT_CONFIRMED",   "Full Payment Confirmed"
-    STATUS_CHANGED           = "STATUS_CHANGED",           "Status Changed"
-    PRIORITY_CHANGED         = "PRIORITY_CHANGED",         "Priority Changed"
+    ORDER_CREATED = "ORDER_CREATED", "Order Created"
+    FILE_UPLOADED = "FILE_UPLOADED", "File Uploaded"
+    QUOTE_CREATED = "QUOTE_CREATED", "Quote Created"
+    QUOTE_ACCEPTED = "QUOTE_ACCEPTED", "Quote Accepted"
+    QUOTE_REJECTED = "QUOTE_REJECTED", "Quote Rejected"
+    PAYMENT_PROOF_UPLOADED = "PAYMENT_PROOF_UPLOADED", "Payment Proof Uploaded"
+    PAYMENT_CONFIRMED = "PAYMENT_CONFIRMED", "Payment Confirmed"
+    PAYMENT_REJECTED = "PAYMENT_REJECTED", "Payment Rejected"
+    DEPOSIT_CONFIRMED = "DEPOSIT_CONFIRMED", "Deposit Confirmed"
+    BALANCE_CONFIRMED = "BALANCE_CONFIRMED", "Balance Confirmed"
+    FULL_PAYMENT_CONFIRMED = "FULL_PAYMENT_CONFIRMED", "Full Payment Confirmed"
+    STATUS_CHANGED = "STATUS_CHANGED", "Status Changed"
+    PRIORITY_CHANGED = "PRIORITY_CHANGED", "Priority Changed"
     SHIPPING_ADDRESS_UPDATED = "SHIPPING_ADDRESS_UPDATED", "Shipping Address Updated"
-    SHIPMENT_CREATED         = "SHIPMENT_CREATED",         "Shipment Created"
-    ORDER_DELIVERED          = "ORDER_DELIVERED",          "Order Delivered"
-    REFUND_REQUESTED         = "REFUND_REQUESTED",         "Refund Requested"
-    REFUND_PROCESSED         = "REFUND_PROCESSED",         "Refund Processed"
-    ORDER_CANCELLED          = "ORDER_CANCELLED",          "Order Cancelled"
+    SHIPMENT_CREATED = "SHIPMENT_CREATED", "Shipment Created"
+    ORDER_DELIVERED = "ORDER_DELIVERED", "Order Delivered"
+    REFUND_REQUESTED = "REFUND_REQUESTED", "Refund Requested"
+    REFUND_PROCESSED = "REFUND_PROCESSED", "Refund Processed"
+    ORDER_CANCELLED = "ORDER_CANCELLED", "Order Cancelled"
 
 
 class OrderEvent(models.Model):

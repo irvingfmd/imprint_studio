@@ -1,6 +1,7 @@
 """
 URLs del dashboard administrativo.
 """
+
 from django.urls import path
 
 from .views import AdminDashboardView

@@ -1,11 +1,12 @@
 """
 Serializers para la app payments.
 """
+
 from decimal import Decimal
 
 from rest_framework import serializers
 
-from .models import Payment, PaymentType, PaymentMethod
+from .models import Payment, PaymentMethod, PaymentType
 
 
 class PaymentSerializer(serializers.ModelSerializer):

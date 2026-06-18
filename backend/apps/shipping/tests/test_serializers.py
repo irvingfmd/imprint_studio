@@ -2,6 +2,7 @@
 Tests de serializers de la app shipping.
 Cubre: ShippingAddressCreateSerializer, CreateShipmentSerializer.
 """
+
 from decimal import Decimal
 
 from apps.shipping.serializers import CreateShipmentSerializer, ShippingAddressCreateSerializer
@@ -76,11 +77,13 @@ class TestCreateShipmentSerializer:
         assert s.validated_data["shipping_cost"] == Decimal("0.00")
 
     def test_datos_completos_validos(self):
-        s = CreateShipmentSerializer(data={
-            "carrier_name": "DHL",
-            "tracking_number": "1234567890",
-            "shipping_cost": "50.00",
-            "shipping_notes": "Frágil",
-        })
+        s = CreateShipmentSerializer(
+            data={
+                "carrier_name": "DHL",
+                "tracking_number": "1234567890",
+                "shipping_cost": "50.00",
+                "shipping_notes": "Frágil",
+            }
+        )
         assert s.is_valid(), s.errors
         assert s.validated_data["shipping_cost"] == Decimal("50.00")

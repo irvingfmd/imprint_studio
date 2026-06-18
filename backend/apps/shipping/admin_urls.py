@@ -1,6 +1,7 @@
 """
 URLs administrativas de la app shipping.
 """
+
 from django.urls import path
 
 from .views import AdminMarkShipmentDeliveredView

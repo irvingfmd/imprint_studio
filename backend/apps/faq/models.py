@@ -1,6 +1,7 @@
 """
 Modelos para la app faq.
 """
+
 from django.db import models
 
 from core.models import BaseModel

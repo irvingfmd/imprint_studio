@@ -3,6 +3,7 @@ Comando para cargar datos iniciales del sistema.
 Equivalente a seed.sql pero usando el ORM de Django.
 Ejecutar: python manage.py seed_initial_data
 """
+
 from django.core.management.base import BaseCommand
 
 
@@ -15,9 +16,7 @@ class Command(BaseCommand):
         self._seed_holidays()
         self._seed_payment_instructions()
         self._seed_printers()
-        self.stdout.write(
-            self.style.SUCCESS("Datos iniciales cargados correctamente.")
-        )
+        self.stdout.write(self.style.SUCCESS("Datos iniciales cargados correctamente."))
 
     def _seed_business_config(self):
         """
@@ -57,13 +56,13 @@ class Command(BaseCommand):
             return
 
         horarios = [
-            (1, True,  "09:00", "18:00", "Horario normal"),
-            (2, True,  "09:00", "18:00", "Horario normal"),
-            (3, True,  "09:00", "18:00", "Horario normal"),
-            (4, True,  "09:00", "18:00", "Horario normal"),
-            (5, True,  "09:00", "18:00", "Horario normal"),
-            (6, True,  "09:00", "14:00", "Horario reducido"),
-            (7, False, None,    None,    "Cerrado"),
+            (1, True, "09:00", "18:00", "Horario normal"),
+            (2, True, "09:00", "18:00", "Horario normal"),
+            (3, True, "09:00", "18:00", "Horario normal"),
+            (4, True, "09:00", "18:00", "Horario normal"),
+            (5, True, "09:00", "18:00", "Horario normal"),
+            (6, True, "09:00", "14:00", "Horario reducido"),
+            (7, False, None, None, "Cerrado"),
         ]
 
         for weekday, is_open, opening, closing, notes in horarios:
@@ -127,9 +126,7 @@ class Command(BaseCommand):
             ),
             is_active=True,
         )
-        self.stdout.write(
-            "payment_instructions: creadas (datos placeholder, actualizar antes de producción)."
-        )
+        self.stdout.write("payment_instructions: creadas (datos placeholder, actualizar antes de producción).")
 
     def _seed_printers(self):
         """
@@ -144,18 +141,18 @@ class Command(BaseCommand):
 
         # (marca, modelo, potencia promedio W, potencia máxima técnica W)
         impresoras = [
-            ("Bambu Lab", "X1 Carbon",      350, 1000),
-            ("Bambu Lab", "P1S",            350, 1000),
-            ("Bambu Lab", "P1P",            300, 1000),
-            ("Bambu Lab", "A1",             250,  800),
-            ("Bambu Lab", "A1 Mini",        200,  500),
-            ("Creality",  "K1",             350, 1000),
-            ("Creality",  "K1 Max",         400, 1000),
-            ("Creality",  "Ender-3 V3 SE",  165,  350),
-            ("Creality",  "Ender-3 S1 Pro", 180,  350),
-            ("Prusa",     "MK4",            120,  280),
-            ("Prusa",     "MINI+",           90,  180),
-            ("Anycubic",  "Kobra 2 Pro",    250,  500),
+            ("Bambu Lab", "X1 Carbon", 350, 1000),
+            ("Bambu Lab", "P1S", 350, 1000),
+            ("Bambu Lab", "P1P", 300, 1000),
+            ("Bambu Lab", "A1", 250, 800),
+            ("Bambu Lab", "A1 Mini", 200, 500),
+            ("Creality", "K1", 350, 1000),
+            ("Creality", "K1 Max", 400, 1000),
+            ("Creality", "Ender-3 V3 SE", 165, 350),
+            ("Creality", "Ender-3 S1 Pro", 180, 350),
+            ("Prusa", "MK4", 120, 280),
+            ("Prusa", "MINI+", 90, 180),
+            ("Anycubic", "Kobra 2 Pro", 250, 500),
         ]
 
         for brand, name, watts, max_watts in impresoras:

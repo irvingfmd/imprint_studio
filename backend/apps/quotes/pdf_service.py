@@ -1,6 +1,7 @@
 """
 Servicio para generar PDFs de cotizaciones.
 """
+
 from io import BytesIO
 
 from reportlab.lib import colors
@@ -19,11 +20,11 @@ class QuotePDFService:
 
     # Paleta de colores
     COLOR_PRIMARY = colors.HexColor("#1E3A5F")
-    COLOR_ACCENT  = colors.HexColor("#2563EB")
-    COLOR_LIGHT   = colors.HexColor("#EFF6FF")
-    COLOR_BORDER  = colors.HexColor("#BFDBFE")
-    COLOR_TEXT    = colors.HexColor("#1F2937")
-    COLOR_MUTED   = colors.HexColor("#6B7280")
+    COLOR_ACCENT = colors.HexColor("#2563EB")
+    COLOR_LIGHT = colors.HexColor("#EFF6FF")
+    COLOR_BORDER = colors.HexColor("#BFDBFE")
+    COLOR_TEXT = colors.HexColor("#1F2937")
+    COLOR_MUTED = colors.HexColor("#6B7280")
 
     @classmethod
     def generate(cls, quote: Quote) -> bytes:
@@ -90,24 +91,30 @@ class QuotePDFService:
         date_str = quote.created_at.strftime("%d/%m/%Y")
         quote_short = str(quote.id)[:8].upper()
 
-        header_data = [[
+        header_data = [
             [
-                Paragraph("Imprint Studio", title_style),
-                Paragraph("Impresión 3D Personalizada · Tuxtla Gutiérrez, Chiapas", subtitle_style),
-            ],
-            [
-                Paragraph(f"COTIZACIÓN #{quote_short}", quote_num_style),
-                Paragraph(f"Fecha: {date_str}", quote_num_style),
-                Paragraph(f"Estado: {quote.quote_status}", quote_num_style),
-            ],
-        ]]
+                [
+                    Paragraph("Imprint Studio", title_style),
+                    Paragraph("Impresión 3D Personalizada · Tuxtla Gutiérrez, Chiapas", subtitle_style),
+                ],
+                [
+                    Paragraph(f"COTIZACIÓN #{quote_short}", quote_num_style),
+                    Paragraph(f"Fecha: {date_str}", quote_num_style),
+                    Paragraph(f"Estado: {quote.quote_status}", quote_num_style),
+                ],
+            ]
+        ]
 
         header_table = Table(header_data, colWidths=["60%", "40%"])
-        header_table.setStyle(TableStyle([
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("LINEBELOW", (0, 0), (-1, 0), 1.5, cls.COLOR_ACCENT),
-            ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
-        ]))
+        header_table.setStyle(
+            TableStyle(
+                [
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("LINEBELOW", (0, 0), (-1, 0), 1.5, cls.COLOR_ACCENT),
+                    ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+                ]
+            )
+        )
 
         return [header_table]
 
@@ -140,7 +147,10 @@ class QuotePDFService:
 
         info_data = [
             [Paragraph("Pedido", label_style), Paragraph(order.title, value_style)],
-            [Paragraph("Cliente", label_style), Paragraph(f"{customer.first_name} {customer.last_name}".strip(), value_style)],
+            [
+                Paragraph("Cliente", label_style),
+                Paragraph(f"{customer.first_name} {customer.last_name}".strip(), value_style),
+            ],
             [Paragraph("Tipo", label_style), Paragraph(order.request_type, value_style)],
             [Paragraph("Prioridad", label_style), Paragraph(order.priority, value_style)],
             [Paragraph("Entrega", label_style), Paragraph(order.delivery_method, value_style)],
@@ -149,15 +159,19 @@ class QuotePDFService:
         ]
 
         info_table = Table(info_data, colWidths=["35%", "65%"])
-        info_table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (0, -1), cls.COLOR_LIGHT),
-            ("GRID", (0, 0), (-1, -1), 0.5, cls.COLOR_BORDER),
-            ("FONTSIZE", (0, 0), (-1, -1), 9),
-            ("TOPPADDING", (0, 0), (-1, -1), 5),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-            ("LEFTPADDING", (0, 0), (-1, -1), 8),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ]))
+        info_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (0, -1), cls.COLOR_LIGHT),
+                    ("GRID", (0, 0), (-1, -1), 0.5, cls.COLOR_BORDER),
+                    ("FONTSIZE", (0, 0), (-1, -1), 9),
+                    ("TOPPADDING", (0, 0), (-1, -1), 5),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 8),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ]
+            )
+        )
 
         return [Paragraph("Información del Pedido", section_style), info_table]
 
@@ -190,7 +204,7 @@ class QuotePDFService:
         ]
 
         if quote.discount_amount > 0:
-            data.append([f"Descuento (pago total)", f"-${quote.discount_amount:,.2f} MXN"])
+            data.append(["Descuento (pago total)", f"-${quote.discount_amount:,.2f} MXN"])
 
         # Fila de total
         data.append(["TOTAL", f"${quote.total_price:,.2f} MXN"])
@@ -199,28 +213,32 @@ class QuotePDFService:
         table = Table(data, colWidths=col_widths)
 
         n = len(data)
-        table.setStyle(TableStyle([
-            # Encabezado
-            ("BACKGROUND", (0, 0), (-1, 0), cls.COLOR_PRIMARY),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("FONTSIZE", (0, 0), (-1, 0), 10),
-            # Filas alternas
-            *[("BACKGROUND", (0, i), (-1, i), cls.COLOR_LIGHT) for i in range(2, n - 1, 2)],
-            # Grid
-            ("GRID", (0, 0), (-1, -1), 0.5, cls.COLOR_BORDER),
-            ("FONTSIZE", (0, 1), (-1, -1), 9),
-            ("TOPPADDING", (0, 0), (-1, -1), 5),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-            ("LEFTPADDING", (0, 0), (-1, -1), 8),
-            ("ALIGN", (1, 0), (1, -1), "RIGHT"),
-            ("RIGHTPADDING", (1, 0), (1, -1), 8),
-            # Fila total
-            ("BACKGROUND", (0, n - 1), (-1, n - 1), cls.COLOR_ACCENT),
-            ("TEXTCOLOR", (0, n - 1), (-1, n - 1), colors.white),
-            ("FONTNAME", (0, n - 1), (-1, n - 1), "Helvetica-Bold"),
-            ("FONTSIZE", (0, n - 1), (-1, n - 1), 11),
-        ]))
+        table.setStyle(
+            TableStyle(
+                [
+                    # Encabezado
+                    ("BACKGROUND", (0, 0), (-1, 0), cls.COLOR_PRIMARY),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 0), (-1, 0), 10),
+                    # Filas alternas
+                    *[("BACKGROUND", (0, i), (-1, i), cls.COLOR_LIGHT) for i in range(2, n - 1, 2)],
+                    # Grid
+                    ("GRID", (0, 0), (-1, -1), 0.5, cls.COLOR_BORDER),
+                    ("FONTSIZE", (0, 1), (-1, -1), 9),
+                    ("TOPPADDING", (0, 0), (-1, -1), 5),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 8),
+                    ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+                    ("RIGHTPADDING", (1, 0), (1, -1), 8),
+                    # Fila total
+                    ("BACKGROUND", (0, n - 1), (-1, n - 1), cls.COLOR_ACCENT),
+                    ("TEXTCOLOR", (0, n - 1), (-1, n - 1), colors.white),
+                    ("FONTNAME", (0, n - 1), (-1, n - 1), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, n - 1), (-1, n - 1), 11),
+                ]
+            )
+        )
 
         return [Paragraph("Desglose de Costos", section_style), table]
 
@@ -243,7 +261,7 @@ class QuotePDFService:
             spaceAfter=2,
         )
 
-        from decimal import Decimal, ROUND_HALF_UP
+        from decimal import ROUND_HALF_UP, Decimal
 
         total = quote.total_price
         deposit = (total / 2).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
@@ -272,25 +290,31 @@ class QuotePDFService:
         ]
 
         table = Table(data, colWidths=["40%", "20%", "20%", "20%"])
-        table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), cls.COLOR_PRIMARY),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("FONTSIZE", (0, 0), (-1, -1), 9),
-            ("GRID", (0, 0), (-1, -1), 0.5, cls.COLOR_BORDER),
-            ("BACKGROUND", (0, 2), (-1, 2), cls.COLOR_LIGHT),
-            ("TOPPADDING", (0, 0), (-1, -1), 5),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-            ("LEFTPADDING", (0, 0), (-1, -1), 8),
-            ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
-            ("RIGHTPADDING", (1, 0), (-1, -1), 8),
-        ]))
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), cls.COLOR_PRIMARY),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 9),
+                    ("GRID", (0, 0), (-1, -1), 0.5, cls.COLOR_BORDER),
+                    ("BACKGROUND", (0, 2), (-1, 2), cls.COLOR_LIGHT),
+                    ("TOPPADDING", (0, 0), (-1, -1), 5),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 8),
+                    ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
+                    ("RIGHTPADDING", (1, 0), (-1, -1), 8),
+                ]
+            )
+        )
 
         return [
             Paragraph("Opciones de Pago", section_style),
             table,
             Spacer(1, 0.3 * cm),
-            Paragraph("* El anticipo debe realizarse en un plazo máximo de 72 horas para iniciar producción.", note_style),
+            Paragraph(
+                "* El anticipo debe realizarse en un plazo máximo de 72 horas para iniciar producción.", note_style
+            ),
             Paragraph("* Métodos de pago: transferencia bancaria o efectivo (solo recolección en taller).", note_style),
         ]
 

@@ -4,14 +4,14 @@ Vistas para la app production.
 Las rutas viven bajo /api/v1/orders/{order_id}/... y se registran en orders/urls.py
 y orders/admin_urls.py porque siguen la jerarquía REST del recurso Order.
 """
+
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
+from apps.orders.selectors import get_order_by_id
 from core.permissions import IsAdmin
 from core.responses import error_response, success_response
-
-from apps.orders.selectors import get_order_by_id
 
 from . import selectors, services
 from .serializers import (
@@ -21,8 +21,8 @@ from .serializers import (
     UpdateOrderStatusSerializer,
 )
 
-
 # --- Vistas para clientes y admins (lectura) ---
+
 
 class ProductionHistoryListView(APIView):
     """Lista el historial de cambios de estado de un pedido."""
@@ -81,6 +81,7 @@ class OrderEventDetailView(APIView):
 
 
 # --- Vistas administrativas ---
+
 
 class AdminUpdateOrderStatusView(APIView):
     """

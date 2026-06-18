@@ -4,16 +4,16 @@ Servicios para la app quotes.
 QuoteCalculatorService: calcula precios según docs/business/05-cost-calculator.md.
 QuoteService: crea, acepta, rechaza y expira cotizaciones.
 """
+
 from decimal import ROUND_HALF_UP, Decimal
 
 from django.db import transaction
 from django.utils import timezone
 
 from apps.configuration.models import BusinessConfig, Printer
-from apps.orders.models import EventType, Order, OrderEvent, OrderPaymentStatus, OrderStatus
 from apps.notifications.services import NotificationService
+from apps.orders.models import EventType, Order, OrderEvent, OrderPaymentStatus, OrderStatus
 
-from . import selectors
 from .models import Quote, QuoteSnapshot, QuoteStatus
 
 
@@ -53,8 +53,8 @@ class QuoteCalculatorService:
 
         if printer is not None:
             energy_cost = (
-                Decimal(printer.power_watts) / Decimal("1000")
-            ) * print_time_hours * config.electricity_rate_kwh
+                (Decimal(printer.power_watts) / Decimal("1000")) * print_time_hours * config.electricity_rate_kwh
+            )
         else:
             # Fallback: sin impresora usa solo la tarifa por hora equivalente a 0W
             energy_cost = Decimal("0.00")
@@ -64,10 +64,7 @@ class QuoteCalculatorService:
         packaging_cost = config.packaging_cost
         risk_cost = (material_cost + energy_cost) * (config.failure_percentage / Decimal("100"))
 
-        base_cost = (
-            material_cost + energy_cost + labor_cost
-            + post_processing_cost + packaging_cost + risk_cost
-        )
+        base_cost = material_cost + energy_cost + labor_cost + post_processing_cost + packaging_cost + risk_cost
 
         if priority == "NORMAL":
             priority_multiplier = Decimal("1.00")
@@ -85,9 +82,7 @@ class QuoteCalculatorService:
 
         discount_amount = Decimal("0.00")
         if full_payment_selected:
-            discount_amount = total_before_discount * (
-                config.full_payment_discount_percentage / Decimal("100")
-            )
+            discount_amount = total_before_discount * (config.full_payment_discount_percentage / Decimal("100"))
 
         total_price = total_before_discount - discount_amount
 
@@ -112,7 +107,6 @@ class QuoteCalculatorService:
 
 
 class QuoteService:
-
     @staticmethod
     @transaction.atomic
     def create_quote(
@@ -195,6 +189,7 @@ class QuoteService:
 
         # Transición de estado: RECEIVED/PENDING_ANALYSIS → QUOTED
         from apps.production.services import OrderStatusTransitionService
+
         OrderStatusTransitionService.transition(
             order=order,
             new_status=OrderStatus.QUOTED,
@@ -224,8 +219,7 @@ class QuoteService:
         """
         if quote.quote_status != QuoteStatus.PENDING:
             raise ValueError(
-                f"Solo se puede aceptar una cotización en estado PENDING. "
-                f"Estado actual: {quote.quote_status}"
+                f"Solo se puede aceptar una cotización en estado PENDING. Estado actual: {quote.quote_status}"
             )
         if quote.order.customer_id != user.id:
             raise ValueError("Solo el propietario del pedido puede aceptar la cotización.")
@@ -239,8 +233,7 @@ class QuoteService:
             try:
                 snapshot = quote.snapshot
                 discount_amount = _round_money(
-                    quote.total_price
-                    * (snapshot.full_payment_discount_percentage / Decimal("100"))
+                    quote.total_price * (snapshot.full_payment_discount_percentage / Decimal("100"))
                 )
             except Quote.snapshot.RelatedObjectDoesNotExist:
                 pass
@@ -254,6 +247,7 @@ class QuoteService:
 
         # Monto del pago según modalidad
         from apps.payments.models import Payment, PaymentMethod, PaymentStatus, PaymentType
+
         if payment_option == "DEPOSIT":
             payment_type = PaymentType.DEPOSIT
             payment_amount = _round_money(final_total / Decimal("2"))
@@ -287,6 +281,7 @@ class QuoteService:
 
         # Transición de estado: QUOTED → APPROVED → PENDING_DEPOSIT
         from apps.production.services import OrderStatusTransitionService
+
         OrderStatusTransitionService.transition(
             order=order,
             new_status=OrderStatus.APPROVED,
@@ -308,8 +303,7 @@ class QuoteService:
         """El cliente rechaza la cotización."""
         if quote.quote_status != QuoteStatus.PENDING:
             raise ValueError(
-                f"Solo se puede rechazar una cotización en estado PENDING. "
-                f"Estado actual: {quote.quote_status}"
+                f"Solo se puede rechazar una cotización en estado PENDING. Estado actual: {quote.quote_status}"
             )
         if quote.order.customer_id != user.id:
             raise ValueError("Solo el propietario del pedido puede rechazar la cotización.")
@@ -334,8 +328,7 @@ class QuoteService:
         """El administrador marca una cotización como expirada."""
         if quote.quote_status != QuoteStatus.PENDING:
             raise ValueError(
-                f"Solo se puede expirar una cotización en estado PENDING. "
-                f"Estado actual: {quote.quote_status}"
+                f"Solo se puede expirar una cotización en estado PENDING. Estado actual: {quote.quote_status}"
             )
 
         quote.quote_status = QuoteStatus.EXPIRED

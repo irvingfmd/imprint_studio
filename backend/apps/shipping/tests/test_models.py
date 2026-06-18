@@ -2,8 +2,10 @@
 Tests de modelos de la app shipping.
 Cubre: ShippingAddress, Shipment — campos, defaults, str, relaciones.
 """
-import pytest
+
 from decimal import Decimal
+
+import pytest
 
 from apps.orders.models import Order, OrderStatus, RequestType
 from apps.shipping.models import Shipment, ShippingAddress
@@ -99,6 +101,7 @@ class TestShipmentModel:
 
     def test_un_solo_shipment_por_orden(self, customer):
         from django.db import IntegrityError
+
         order = _make_order(customer)
         Shipment.objects.create(order=order)
         with pytest.raises(IntegrityError):

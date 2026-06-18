@@ -2,6 +2,7 @@
 Selectores para la app payments.
 Encapsulan las consultas a la base de datos.
 """
+
 from django.db.models import QuerySet
 
 from .models import Payment, PaymentStatus
@@ -18,11 +19,7 @@ def get_payments_for_order(order_id: str) -> QuerySet:
 
 def get_payment_by_id(payment_id: str) -> Payment | None:
     """Retorna un pago por su ID, o None si no existe o está eliminado."""
-    return (
-        Payment.objects.filter(id=payment_id, is_deleted=False)
-        .select_related("order", "confirmed_by")
-        .first()
-    )
+    return Payment.objects.filter(id=payment_id, is_deleted=False).select_related("order", "confirmed_by").first()
 
 
 def get_pending_payments() -> QuerySet:

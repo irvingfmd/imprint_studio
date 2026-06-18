@@ -2,12 +2,11 @@
 Tests de OrderService.
 Casos del plan: 8, 9, 52 (ORDER_CREATED), 53 (FILE_UPLOADED).
 """
+
 import pytest
-from unittest.mock import patch
 
 from apps.orders.models import (
     EventType,
-    Order,
     OrderEvent,
     OrderStatus,
     RequestFile,
@@ -73,6 +72,7 @@ class TestOrderServiceCreate:
 class TestOrderServiceAssignShipping:
     def test_assigns_address_belonging_to_user(self, customer):
         from apps.shipping.models import ShippingAddress
+
         order = OrderService.create_order(customer, _base_data())
         address = ShippingAddress.objects.create(
             user=customer,
@@ -88,6 +88,7 @@ class TestOrderServiceAssignShipping:
 
     def test_raises_if_address_belongs_to_other_user(self, customer, admin_user):
         from apps.shipping.models import ShippingAddress
+
         order = OrderService.create_order(customer, _base_data())
         other_address = ShippingAddress.objects.create(
             user=admin_user,
@@ -103,6 +104,7 @@ class TestOrderServiceAssignShipping:
 
     def test_creates_shipping_address_event(self, customer):
         from apps.shipping.models import ShippingAddress
+
         order = OrderService.create_order(customer, _base_data())
         address = ShippingAddress.objects.create(
             user=customer,

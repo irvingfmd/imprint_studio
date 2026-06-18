@@ -1,6 +1,7 @@
 """
 Serializers para la app shipping.
 """
+
 from decimal import Decimal
 
 from rest_framework import serializers
@@ -12,9 +13,20 @@ class ShippingAddressSerializer(serializers.ModelSerializer):
     class Meta:
         model = ShippingAddress
         fields = [
-            "id", "address_name", "street", "external_number", "internal_number",
-            "neighborhood", "postal_code", "city", "state", "country",
-            "references", "is_default", "created_at", "updated_at",
+            "id",
+            "address_name",
+            "street",
+            "external_number",
+            "internal_number",
+            "neighborhood",
+            "postal_code",
+            "city",
+            "state",
+            "country",
+            "references",
+            "is_default",
+            "created_at",
+            "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
 
@@ -37,9 +49,16 @@ class ShipmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Shipment
         fields = [
-            "id", "order_id", "carrier_name", "tracking_number",
-            "shipping_cost", "shipped_at", "delivered_at",
-            "shipping_notes", "created_at", "updated_at",
+            "id",
+            "order_id",
+            "carrier_name",
+            "tracking_number",
+            "shipping_cost",
+            "shipped_at",
+            "delivered_at",
+            "shipping_notes",
+            "created_at",
+            "updated_at",
         ]
 
 
@@ -47,7 +66,8 @@ class CreateShipmentSerializer(serializers.Serializer):
     carrier_name = serializers.CharField(max_length=100, required=False, default="", allow_blank=True)
     tracking_number = serializers.CharField(max_length=100, required=False, default="", allow_blank=True)
     shipping_cost = serializers.DecimalField(
-        max_digits=10, decimal_places=2,
+        max_digits=10,
+        decimal_places=2,
         min_value=Decimal("0.00"),
         default=Decimal("0.00"),
     )

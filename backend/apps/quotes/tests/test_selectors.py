@@ -3,12 +3,14 @@ Tests de selectores de la app quotes.
 Cubre: get_quote_by_id, get_quotes_for_order, get_active_quote_for_order.
 Verifica aislamiento entre pedidos/usuarios.
 """
-import pytest
+
 from decimal import Decimal
 
+import pytest
+
 from apps.orders.models import Order, OrderStatus, RequestType
-from apps.quotes.models import Quote, QuoteStatus
 from apps.quotes import selectors
+from apps.quotes.models import Quote, QuoteStatus
 
 
 def _make_order(customer) -> Order:
@@ -54,6 +56,7 @@ class TestGetQuoteById:
 
     def test_retorna_none_cuando_no_existe(self):
         import uuid
+
         result = selectors.get_quote_by_id(str(uuid.uuid4()))
         assert result is None
 

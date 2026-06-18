@@ -8,6 +8,7 @@ NotificationService: notificaciones de negocio de alto nivel.
 En desarrollo (sin credenciales configuradas), ambos servicios registran
 el mensaje en el log en lugar de enviarlo.
 """
+
 import logging
 
 import requests
@@ -197,10 +198,7 @@ class NotificationService:
     @classmethod
     def notify_order_delivered(cls, order) -> None:
         """Pedido entregado al cliente."""
-        msg = (
-            f"Hola {order.customer.first_name}, tu pedido «{order.title}» "
-            "fue entregado. ¡Gracias por tu preferencia!"
-        )
+        msg = f"Hola {order.customer.first_name}, tu pedido «{order.title}» fue entregado. ¡Gracias por tu preferencia!"
         cls._notify_customer(order, msg, f"Pedido entregado — {order.title}")
 
     @classmethod
@@ -217,6 +215,7 @@ class NotificationService:
     def notify_admin_new_order(cls, order) -> None:
         """Notifica a los administradores que hay un nuevo pedido."""
         from apps.authentication.models import User, UserRole
+
         admins = User.objects.filter(role=UserRole.ADMIN, is_active=True)
         msg = (
             f"Nuevo pedido recibido: «{order.title}» "

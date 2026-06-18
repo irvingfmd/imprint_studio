@@ -1,6 +1,7 @@
 """
 Serializers para la app orders.
 """
+
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 
@@ -17,15 +18,36 @@ class OrderDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = [
-            "id", "title", "description", "color", "quantity", "dimensions_notes",
-            "request_type", "priority", "status", "payment_status",
-            "delivery_method", "estimated_delivery_date",
-            "approved_at", "ready_at", "delivered_at", "cancelled_at", "cancellation_reason",
-            "created_at", "updated_at",
+            "id",
+            "title",
+            "description",
+            "color",
+            "quantity",
+            "dimensions_notes",
+            "request_type",
+            "priority",
+            "status",
+            "payment_status",
+            "delivery_method",
+            "estimated_delivery_date",
+            "approved_at",
+            "ready_at",
+            "delivered_at",
+            "cancelled_at",
+            "cancellation_reason",
+            "created_at",
+            "updated_at",
         ]
         read_only_fields = [
-            "id", "status", "payment_status", "approved_at", "ready_at",
-            "delivered_at", "cancelled_at", "created_at", "updated_at",
+            "id",
+            "status",
+            "payment_status",
+            "approved_at",
+            "ready_at",
+            "delivered_at",
+            "cancelled_at",
+            "created_at",
+            "updated_at",
         ]
 
 
@@ -42,12 +64,7 @@ class AdminOrderDetailSerializer(OrderDetailSerializer):
         from apps.quotes.models import Quote
         from apps.quotes.serializers import QuoteSerializer
 
-        quote = (
-            Quote.objects
-            .filter(order=obj, is_deleted=False)
-            .order_by("-created_at")
-            .first()
-        )
+        quote = Quote.objects.filter(order=obj, is_deleted=False).order_by("-created_at").first()
         if not quote:
             return None
         return QuoteSerializer(quote).data
@@ -83,8 +100,13 @@ class RequestFileSerializer(serializers.ModelSerializer):
     class Meta:
         model = RequestFile
         fields = [
-            "id", "file_type", "file_url", "original_filename",
-            "mime_type", "file_size_bytes", "uploaded_at",
+            "id",
+            "file_type",
+            "file_url",
+            "original_filename",
+            "mime_type",
+            "file_size_bytes",
+            "uploaded_at",
         ]
 
 
@@ -119,6 +141,13 @@ class AdminOrderListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = [
-            "id", "title", "status", "priority", "payment_status",
-            "request_type", "delivery_method", "customer_phone", "created_at",
+            "id",
+            "title",
+            "status",
+            "priority",
+            "payment_status",
+            "request_type",
+            "delivery_method",
+            "customer_phone",
+            "created_at",
         ]

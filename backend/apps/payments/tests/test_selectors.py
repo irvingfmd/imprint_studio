@@ -4,17 +4,19 @@ Cubre: get_payment_by_id, get_payments_for_order,
        get_pending_payments, get_all_payments.
 Verifica aislamiento y filtros.
 """
-import pytest
+
 from decimal import Decimal
 
+import pytest
+
 from apps.orders.models import Order, OrderStatus, RequestType
+from apps.payments import selectors
 from apps.payments.models import (
     Payment,
     PaymentMethod,
     PaymentStatus,
     PaymentType,
 )
-from apps.payments import selectors
 
 
 def _make_order(customer) -> Order:
@@ -51,6 +53,7 @@ class TestGetPaymentById:
 
     def test_returns_none_when_not_found(self):
         import uuid
+
         result = selectors.get_payment_by_id(str(uuid.uuid4()))
         assert result is None
 

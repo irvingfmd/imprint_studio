@@ -6,77 +6,86 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
-        ('orders', '0001_initial'),
-        ('shipping', '0001_initial'),
+        ("orders", "0001_initial"),
+        ("shipping", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='order',
-            name='shipping_address',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='orders', to='shipping.shippingaddress'),
+            model_name="order",
+            name="shipping_address",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="orders",
+                to="shipping.shippingaddress",
+            ),
         ),
         migrations.AddField(
-            model_name='requestfile',
-            name='order',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.RESTRICT, related_name='files', to='orders.order'),
+            model_name="requestfile",
+            name="order",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.RESTRICT, related_name="files", to="orders.order"
+            ),
         ),
         migrations.AddField(
-            model_name='requestfile',
-            name='uploaded_by',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.RESTRICT, related_name='uploaded_files', to=settings.AUTH_USER_MODEL),
+            model_name="requestfile",
+            name="uploaded_by",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.RESTRICT, related_name="uploaded_files", to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.AddIndex(
-            model_name='order',
-            index=models.Index(fields=['customer'], name='orders_custome_6c3a7f_idx'),
+            model_name="order",
+            index=models.Index(fields=["customer"], name="orders_custome_6c3a7f_idx"),
         ),
         migrations.AddIndex(
-            model_name='order',
-            index=models.Index(fields=['status'], name='orders_status_762191_idx'),
+            model_name="order",
+            index=models.Index(fields=["status"], name="orders_status_762191_idx"),
         ),
         migrations.AddIndex(
-            model_name='order',
-            index=models.Index(fields=['priority'], name='orders_priorit_dc6a0a_idx'),
+            model_name="order",
+            index=models.Index(fields=["priority"], name="orders_priorit_dc6a0a_idx"),
         ),
         migrations.AddIndex(
-            model_name='order',
-            index=models.Index(fields=['request_type'], name='orders_request_0cc64e_idx'),
+            model_name="order",
+            index=models.Index(fields=["request_type"], name="orders_request_0cc64e_idx"),
         ),
         migrations.AddIndex(
-            model_name='order',
-            index=models.Index(fields=['delivery_method'], name='orders_deliver_d5fb14_idx'),
+            model_name="order",
+            index=models.Index(fields=["delivery_method"], name="orders_deliver_d5fb14_idx"),
         ),
         migrations.AddIndex(
-            model_name='order',
-            index=models.Index(fields=['created_at'], name='orders_created_77e2b9_idx'),
+            model_name="order",
+            index=models.Index(fields=["created_at"], name="orders_created_77e2b9_idx"),
         ),
         migrations.AddIndex(
-            model_name='order',
-            index=models.Index(fields=['status', 'created_at'], name='orders_status_11db6c_idx'),
+            model_name="order",
+            index=models.Index(fields=["status", "created_at"], name="orders_status_11db6c_idx"),
         ),
         migrations.AddIndex(
-            model_name='order',
-            index=models.Index(fields=['customer', 'status'], name='orders_custome_58f6c3_idx'),
+            model_name="order",
+            index=models.Index(fields=["customer", "status"], name="orders_custome_58f6c3_idx"),
         ),
         migrations.AddIndex(
-            model_name='order',
-            index=models.Index(fields=['priority', 'status'], name='orders_priorit_57eeda_idx'),
+            model_name="order",
+            index=models.Index(fields=["priority", "status"], name="orders_priorit_57eeda_idx"),
         ),
         migrations.AddIndex(
-            model_name='requestfile',
-            index=models.Index(fields=['order'], name='request_fil_order_i_8efa23_idx'),
+            model_name="requestfile",
+            index=models.Index(fields=["order"], name="request_fil_order_i_8efa23_idx"),
         ),
         migrations.AddIndex(
-            model_name='requestfile',
-            index=models.Index(fields=['file_type'], name='request_fil_file_ty_e8785e_idx'),
+            model_name="requestfile",
+            index=models.Index(fields=["file_type"], name="request_fil_file_ty_e8785e_idx"),
         ),
         migrations.AddIndex(
-            model_name='requestfile',
-            index=models.Index(fields=['uploaded_at'], name='request_fil_uploade_5cafbe_idx'),
+            model_name="requestfile",
+            index=models.Index(fields=["uploaded_at"], name="request_fil_uploade_5cafbe_idx"),
         ),
     ]

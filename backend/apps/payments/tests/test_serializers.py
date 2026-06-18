@@ -3,6 +3,7 @@ Tests de serializers de la app payments.
 Cubre: PaymentProofSerializer, ManualConfirmationSerializer,
        ConfirmPaymentSerializer, RejectPaymentSerializer, RefundSerializer.
 """
+
 from apps.payments.serializers import (
     ConfirmPaymentSerializer,
     ManualConfirmationSerializer,

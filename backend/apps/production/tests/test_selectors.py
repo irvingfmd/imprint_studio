@@ -2,11 +2,12 @@
 Tests de selectores de la app production.
 Cubre: get_production_history_for_order, get_events_for_order, get_event_by_id.
 """
+
 import pytest
 
 from apps.orders.models import EventType, Order, OrderEvent, OrderStatus, RequestType
-from apps.production.models import ProductionHistory
 from apps.production import selectors
+from apps.production.models import ProductionHistory
 
 
 def _make_order(customer) -> Order:
@@ -111,6 +112,7 @@ class TestGetEventById:
 
     def test_returns_none_when_not_found(self, customer):
         import uuid
+
         order = _make_order(customer)
         result = selectors.get_event_by_id(str(uuid.uuid4()), str(order.id))
         assert result is None

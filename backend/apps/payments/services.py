@@ -2,18 +2,18 @@
 Servicios para la app payments.
 Toda la lógica de negocio de pagos vive aquí.
 """
+
 from django.db import transaction
 from django.utils import timezone
 
 from apps.notifications.services import NotificationService
-from apps.orders.models import Order, OrderPaymentStatus, OrderEvent, EventType
+from apps.orders.models import EventType, Order, OrderEvent, OrderPaymentStatus
 
 from . import selectors
-from .models import Payment, PaymentType, PaymentMethod, PaymentStatus
+from .models import Payment, PaymentMethod, PaymentStatus, PaymentType
 
 
 class PaymentService:
-
     @staticmethod
     @transaction.atomic
     def upload_proof(payment_id: str, file_url: str, user) -> Payment:
@@ -145,7 +145,7 @@ class PaymentService:
         OrderEvent.objects.create(
             order=order,
             event_type=event_type,
-            event_description=f"Pago manual registrado y confirmado por administrador.",
+            event_description="Pago manual registrado y confirmado por administrador.",
             metadata={"payment_id": str(payment.id), "amount": str(payment.amount)},
             created_by=confirmed_by,
         )
@@ -163,6 +163,7 @@ class PaymentService:
         Valida que el monto no exceda lo pagado menos reembolsos previos.
         """
         from decimal import Decimal
+
         from django.db.models import Sum
 
         try:
@@ -191,9 +192,7 @@ class PaymentService:
 
         available = total_paid - total_refunded
         if amount > available:
-            raise ValueError(
-                f"Monto excede lo disponible para reembolso (${available} MXN)."
-            )
+            raise ValueError(f"Monto excede lo disponible para reembolso (${available} MXN).")
 
         payment = Payment.objects.create(
             order=order,
@@ -226,8 +225,8 @@ class PaymentService:
 def _resolve_confirmation_event(payment_type: str) -> str:
     """Retorna el tipo de evento correspondiente al tipo de pago confirmado."""
     mapping = {
-        PaymentType.DEPOSIT:      EventType.DEPOSIT_CONFIRMED,
-        PaymentType.BALANCE:      EventType.BALANCE_CONFIRMED,
+        PaymentType.DEPOSIT: EventType.DEPOSIT_CONFIRMED,
+        PaymentType.BALANCE: EventType.BALANCE_CONFIRMED,
         PaymentType.FULL_PAYMENT: EventType.FULL_PAYMENT_CONFIRMED,
     }
     return mapping.get(payment_type, EventType.PAYMENT_CONFIRMED)
@@ -236,8 +235,8 @@ def _resolve_confirmation_event(payment_type: str) -> str:
 def _resolve_order_payment_status(payment_type: str) -> str | None:
     """Retorna el nuevo payment_status del pedido según el tipo de pago."""
     mapping = {
-        PaymentType.DEPOSIT:      OrderPaymentStatus.DEPOSIT_PAID,
-        PaymentType.BALANCE:      OrderPaymentStatus.FULLY_PAID,
+        PaymentType.DEPOSIT: OrderPaymentStatus.DEPOSIT_PAID,
+        PaymentType.BALANCE: OrderPaymentStatus.FULLY_PAID,
         PaymentType.FULL_PAYMENT: OrderPaymentStatus.FULLY_PAID,
     }
     return mapping.get(payment_type)

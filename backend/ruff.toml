@@ -1,0 +1,31 @@
+target-version = "py312"
+line-length = 120
+
+[lint]
+select = [
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "F",     # pyflakes
+    "I",     # isort
+    "B",     # flake8-bugbear
+    "UP",    # pyupgrade
+    "S",     # flake8-bandit (seguridad)
+]
+ignore = [
+    "S101",  # assert en tests está bien
+    "S105",  # hardcoded password — falsos positivos en URLs de test y settings check
+    "S311",  # random — ya usamos secrets donde importa
+    "E501",  # line too long — dejamos que el formatter maneje esto
+    "B904",  # raise from — demasiado verbose para ValueError de negocio
+]
+
+[lint.per-file-ignores]
+"**/tests/**" = ["S101", "S106", "B017", "F841"]
+"**/migrations/**" = ["E501"]
+
+[lint.isort]
+known-first-party = ["apps", "core", "config"]
+
+[format]
+quote-style = "double"
+indent-style = "space"

@@ -2,8 +2,10 @@
 Tests de servicios de la app shipping.
 Cubre: ShippingAddressService, ShipmentService.
 """
-import pytest
+
 from decimal import Decimal
+
+import pytest
 
 from apps.authentication.models import User
 from apps.orders.models import (
@@ -50,48 +52,58 @@ def _make_order(customer, status=OrderStatus.RECEIVED, payment_status=None) -> O
 
 # --- ShippingAddressService ---
 
+
 @pytest.mark.django_db
 class TestShippingAddressServiceCreate:
     def test_crea_direccion_exitosamente(self, customer):
-        addr = ShippingAddressService.create_address(customer, {
-            "address_name": "Trabajo",
-            "street": "Blvd. Belisario Domínguez",
-            "external_number": "2000",
-            "neighborhood": "Lomas",
-            "postal_code": "29045",
-            "city": "Tuxtla Gutiérrez",
-            "state": "Chiapas",
-        })
+        addr = ShippingAddressService.create_address(
+            customer,
+            {
+                "address_name": "Trabajo",
+                "street": "Blvd. Belisario Domínguez",
+                "external_number": "2000",
+                "neighborhood": "Lomas",
+                "postal_code": "29045",
+                "city": "Tuxtla Gutiérrez",
+                "state": "Chiapas",
+            },
+        )
         assert addr.id is not None
         assert addr.user == customer
 
     def test_nueva_default_limpia_anterior(self, customer):
         addr1 = _make_address(customer, is_default=True)
-        ShippingAddressService.create_address(customer, {
-            "address_name": "Nueva Default",
-            "street": "Calle 2",
-            "external_number": "5",
-            "neighborhood": "Norte",
-            "postal_code": "29001",
-            "city": "Tuxtla",
-            "state": "Chiapas",
-            "is_default": True,
-        })
+        ShippingAddressService.create_address(
+            customer,
+            {
+                "address_name": "Nueva Default",
+                "street": "Calle 2",
+                "external_number": "5",
+                "neighborhood": "Norte",
+                "postal_code": "29001",
+                "city": "Tuxtla",
+                "state": "Chiapas",
+                "is_default": True,
+            },
+        )
         addr1.refresh_from_db()
         assert addr1.is_default is False
 
     def test_sin_is_default_no_afecta_anteriores(self, customer):
         addr1 = _make_address(customer, is_default=True)
-        ShippingAddressService.create_address(customer, {
-            "address_name": "Extra",
-            "street": "Calle 3",
-            "external_number": "9",
-            "neighborhood": "Sur",
-            "postal_code": "29002",
-            "city": "Tuxtla",
-            "state": "Chiapas",
-            "is_default": False,
-        })
+        ShippingAddressService.create_address(
+            customer,
+            {
+                "address_name": "Extra",
+                "street": "Calle 3",
+                "external_number": "9",
+                "neighborhood": "Sur",
+                "postal_code": "29002",
+                "city": "Tuxtla",
+                "state": "Chiapas",
+                "is_default": False,
+            },
+        )
         addr1.refresh_from_db()
         assert addr1.is_default is True
 
@@ -100,15 +112,19 @@ class TestShippingAddressServiceCreate:
 class TestShippingAddressServiceUpdate:
     def test_actualiza_campos(self, customer):
         addr = _make_address(customer)
-        updated = ShippingAddressService.update_address(addr, customer, {
-            "address_name": "Modificada",
-            "street": "Nuevo Blvd",
-            "external_number": "99",
-            "neighborhood": "Norte",
-            "postal_code": "29010",
-            "city": "Tuxtla",
-            "state": "Chiapas",
-        })
+        updated = ShippingAddressService.update_address(
+            addr,
+            customer,
+            {
+                "address_name": "Modificada",
+                "street": "Nuevo Blvd",
+                "external_number": "99",
+                "neighborhood": "Norte",
+                "postal_code": "29010",
+                "city": "Tuxtla",
+                "state": "Chiapas",
+            },
+        )
         assert updated.address_name == "Modificada"
 
     def test_usuario_ajeno_lanza_error(self, customer):
@@ -141,6 +157,7 @@ class TestShippingAddressServiceDelete:
 
 
 # --- ShipmentService ---
+
 
 @pytest.mark.django_db
 class TestShipmentServiceCreate:

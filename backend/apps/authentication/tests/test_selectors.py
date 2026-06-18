@@ -1,9 +1,10 @@
 """
 Tests de los selectores de authentication.
 """
+
 import pytest
 
-from apps.authentication.models import User, UserRole
+from apps.authentication.models import User
 from apps.authentication.selectors import get_all_users, get_user_by_id
 
 
@@ -40,6 +41,7 @@ class TestGetUserById:
 
     def test_retorna_none_si_no_existe(self, db):
         import uuid
+
         result = get_user_by_id(str(uuid.uuid4()))
         assert result is None
 

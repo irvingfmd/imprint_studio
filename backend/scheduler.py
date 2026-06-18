@@ -4,6 +4,7 @@ Configuración del scheduler de Imprint Studio.
 Usa APScheduler con DjangoJobStore para persistir jobs en la base de datos.
 Iniciar llamando a start() desde OrdersConfig.ready().
 """
+
 import logging
 
 from apscheduler.schedulers.background import BackgroundScheduler

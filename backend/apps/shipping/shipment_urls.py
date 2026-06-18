@@ -1,6 +1,7 @@
 """
 URLs de envíos para clientes (lectura).
 """
+
 from django.urls import path
 
 from .views import ShipmentDetailView

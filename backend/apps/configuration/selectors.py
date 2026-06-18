@@ -2,6 +2,7 @@
 Selectores para la app configuration.
 Encapsulan las consultas a la base de datos.
 """
+
 from django.db.models import QuerySet
 
 from .models import BusinessConfig, BusinessHours, Holiday, PaymentInstructions, Printer

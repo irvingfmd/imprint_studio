@@ -1,6 +1,7 @@
 """
 URLs administrativas de la app faq.
 """
+
 from django.urls import path
 
 from .views import AdminFAQDetailView, AdminFAQListCreateView

@@ -1,6 +1,7 @@
 """
 Selectores para la app shipping.
 """
+
 from django.db.models import QuerySet
 
 from .models import Shipment, ShippingAddress

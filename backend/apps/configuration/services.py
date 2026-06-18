@@ -2,6 +2,7 @@
 Servicios para la app configuration.
 Toda la lógica de actualización de configuración vive aquí.
 """
+
 from django.db import transaction
 
 from . import selectors
@@ -9,7 +10,6 @@ from .models import BusinessConfig, BusinessHours, Holiday, PaymentInstructions,
 
 
 class ConfigurationService:
-
     @staticmethod
     @transaction.atomic
     def update_business_config(data: dict) -> BusinessConfig:

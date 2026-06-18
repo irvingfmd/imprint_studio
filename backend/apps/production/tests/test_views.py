@@ -8,6 +8,7 @@ Endpoints cubiertos:
   PUT  /api/v1/admin/orders/{order_id}/status/
   PUT  /api/v1/admin/orders/{order_id}/cancel/
 """
+
 import pytest
 
 from apps.authentication.models import User
@@ -15,32 +16,36 @@ from apps.orders.models import (
     EventType,
     Order,
     OrderEvent,
-    OrderPaymentStatus,
     OrderStatus,
     RequestType,
 )
 from apps.production.models import ProductionHistory
 
-
 # --- URL helpers ---
+
 
 def history_url(order_id):
     return f"/api/v1/orders/{order_id}/production-history/"
 
+
 def events_url(order_id):
     return f"/api/v1/orders/{order_id}/events/"
+
 
 def event_detail_url(order_id, event_id):
     return f"/api/v1/orders/{order_id}/events/{event_id}/"
 
+
 def admin_status_url(order_id):
     return f"/api/v1/admin/orders/{order_id}/status/"
+
 
 def admin_cancel_url(order_id):
     return f"/api/v1/admin/orders/{order_id}/cancel/"
 
 
 # --- Helpers de datos ---
+
 
 def _make_order(customer, status=OrderStatus.RECEIVED) -> Order:
     return Order.objects.create(
@@ -74,6 +79,7 @@ def _make_event(order, user) -> OrderEvent:
 
 # --- GET /api/v1/orders/{order_id}/production-history/ ---
 
+
 @pytest.mark.django_db
 class TestProductionHistoryListView:
     def test_unauthenticated_returns_401(self, api_client, customer):
@@ -90,6 +96,7 @@ class TestProductionHistoryListView:
 
     def test_nonexistent_order_returns_404(self, auth_client):
         import uuid
+
         resp = auth_client.get(history_url(uuid.uuid4()))
         assert resp.status_code == 404
 
@@ -116,6 +123,7 @@ class TestProductionHistoryListView:
 
 # --- GET /api/v1/orders/{order_id}/events/ ---
 
+
 @pytest.mark.django_db
 class TestOrderEventListView:
     def test_unauthenticated_returns_401(self, api_client, customer):
@@ -132,6 +140,7 @@ class TestOrderEventListView:
 
     def test_nonexistent_order_returns_404(self, auth_client):
         import uuid
+
         resp = auth_client.get(events_url(uuid.uuid4()))
         assert resp.status_code == 404
 
@@ -153,6 +162,7 @@ class TestOrderEventListView:
 
 # --- GET /api/v1/orders/{order_id}/events/{event_id}/ ---
 
+
 @pytest.mark.django_db
 class TestOrderEventDetailView:
     def test_unauthenticated_returns_401(self, api_client, customer, admin_user):
@@ -171,12 +181,14 @@ class TestOrderEventDetailView:
 
     def test_nonexistent_event_returns_404(self, auth_client, customer):
         import uuid
+
         order = _make_order(customer)
         resp = auth_client.get(event_detail_url(order.id, uuid.uuid4()))
         assert resp.status_code == 404
 
     def test_nonexistent_order_returns_404(self, auth_client):
         import uuid
+
         resp = auth_client.get(event_detail_url(uuid.uuid4(), uuid.uuid4()))
         assert resp.status_code == 404
 
@@ -195,6 +207,7 @@ class TestOrderEventDetailView:
 
 
 # --- PUT /api/v1/admin/orders/{order_id}/status/ ---
+
 
 @pytest.mark.django_db
 class TestAdminUpdateOrderStatusView:
@@ -224,6 +237,7 @@ class TestAdminUpdateOrderStatusView:
 
     def test_nonexistent_order_returns_404(self, admin_client):
         import uuid
+
         resp = admin_client.put(
             admin_status_url(uuid.uuid4()),
             {"status": "QUOTED"},
@@ -265,6 +279,7 @@ class TestAdminUpdateOrderStatusView:
 
 # --- PUT /api/v1/admin/orders/{order_id}/cancel/ ---
 
+
 @pytest.mark.django_db
 class TestAdminCancelOrderView:
     def test_unauthenticated_returns_401(self, api_client, customer):
@@ -301,6 +316,7 @@ class TestAdminCancelOrderView:
 
     def test_nonexistent_order_returns_404(self, admin_client):
         import uuid
+
         resp = admin_client.put(
             admin_cancel_url(uuid.uuid4()),
             {"reason": "x"},

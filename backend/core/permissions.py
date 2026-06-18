@@ -3,6 +3,7 @@ Permisos base del sistema.
 
 Documentados en 04-api-specification.md.
 """
+
 from rest_framework.permissions import BasePermission
 
 
@@ -14,10 +15,7 @@ class IsAdmin(BasePermission):
     message = "Permission denied"
 
     def has_permission(self, request, view) -> bool:
-        return (
-            request.user.is_authenticated
-            and request.user.is_admin
-        )
+        return request.user.is_authenticated and request.user.is_admin
 
 
 class IsCustomer(BasePermission):
@@ -28,10 +26,7 @@ class IsCustomer(BasePermission):
     message = "Permission denied"
 
     def has_permission(self, request, view) -> bool:
-        return (
-            request.user.is_authenticated
-            and request.user.is_customer
-        )
+        return request.user.is_authenticated and request.user.is_customer
 
 
 class IsOwnerOrAdmin(BasePermission):

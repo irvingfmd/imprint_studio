@@ -1,6 +1,7 @@
 """
 Vistas para la app configuration.
 """
+
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -20,8 +21,8 @@ from .serializers import (
     UpdateBusinessHoursSerializer,
 )
 
-
 # --- Vista pública ---
+
 
 class PublicPaymentInstructionsView(APIView):
     """Instrucciones de pago para clientes autenticados."""
@@ -37,6 +38,7 @@ class PublicPaymentInstructionsView(APIView):
 
 
 # --- Vistas administrativas ---
+
 
 class AdminBusinessConfigView(APIView):
     """Configuración del negocio. Solo admin."""
@@ -247,8 +249,7 @@ class ElectricityRateLookupView(APIView):
         result = lookup_cfe(postal_code)
         if result is None:
             return error_response(
-                f"No se encontró información CFE para el CP {postal_code}. "
-                "Verifica tu tarifa en tu recibo o en cfe.mx"
+                f"No se encontró información CFE para el CP {postal_code}. Verifica tu tarifa en tu recibo o en cfe.mx"
             )
 
         return success_response(data=result, message="Tarifa CFE consultada")

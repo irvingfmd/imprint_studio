@@ -2,6 +2,7 @@
 Tests de los selectores de orders.
 Validan aislamiento por usuario y filtros correctos.
 """
+
 import pytest
 
 from apps.orders.models import Order, OrderStatus, RequestType
@@ -65,6 +66,7 @@ class TestGetOrderById:
 
     def test_returns_none_for_nonexistent(self):
         import uuid
+
         result = get_order_by_id(str(uuid.uuid4()))
         assert result is None
 
@@ -106,12 +108,15 @@ class TestGetAllOrders:
 @pytest.mark.django_db
 class TestGetFilesForOrder:
     def test_returns_files_for_order(self, customer):
-        order = OrderService.create_order(customer, {
-            "request_type": RequestType.REFERENCE,
-            "title": "Test",
-            "description": "Desc",
-            "quantity": 1,
-        })
+        order = OrderService.create_order(
+            customer,
+            {
+                "request_type": RequestType.REFERENCE,
+                "title": "Test",
+                "description": "Desc",
+                "quantity": 1,
+            },
+        )
         OrderService.upload_file(
             order=order,
             file_url="https://cdn.test/a.jpg",
@@ -125,18 +130,24 @@ class TestGetFilesForOrder:
         assert files.count() == 1
 
     def test_does_not_return_files_from_other_order(self, customer):
-        order1 = OrderService.create_order(customer, {
-            "request_type": RequestType.REFERENCE,
-            "title": "Pedido 1",
-            "description": "Desc",
-            "quantity": 1,
-        })
-        order2 = OrderService.create_order(customer, {
-            "request_type": RequestType.REFERENCE,
-            "title": "Pedido 2",
-            "description": "Desc",
-            "quantity": 1,
-        })
+        order1 = OrderService.create_order(
+            customer,
+            {
+                "request_type": RequestType.REFERENCE,
+                "title": "Pedido 1",
+                "description": "Desc",
+                "quantity": 1,
+            },
+        )
+        order2 = OrderService.create_order(
+            customer,
+            {
+                "request_type": RequestType.REFERENCE,
+                "title": "Pedido 2",
+                "description": "Desc",
+                "quantity": 1,
+            },
+        )
         OrderService.upload_file(
             order=order2,
             file_url="https://cdn.test/b.jpg",

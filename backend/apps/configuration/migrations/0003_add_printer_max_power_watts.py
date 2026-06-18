@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('configuration', '0002_add_printer_replace_energy_rate'),
+        ("configuration", "0002_add_printer_replace_energy_rate"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='printer',
-            name='max_power_watts',
+            model_name="printer",
+            name="max_power_watts",
             field=models.PositiveIntegerField(blank=True, null=True),
         ),
     ]

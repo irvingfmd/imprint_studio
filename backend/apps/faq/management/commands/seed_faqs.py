@@ -2,6 +2,7 @@
 Carga preguntas frecuentes iniciales.
 Ejecutar: python manage.py seed_faqs
 """
+
 from django.core.management.base import BaseCommand
 
 

@@ -1,6 +1,7 @@
 """
 Tests de los serializers de authentication.
 """
+
 import pytest
 
 from apps.authentication.serializers import (
@@ -11,17 +12,18 @@ from apps.authentication.serializers import (
     UserSerializer,
     VerifyOTPSerializer,
 )
-from apps.authentication.models import User, UserRole
 
 
 @pytest.mark.django_db
 class TestRegisterSerializer:
     def test_valid_data(self):
-        s = RegisterSerializer(data={
-            "phone": "+529611300001",
-            "first_name": "Test",
-            "email": "valid@test.com",
-        })
+        s = RegisterSerializer(
+            data={
+                "phone": "+529611300001",
+                "first_name": "Test",
+                "email": "valid@test.com",
+            }
+        )
         assert s.is_valid(), s.errors
 
     def test_phone_without_plus_is_invalid(self):
@@ -35,19 +37,23 @@ class TestRegisterSerializer:
         assert "phone" in s.errors
 
     def test_duplicate_email_is_invalid(self, customer):
-        s = RegisterSerializer(data={
-            "phone": "+529611300002",
-            "first_name": "Otro",
-            "email": customer.email,
-        })
+        s = RegisterSerializer(
+            data={
+                "phone": "+529611300002",
+                "first_name": "Otro",
+                "email": customer.email,
+            }
+        )
         assert not s.is_valid()
         assert "email" in s.errors
 
     def test_duplicate_phone_is_invalid(self, customer):
-        s = RegisterSerializer(data={
-            "phone": customer.phone,
-            "first_name": "Otro",
-        })
+        s = RegisterSerializer(
+            data={
+                "phone": customer.phone,
+                "first_name": "Otro",
+            }
+        )
         assert not s.is_valid()
         assert "phone" in s.errors
 

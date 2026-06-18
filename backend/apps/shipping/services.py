@@ -1,6 +1,7 @@
 """
 Servicios para la app shipping.
 """
+
 from decimal import Decimal
 
 from django.db import transaction
@@ -12,7 +13,6 @@ from .models import Shipment, ShippingAddress
 
 
 class ShippingAddressService:
-
     @staticmethod
     def create_address(user, data: dict) -> ShippingAddress:
         """Crea una dirección de envío para el usuario."""
@@ -46,9 +46,17 @@ class ShippingAddressService:
             ShippingAddress.objects.filter(user=user, is_default=True).exclude(id=address.id).update(is_default=False)
 
         for field in [
-            "address_name", "street", "external_number", "internal_number",
-            "neighborhood", "postal_code", "city", "state", "country",
-            "references", "is_default",
+            "address_name",
+            "street",
+            "external_number",
+            "internal_number",
+            "neighborhood",
+            "postal_code",
+            "city",
+            "state",
+            "country",
+            "references",
+            "is_default",
         ]:
             if field in data:
                 setattr(address, field, data[field])
@@ -65,7 +73,6 @@ class ShippingAddressService:
 
 
 class ShipmentService:
-
     @staticmethod
     @transaction.atomic
     def create_shipment(
@@ -131,6 +138,7 @@ class ShipmentService:
 
         # Transición del pedido a DELIVERED usando el servicio oficial
         from apps.production.services import OrderStatusTransitionService
+
         try:
             OrderStatusTransitionService.transition(
                 order=order,

@@ -4,7 +4,7 @@ Cubre: CreateQuoteSerializer, AcceptQuoteSerializer, RejectQuoteSerializer,
        CalculateSerializer, QuoteSerializer (salida).
 Casos del plan: 28 (peso inválido), 29 (tiempo inválido).
 """
-import pytest
+
 from decimal import Decimal
 
 from apps.quotes.serializers import (

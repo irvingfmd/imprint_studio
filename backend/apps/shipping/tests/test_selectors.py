@@ -2,11 +2,12 @@
 Tests de selectores de la app shipping.
 Cubre: get_address_by_id, get_addresses_for_user, get_shipment_by_id, get_shipment_for_order.
 """
+
 import pytest
 
 from apps.orders.models import Order, OrderStatus, RequestType
-from apps.shipping.models import Shipment, ShippingAddress
 from apps.shipping import selectors
+from apps.shipping.models import Shipment, ShippingAddress
 
 
 def _make_address(user) -> ShippingAddress:
@@ -44,6 +45,7 @@ class TestGetAddressById:
 
     def test_retorna_none_si_no_existe(self, customer):
         import uuid
+
         result = selectors.get_address_by_id(str(uuid.uuid4()))
         assert result is None
 
@@ -58,6 +60,7 @@ class TestGetAddressesForUser:
 
     def test_excluye_direcciones_de_otros_usuarios(self, customer):
         from apps.authentication.models import User
+
         otro = User.objects.create_user(phone="+529611099801", first_name="Otro")
         _make_address(customer)
         _make_address(otro)
@@ -88,6 +91,7 @@ class TestGetShipmentById:
 
     def test_retorna_none_si_no_existe(self, customer):
         import uuid
+
         result = selectors.get_shipment_by_id(str(uuid.uuid4()))
         assert result is None
 

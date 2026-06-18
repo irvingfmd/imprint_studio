@@ -2,6 +2,7 @@
 Modelos de la app authentication.
 User y OTPCode.
 """
+
 import uuid
 
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
@@ -147,6 +148,7 @@ class OTPCode(models.Model):
         Verifica si el código ha expirado.
         """
         from django.utils import timezone
+
         return timezone.now() > self.expires_at
 
     @property
@@ -154,8 +156,4 @@ class OTPCode(models.Model):
         """
         Verifica si el código puede usarse para autenticarse.
         """
-        return (
-            not self.is_used
-            and not self.is_expired
-            and self.attempts < 5
-        )
+        return not self.is_used and not self.is_expired and self.attempts < 5

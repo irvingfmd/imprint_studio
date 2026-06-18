@@ -2,12 +2,13 @@
 Tests de los endpoints de orders.
 Casos del plan: 8-13, 58, 60, 61.
 """
-import pytest
+
 from unittest.mock import patch
+
+import pytest
 
 from apps.orders.models import Order, OrderStatus, RequestType
 from apps.orders.services import OrderService
-
 
 ORDERS_URL = "/api/v1/orders/"
 ADMIN_ORDERS_URL = "/api/v1/admin/orders/"
@@ -58,64 +59,82 @@ class TestOrderListCreate:
 
     def test_post_reference_creates_received_order(self, auth_client):
         # Caso 8
-        resp = auth_client.post(ORDERS_URL, {
-            "request_type": "REFERENCE",
-            "title": "Busto Iron Man",
-            "description": "Con detalle de pintura",
-            "quantity": 1,
-            "priority": "NORMAL",
-        })
+        resp = auth_client.post(
+            ORDERS_URL,
+            {
+                "request_type": "REFERENCE",
+                "title": "Busto Iron Man",
+                "description": "Con detalle de pintura",
+                "quantity": 1,
+                "priority": "NORMAL",
+            },
+        )
         assert resp.status_code == 201
         assert resp.data["data"]["status"] == OrderStatus.RECEIVED
 
     def test_post_printable_file_creates_pending_analysis_order(self, auth_client):
         # Caso 9
-        resp = auth_client.post(ORDERS_URL, {
-            "request_type": "PRINTABLE_FILE",
-            "title": "Pieza mecánica",
-            "description": "Archivo STL adjunto",
-            "quantity": 2,
-        })
+        resp = auth_client.post(
+            ORDERS_URL,
+            {
+                "request_type": "PRINTABLE_FILE",
+                "title": "Pieza mecánica",
+                "description": "Archivo STL adjunto",
+                "quantity": 2,
+            },
+        )
         assert resp.status_code == 201
         assert resp.data["data"]["status"] == OrderStatus.PENDING_ANALYSIS
 
     def test_post_web_model_creates_pending_analysis_order(self, auth_client):
-        resp = auth_client.post(ORDERS_URL, {
-            "request_type": "WEB_MODEL",
-            "title": "Yoda de MakerWorld",
-            "description": "Enlace al modelo",
-            "quantity": 1,
-        })
+        resp = auth_client.post(
+            ORDERS_URL,
+            {
+                "request_type": "WEB_MODEL",
+                "title": "Yoda de MakerWorld",
+                "description": "Enlace al modelo",
+                "quantity": 1,
+            },
+        )
         assert resp.status_code == 201
         assert resp.data["data"]["status"] == OrderStatus.PENDING_ANALYSIS
 
     def test_post_invalid_quantity_returns_400(self, auth_client):
         # Caso 10: quantity = 0
-        resp = auth_client.post(ORDERS_URL, {
-            "request_type": "REFERENCE",
-            "title": "Figura",
-            "description": "Test",
-            "quantity": 0,
-        })
+        resp = auth_client.post(
+            ORDERS_URL,
+            {
+                "request_type": "REFERENCE",
+                "title": "Figura",
+                "description": "Test",
+                "quantity": 0,
+            },
+        )
         assert resp.status_code == 400
 
     def test_post_invalid_priority_returns_400(self, auth_client):
         # Caso 11: prioridad inexistente
-        resp = auth_client.post(ORDERS_URL, {
-            "request_type": "REFERENCE",
-            "title": "Figura",
-            "description": "Test",
-            "quantity": 1,
-            "priority": "SUPER_URGENTE",
-        })
+        resp = auth_client.post(
+            ORDERS_URL,
+            {
+                "request_type": "REFERENCE",
+                "title": "Figura",
+                "description": "Test",
+                "quantity": 1,
+                "priority": "SUPER_URGENTE",
+            },
+        )
         assert resp.status_code == 400
 
     def test_post_missing_title_returns_400(self, auth_client):
-        resp = auth_client.post(ORDERS_URL, {
-            "request_type": "REFERENCE",
-            "description": "Sin título",
-            "quantity": 1,
-        })
+        resp = auth_client.post(
+            ORDERS_URL,
+            {
+                "request_type": "REFERENCE",
+                "description": "Sin título",
+                "quantity": 1,
+            },
+        )
         assert resp.status_code == 400
 
 
@@ -136,6 +155,7 @@ class TestOrderDetail:
 
     def test_get_nonexistent_order_returns_404(self, auth_client):
         import uuid
+
         resp = auth_client.get(order_url(uuid.uuid4()))
         assert resp.status_code == 404
 
@@ -198,33 +218,42 @@ class TestOrderFileListUpload:
 
     def test_upload_valid_file(self, auth_client, customer):
         order = _make_order_via_service(customer)
-        resp = auth_client.post(files_url(order.id), {
-            "file_url": "https://cdn.test/modelo.stl",
-            "file_type": "STL",
-            "original_filename": "pieza.stl",
-            "mime_type": "model/stl",
-            "file_size_bytes": 204800,
-        })
+        resp = auth_client.post(
+            files_url(order.id),
+            {
+                "file_url": "https://cdn.test/modelo.stl",
+                "file_type": "STL",
+                "original_filename": "pieza.stl",
+                "mime_type": "model/stl",
+                "file_size_bytes": 204800,
+            },
+        )
         assert resp.status_code == 201
 
     def test_upload_web_model_link(self, auth_client, customer):
         order = _make_order_via_service(customer, request_type=RequestType.WEB_MODEL)
-        resp = auth_client.post(files_url(order.id), {
-            "file_url": "https://makerworld.com/models/12345",
-            "file_type": "WEB_MODEL",
-            "original_filename": "Yoda Mini",
-        })
+        resp = auth_client.post(
+            files_url(order.id),
+            {
+                "file_url": "https://makerworld.com/models/12345",
+                "file_type": "WEB_MODEL",
+                "original_filename": "Yoda Mini",
+            },
+        )
         assert resp.status_code == 201
 
     def test_upload_file_to_foreign_order_returns_403(self, auth_client, admin_user):
         foreign_order = _make_order_via_service(admin_user)
-        resp = auth_client.post(files_url(foreign_order.id), {
-            "file_url": "https://cdn.test/a.jpg",
-            "file_type": "IMAGE",
-            "original_filename": "img.jpg",
-            "mime_type": "image/jpeg",
-            "file_size_bytes": 1024,
-        })
+        resp = auth_client.post(
+            files_url(foreign_order.id),
+            {
+                "file_url": "https://cdn.test/a.jpg",
+                "file_type": "IMAGE",
+                "original_filename": "img.jpg",
+                "mime_type": "image/jpeg",
+                "file_size_bytes": 1024,
+            },
+        )
         assert resp.status_code == 403
 
 
@@ -279,6 +308,7 @@ class TestAdminOrderListPaginacion:
 class TestAdminOrderDetailActiveQuote:
     def test_detalle_incluye_active_quote_cuando_existe(self, admin_client, customer, admin_user):
         from decimal import Decimal
+
         from apps.quotes.models import Quote
 
         order = _make_order_via_service(customer)

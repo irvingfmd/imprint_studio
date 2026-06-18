@@ -1,6 +1,7 @@
 """
 Vistas para la app orders.
 """
+
 import os
 import uuid
 
@@ -25,8 +26,8 @@ from .serializers import (
     RequestFileUploadSerializer,
 )
 
-
 # --- Vistas para clientes ---
+
 
 class OrderListCreateView(APIView):
     """Lista los pedidos del cliente autenticado o crea uno nuevo."""
@@ -90,6 +91,7 @@ class CancelOrderView(APIView):
             return error_response("Permission denied", status_code=status.HTTP_403_FORBIDDEN)
 
         from apps.production.services import OrderStatusTransitionService
+
         try:
             OrderStatusTransitionService.cancel_order(
                 order=order,
@@ -225,6 +227,7 @@ class OrderFileListUploadView(APIView):
 
 # --- Vistas administrativas ---
 
+
 class AdminOrderListView(APIView):
     """Lista todos los pedidos con filtros. Solo administradores."""
 
@@ -284,11 +287,13 @@ class AdminDashboardView(APIView):
 
     def get(self, request):
         from decimal import Decimal
+
         from django.db.models import Count, Sum
         from django.db.models.functions import TruncMonth
+        from django.utils import timezone
+
         from apps.orders.models import Order, OrderStatus
         from apps.payments.models import Payment, PaymentStatus
-        from django.utils import timezone
 
         now = timezone.now()
         first_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -304,33 +309,19 @@ class AdminDashboardView(APIView):
         six_months_ago = _months_back(first_of_month, 5)
 
         # --- Conteos existentes (backwards compatible) ---
-        pending_orders = Order.objects.filter(
-            status=OrderStatus.RECEIVED, is_deleted=False
-        ).count()
-        quoted_orders = Order.objects.filter(
-            status=OrderStatus.QUOTED, is_deleted=False
-        ).count()
-        printing_orders = Order.objects.filter(
-            status=OrderStatus.PRINTING, is_deleted=False
-        ).count()
-        ready_orders = Order.objects.filter(
-            status=OrderStatus.READY, is_deleted=False
-        ).count()
-        pending_payments = Payment.objects.filter(
-            payment_status=PaymentStatus.PENDING, is_deleted=False
-        ).count()
+        pending_orders = Order.objects.filter(status=OrderStatus.RECEIVED, is_deleted=False).count()
+        quoted_orders = Order.objects.filter(status=OrderStatus.QUOTED, is_deleted=False).count()
+        printing_orders = Order.objects.filter(status=OrderStatus.PRINTING, is_deleted=False).count()
+        ready_orders = Order.objects.filter(status=OrderStatus.READY, is_deleted=False).count()
+        pending_payments = Payment.objects.filter(payment_status=PaymentStatus.PENDING, is_deleted=False).count()
 
-        monthly_revenue = (
-            Payment.objects
-            .filter(payment_status=PaymentStatus.CONFIRMED, created_at__gte=first_of_month)
-            .exclude(payment_type="REFUND")
-            .aggregate(total=Sum("amount"))["total"] or Decimal("0")
-        )
+        monthly_revenue = Payment.objects.filter(
+            payment_status=PaymentStatus.CONFIRMED, created_at__gte=first_of_month
+        ).exclude(payment_type="REFUND").aggregate(total=Sum("amount"))["total"] or Decimal("0")
 
         # --- Ingresos por mes (últimos 6 meses) ---
         revenue_by_month_qs = (
-            Payment.objects
-            .filter(
+            Payment.objects.filter(
                 payment_status=PaymentStatus.CONFIRMED,
                 created_at__gte=six_months_ago,
             )
@@ -341,14 +332,11 @@ class AdminDashboardView(APIView):
             .order_by("month")
         )
         revenue_by_month = [
-            {"month": r["month"].strftime("%Y-%m"), "revenue": str(r["revenue"])}
-            for r in revenue_by_month_qs
+            {"month": r["month"].strftime("%Y-%m"), "revenue": str(r["revenue"])} for r in revenue_by_month_qs
         ]
 
         # --- Pedidos del mes actual vs anterior ---
-        orders_this_month = Order.objects.filter(
-            created_at__gte=first_of_month, is_deleted=False
-        ).count()
+        orders_this_month = Order.objects.filter(created_at__gte=first_of_month, is_deleted=False).count()
         orders_prev_month = Order.objects.filter(
             created_at__gte=first_of_prev_month,
             created_at__lt=first_of_month,
@@ -364,9 +352,7 @@ class AdminDashboardView(APIView):
         delivery_times: list[float] = []
         for order in delivered_this_month:
             delivery_times.append((order.delivered_at - order.created_at).total_seconds() / 86400)
-        avg_delivery_days = (
-            round(sum(delivery_times) / len(delivery_times), 1) if delivery_times else None
-        )
+        avg_delivery_days = round(sum(delivery_times) / len(delivery_times), 1) if delivery_times else None
 
         # --- Tasa de cancelación del mes ---
         cancelled_this_month = Order.objects.filter(
@@ -374,10 +360,7 @@ class AdminDashboardView(APIView):
             cancelled_at__gte=first_of_month,
             is_deleted=False,
         ).count()
-        cancellation_rate = (
-            round(cancelled_this_month / orders_this_month * 100, 1)
-            if orders_this_month > 0 else 0
-        )
+        cancellation_rate = round(cancelled_this_month / orders_this_month * 100, 1) if orders_this_month > 0 else 0
 
         # --- Top tipos de solicitud del mes ---
         request_type_counts = list(
@@ -415,7 +398,7 @@ class AdminDashboardView(APIView):
         )
 
 
-def _try_auto_quote(order, file_path: str, user) -> "Quote | None":
+def _try_auto_quote(order, file_path: str, user):  # noqa: F821
     """
     Si el archivo es STL y el pedido no tiene cotización activa, genera una auto-cotización.
     Errores de análisis se tragan — el admin puede cotizar manualmente.
@@ -424,19 +407,22 @@ def _try_auto_quote(order, file_path: str, user) -> "Quote | None":
         return None
 
     from apps.quotes.models import Quote, QuoteStatus
+
     if Quote.objects.filter(order=order, quote_status=QuoteStatus.PENDING, is_deleted=False).exists():
         return None
 
     import logging
+
     logger = logging.getLogger(__name__)
 
     try:
         with open(file_path, "rb") as f:
             data = f.read()
 
-        from apps.quotes.stl_service import estimate_from_stl
-        from apps.quotes.services import QuoteService
         from decimal import Decimal
+
+        from apps.quotes.services import QuoteService
+        from apps.quotes.stl_service import estimate_from_stl
 
         estimate = estimate_from_stl(data)
         quote = QuoteService.create_quote(
@@ -448,7 +434,8 @@ def _try_auto_quote(order, file_path: str, user) -> "Quote | None":
         )
         logger.info(
             "Auto-cotización %s generada para pedido %s (vol=%.1f cm³, peso=%.1fg, tiempo=%.1fh)",
-            quote.id, order.id,
+            quote.id,
+            order.id,
             estimate["volume_cm3"],
             estimate["estimated_weight_grams"],
             estimate["estimated_print_time_hours"],

@@ -2,6 +2,7 @@
 Tests de serializers de la app production.
 Cubre: UpdateOrderStatusSerializer, CancelOrderSerializer.
 """
+
 from apps.production.serializers import CancelOrderSerializer, UpdateOrderStatusSerializer
 
 
@@ -32,9 +33,19 @@ class TestUpdateOrderStatusSerializer:
 
     def test_all_valid_statuses_accepted(self):
         valid_statuses = [
-            "RECEIVED", "PENDING_ANALYSIS", "QUOTED", "APPROVED",
-            "PENDING_DEPOSIT", "DEPOSIT_PAID", "PRINTING", "POST_PROCESSING",
-            "READY", "PENDING_BALANCE", "FULLY_PAID", "DELIVERED", "CANCELLED",
+            "RECEIVED",
+            "PENDING_ANALYSIS",
+            "QUOTED",
+            "APPROVED",
+            "PENDING_DEPOSIT",
+            "DEPOSIT_PAID",
+            "PRINTING",
+            "POST_PROCESSING",
+            "READY",
+            "PENDING_BALANCE",
+            "FULLY_PAID",
+            "DELIVERED",
+            "CANCELLED",
         ]
         for status in valid_statuses:
             s = UpdateOrderStatusSerializer(data={"status": status})

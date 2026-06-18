@@ -1,6 +1,7 @@
 """
 Registro de modelos de configuration en el admin de Django.
 """
+
 from django.contrib import admin
 
 from apps.configuration.models import (

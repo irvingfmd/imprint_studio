@@ -1,6 +1,7 @@
 """
 Serializers para la app production.
 """
+
 from rest_framework import serializers
 
 from apps.orders.models import OrderEvent, OrderStatus

@@ -1,6 +1,7 @@
 """
 Jobs del scheduler para la app orders.
 """
+
 import logging
 from datetime import timedelta
 
@@ -102,7 +103,7 @@ def remind_pending_deposits() -> None:
     """
     from apps.configuration.selectors import get_active_business_config
     from apps.notifications.services import NotificationService
-    from apps.orders.models import Order, OrderEvent, OrderStatus, EventType
+    from apps.orders.models import EventType, Order, OrderEvent, OrderStatus
     from apps.production.models import ProductionHistory
 
     config = get_active_business_config()

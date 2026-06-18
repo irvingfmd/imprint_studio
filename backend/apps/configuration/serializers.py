@@ -1,6 +1,7 @@
 """
 Serializers para la app configuration.
 """
+
 from rest_framework import serializers
 
 from .models import BusinessConfig, BusinessHours, Holiday, PaymentInstructions, Printer

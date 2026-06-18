@@ -2,13 +2,13 @@
 Servicios para la app orders.
 Toda la lógica de negocio de pedidos vive aquí.
 """
+
 from django.db import transaction
 
 from .models import EventType, Order, OrderEvent, OrderStatus, RequestFile, RequestType
 
 
 class OrderService:
-
     @staticmethod
     @transaction.atomic
     def create_order(customer, data: dict) -> Order:
@@ -17,11 +17,7 @@ class OrderService:
         Estado inicial: RECEIVED para REFERENCE, PENDING_ANALYSIS para PRINTABLE_FILE y WEB_MODEL.
         """
         request_type = data["request_type"]
-        initial_status = (
-            OrderStatus.RECEIVED
-            if request_type == RequestType.REFERENCE
-            else OrderStatus.PENDING_ANALYSIS
-        )
+        initial_status = OrderStatus.RECEIVED if request_type == RequestType.REFERENCE else OrderStatus.PENDING_ANALYSIS
 
         order = Order.objects.create(
             customer=customer,
@@ -45,6 +41,7 @@ class OrderService:
         )
 
         from apps.notifications.services import NotificationService
+
         NotificationService.notify_admin_new_order(order)
 
         return order

@@ -8,33 +8,40 @@ Endpoints cubiertos:
   POST /api/v1/admin/orders/{order_id}/shipment/
   PUT /api/v1/admin/shipments/{shipment_id}/delivered/
 """
-import pytest
+
 from decimal import Decimal
+
+import pytest
 
 from apps.authentication.models import User
 from apps.orders.models import Order, OrderPaymentStatus, OrderStatus, RequestType
 from apps.shipping.models import Shipment, ShippingAddress
 
-
 # --- URL helpers ---
+
 
 def addresses_url():
     return "/api/v1/shipping-addresses/"
 
+
 def address_detail_url(address_id):
     return f"/api/v1/shipping-addresses/{address_id}/"
+
 
 def shipment_url(shipment_id):
     return f"/api/v1/shipments/{shipment_id}/"
 
+
 def admin_create_shipment_url(order_id):
     return f"/api/v1/admin/orders/{order_id}/shipment/"
+
 
 def admin_delivered_url(shipment_id):
     return f"/api/v1/admin/shipments/{shipment_id}/delivered/"
 
 
 # --- Helpers de datos ---
+
 
 def _valid_address_data(**kwargs) -> dict:
     base = {
@@ -82,6 +89,7 @@ def _make_order(customer, status=OrderStatus.RECEIVED, payment_status=None) -> O
 
 # --- GET/POST /api/v1/shipping-addresses/ ---
 
+
 @pytest.mark.django_db
 class TestShippingAddressListCreateView:
     def test_sin_token_devuelve_401(self, api_client):
@@ -119,6 +127,7 @@ class TestShippingAddressListCreateView:
 
 # --- GET/PUT/DELETE /api/v1/shipping-addresses/{address_id}/ ---
 
+
 @pytest.mark.django_db
 class TestShippingAddressDetailView:
     def test_sin_token_devuelve_401(self, api_client, customer):
@@ -141,6 +150,7 @@ class TestShippingAddressDetailView:
 
     def test_direccion_inexistente_devuelve_404(self, auth_client):
         import uuid
+
         resp = auth_client.get(address_detail_url(uuid.uuid4()))
         assert resp.status_code == 404
 
@@ -180,6 +190,7 @@ class TestShippingAddressDetailView:
 
 # --- GET /api/v1/shipments/{shipment_id}/ ---
 
+
 @pytest.mark.django_db
 class TestShipmentDetailView:
     def test_sin_token_devuelve_401(self, api_client, customer):
@@ -205,6 +216,7 @@ class TestShipmentDetailView:
 
     def test_shipment_inexistente_devuelve_404(self, auth_client):
         import uuid
+
         resp = auth_client.get(shipment_url(uuid.uuid4()))
         assert resp.status_code == 404
 
@@ -216,6 +228,7 @@ class TestShipmentDetailView:
 
 
 # --- POST /api/v1/admin/orders/{order_id}/shipment/ ---
+
 
 @pytest.mark.django_db
 class TestAdminCreateShipmentView:
@@ -231,6 +244,7 @@ class TestAdminCreateShipmentView:
 
     def test_pedido_inexistente_devuelve_404(self, admin_client):
         import uuid
+
         resp = admin_client.post(
             admin_create_shipment_url(uuid.uuid4()),
             {"carrier_name": "DHL"},
@@ -270,10 +284,12 @@ class TestAdminCreateShipmentView:
 
 # --- PUT /api/v1/admin/shipments/{shipment_id}/delivered/ ---
 
+
 @pytest.mark.django_db
 class TestAdminMarkShipmentDeliveredView:
     def _setup(self, customer, admin_user):
         from apps.shipping.services import ShipmentService
+
         order = _make_order(
             customer,
             status=OrderStatus.FULLY_PAID,
@@ -301,6 +317,7 @@ class TestAdminMarkShipmentDeliveredView:
 
     def test_shipment_inexistente_devuelve_404(self, admin_client):
         import uuid
+
         resp = admin_client.put(admin_delivered_url(uuid.uuid4()), {}, format="json")
         assert resp.status_code == 404
 

@@ -2,8 +2,10 @@
 Tests de modelos de la app payments.
 Cubre: Payment — campos, defaults, str, sin updated_at, soft delete.
 """
-import pytest
+
 from decimal import Decimal
+
+import pytest
 
 from apps.orders.models import Order, OrderStatus, RequestType
 from apps.payments.models import (

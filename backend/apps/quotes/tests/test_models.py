@@ -2,9 +2,10 @@
 Tests de modelos de la app quotes.
 Casos cubiertos: campos y defaults de Quote y QuoteSnapshot.
 """
-import pytest
+
 from decimal import Decimal
 
+import pytest
 from django.utils import timezone
 
 from apps.orders.models import Order, OrderStatus, RequestType

@@ -2,10 +2,10 @@
 Tests de RegisterService, OTPService y JWTService.
 Casos del plan: 1-7 (registro, OTP, JWT).
 """
-import pytest
-from datetime import timedelta
-from unittest.mock import patch
 
+from datetime import timedelta
+
+import pytest
 from django.utils import timezone
 
 from apps.authentication.models import OTPCode, User
@@ -16,28 +16,34 @@ from apps.authentication.services import JWTService, OTPService, RegisterService
 class TestRegisterService:
     def test_valid_registration_creates_user(self):
         # Caso 1: registro correcto
-        user = RegisterService().register({
-            "phone": "+529611000010",
-            "first_name": "Prueba",
-            "last_name": "Usuario",
-            "email": "prueba@test.com",
-        })
+        user = RegisterService().register(
+            {
+                "phone": "+529611000010",
+                "first_name": "Prueba",
+                "last_name": "Usuario",
+                "email": "prueba@test.com",
+            }
+        )
         assert User.objects.filter(phone="+529611000010").exists()
         assert user.role == "CUSTOMER"
         assert user.is_active is True
 
     def test_registration_without_email(self):
-        user = RegisterService().register({
-            "phone": "+529611000011",
-            "first_name": "SinEmail",
-        })
+        user = RegisterService().register(
+            {
+                "phone": "+529611000011",
+                "first_name": "SinEmail",
+            }
+        )
         assert user.email is None
 
     def test_registration_assigns_customer_role(self):
-        user = RegisterService().register({
-            "phone": "+529611000012",
-            "first_name": "Rol",
-        })
+        user = RegisterService().register(
+            {
+                "phone": "+529611000012",
+                "first_name": "Rol",
+            }
+        )
         assert user.is_customer is True
         assert user.is_admin is False
 

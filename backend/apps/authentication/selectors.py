@@ -3,6 +3,7 @@ Selectores de la app authentication.
 
 Queries de solo lectura para usuarios.
 """
+
 from django.db.models import QuerySet
 
 from apps.authentication.models import User

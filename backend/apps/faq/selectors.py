@@ -1,6 +1,7 @@
 """
 Selectores para la app faq.
 """
+
 from django.db.models import QuerySet
 
 from .models import FAQ

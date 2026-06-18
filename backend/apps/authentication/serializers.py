@@ -4,7 +4,7 @@ Serializers de la app authentication.
 Validan y serializan los datos de entrada y salida
 para los endpoints de registro, OTP y JWT.
 """
-from django.contrib.auth.password_validation import validate_password
+
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
@@ -47,9 +47,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         if not value:
             return None
         if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError(
-                "Este email ya está registrado."
-            )
+            raise serializers.ValidationError("Este email ya está registrado.")
         return value
 
     def validate_phone(self, value: str) -> str:
@@ -57,21 +55,13 @@ class RegisterSerializer(serializers.ModelSerializer):
         Valida formato E.164 y que el teléfono no esté registrado.
         """
         if not value.startswith("+"):
-            raise serializers.ValidationError(
-                "El teléfono debe estar en formato E.164. Ejemplo: +5219611234567"
-            )
+            raise serializers.ValidationError("El teléfono debe estar en formato E.164. Ejemplo: +5219611234567")
         if not value[1:].isdigit():
-            raise serializers.ValidationError(
-                "El teléfono solo debe contener dígitos después del símbolo +."
-            )
+            raise serializers.ValidationError("El teléfono solo debe contener dígitos después del símbolo +.")
         if len(value) < 10 or len(value) > 16:
-            raise serializers.ValidationError(
-                "El teléfono debe tener entre 10 y 16 caracteres."
-            )
+            raise serializers.ValidationError("El teléfono debe tener entre 10 y 16 caracteres.")
         if User.objects.filter(phone=value).exists():
-            raise serializers.ValidationError(
-                "Este teléfono ya está registrado."
-            )
+            raise serializers.ValidationError("Este teléfono ya está registrado.")
         return value
 
 
@@ -89,9 +79,7 @@ class SendOTPSerializer(serializers.Serializer):
         el servicio de forma silenciosa para evitar user enumeration.
         """
         if not value.startswith("+"):
-            raise serializers.ValidationError(
-                "El teléfono debe estar en formato E.164. Ejemplo: +5219611234567"
-            )
+            raise serializers.ValidationError("El teléfono debe estar en formato E.164. Ejemplo: +5219611234567")
         return value
 
 
@@ -109,9 +97,7 @@ class VerifyOTPSerializer(serializers.Serializer):
         Valida que el código OTP sea numérico.
         """
         if not value.isdigit():
-            raise serializers.ValidationError(
-                "El código OTP debe contener solo dígitos."
-            )
+            raise serializers.ValidationError("El código OTP debe contener solo dígitos.")
         return value
 
 

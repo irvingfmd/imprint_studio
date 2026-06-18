@@ -5,6 +5,7 @@ Zona horaria: America/Mexico_City
 Moneda: MXN
 Autenticación: JWT + OTP por WhatsApp
 """
+
 import os
 from datetime import timedelta
 from pathlib import Path
@@ -31,9 +32,10 @@ DEBUG = os.environ.get("DEBUG", "False") == "True"
 # En producción, exigir una clave secreta real.
 if not DEBUG and SECRET_KEY == "insecure-dev-key-cambiar-en-produccion":
     from django.core.exceptions import ImproperlyConfigured
+
     raise ImproperlyConfigured(
         "DJANGO_SECRET_KEY debe configurarse en producción. "
-        "Genera una clave segura con: python -c \"import secrets; print(secrets.token_hex(50))\""
+        'Genera una clave segura con: python -c "import secrets; print(secrets.token_hex(50))"'
     )
 
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
@@ -53,7 +55,6 @@ INSTALLED_APPS = [
     "apps.shipping",
     "apps.notifications",
     "apps.faq",
-
     # Django core
     "django.contrib.admin",
     "django.contrib.auth",
@@ -61,7 +62,6 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-
     # Terceros
     "rest_framework",
     "rest_framework_simplejwt",
@@ -214,12 +214,8 @@ REST_FRAMEWORK = {
 # ============================================================
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(
-        minutes=int(os.environ.get("JWT_ACCESS_MINUTES", 15))
-    ),
-    "REFRESH_TOKEN_LIFETIME": timedelta(
-        days=int(os.environ.get("JWT_REFRESH_DAYS", 7))
-    ),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.environ.get("JWT_ACCESS_MINUTES", 15))),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.environ.get("JWT_REFRESH_DAYS", 7))),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": True,

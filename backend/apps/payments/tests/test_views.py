@@ -12,10 +12,12 @@ Endpoints cubiertos:
   POST /api/v1/admin/orders/{order_id}/payments/manual-confirmation/
   POST /api/v1/admin/orders/{order_id}/refund/
 """
-import pytest
+
 from decimal import Decimal
 
-from apps.orders.models import Order, OrderPaymentStatus, OrderStatus, RequestType
+import pytest
+
+from apps.orders.models import Order, OrderStatus, RequestType
 from apps.payments.models import (
     Payment,
     PaymentMethod,
@@ -23,35 +25,43 @@ from apps.payments.models import (
     PaymentType,
 )
 
-
 # --- URL helpers ---
+
 
 def order_payments_url(order_id):
     return f"/api/v1/orders/{order_id}/payments/"
 
+
 def payment_url(payment_id):
     return f"/api/v1/payments/{payment_id}/"
+
 
 def proof_url(payment_id):
     return f"/api/v1/payments/{payment_id}/proof/"
 
+
 def admin_payments_url():
     return "/api/v1/admin/payments/"
+
 
 def admin_confirm_url(payment_id):
     return f"/api/v1/admin/payments/{payment_id}/confirm/"
 
+
 def admin_reject_url(payment_id):
     return f"/api/v1/admin/payments/{payment_id}/reject/"
 
+
 def admin_manual_url(order_id):
     return f"/api/v1/admin/orders/{order_id}/payments/manual-confirmation/"
+
 
 def admin_refund_url(order_id):
     return f"/api/v1/admin/orders/{order_id}/refund/"
 
 
 # --- Helpers de datos ---
+
 
 def _make_order(customer, status=OrderStatus.PENDING_DEPOSIT) -> Order:
     return Order.objects.create(
@@ -77,6 +87,7 @@ def _make_payment(order, ptype=PaymentType.DEPOSIT, pstatus=PaymentStatus.PENDIN
 
 # --- Lista de pagos de un pedido ---
 
+
 @pytest.mark.django_db
 class TestOrderPaymentListView:
     def test_unauthenticated_returns_401(self, api_client, customer):
@@ -95,6 +106,7 @@ class TestOrderPaymentListView:
     def test_customer_cannot_see_foreign_order_payments(self, auth_client):
         # Caso 60
         from apps.authentication.models import User
+
         other_user = User.objects.create_user(phone="+529611099910", first_name="Otro")
         order = _make_order(other_user)
         _make_payment(order)
@@ -103,11 +115,13 @@ class TestOrderPaymentListView:
 
     def test_nonexistent_order_returns_404(self, auth_client):
         import uuid
+
         resp = auth_client.get(order_payments_url(uuid.uuid4()))
         assert resp.status_code == 404
 
 
 # --- Detalle de pago ---
+
 
 @pytest.mark.django_db
 class TestPaymentDetailView:
@@ -128,6 +142,7 @@ class TestPaymentDetailView:
     def test_foreign_user_receives_403(self, api_client, customer):
         # Caso 60
         from apps.authentication.models import User
+
         other_user = User.objects.create_user(phone="+529611099911", first_name="Otro")
         order = _make_order(other_user)
         payment = _make_payment(order)
@@ -137,11 +152,13 @@ class TestPaymentDetailView:
 
     def test_nonexistent_payment_returns_404(self, auth_client):
         import uuid
+
         resp = auth_client.get(payment_url(uuid.uuid4()))
         assert resp.status_code == 404
 
 
 # --- Subir comprobante ---
+
 
 @pytest.mark.django_db
 class TestPaymentProofView:
@@ -155,6 +172,7 @@ class TestPaymentProofView:
     def test_uploads_valid_proof(self, auth_client, customer, tmp_path, settings):
         """Caso 32: comprobante almacenado via multipart."""
         import io
+
         settings.MEDIA_ROOT = tmp_path
         order = _make_order(customer)
         payment = _make_payment(order)
@@ -177,6 +195,7 @@ class TestPaymentProofView:
 
     def test_invalid_extension_returns_400(self, auth_client, customer):
         import io
+
         order = _make_order(customer)
         payment = _make_payment(order)
         fake_file = io.BytesIO(b"<script>alert(1)</script>")
@@ -190,6 +209,7 @@ class TestPaymentProofView:
 
     def test_archivo_mayor_a_10mb_devuelve_400(self, auth_client, customer, tmp_path, settings):
         import io
+
         settings.MEDIA_ROOT = tmp_path
         order = _make_order(customer)
         payment = _make_payment(order)
@@ -207,7 +227,9 @@ class TestPaymentProofView:
     def test_foreign_user_receives_403(self, api_client, customer):
         # Caso 60
         import io
+
         from apps.authentication.models import User
+
         other_user = User.objects.create_user(phone="+529611099912", first_name="Otro")
         order = _make_order(other_user)
         payment = _make_payment(order)
@@ -223,6 +245,7 @@ class TestPaymentProofView:
 
 
 # --- Admin: lista de pagos ---
+
 
 @pytest.mark.django_db
 class TestAdminPaymentListView:
@@ -274,6 +297,7 @@ class TestAdminPaymentListView:
 
 # --- Admin: confirmar pago ---
 
+
 @pytest.mark.django_db
 class TestAdminConfirmPaymentView:
     def test_admin_confirms_payment(self, admin_client, customer):
@@ -312,6 +336,7 @@ class TestAdminConfirmPaymentView:
 
 # --- Admin: rechazar pago ---
 
+
 @pytest.mark.django_db
 class TestAdminRejectPaymentView:
     def test_admin_rejects_payment(self, admin_client, customer):
@@ -346,6 +371,7 @@ class TestAdminRejectPaymentView:
 
     def test_nonexistent_payment_returns_400(self, admin_client):
         import uuid
+
         resp = admin_client.put(
             admin_reject_url(uuid.uuid4()),
             {"reason": "Prueba"},
@@ -355,6 +381,7 @@ class TestAdminRejectPaymentView:
 
 
 # --- Admin: confirmación manual ---
+
 
 @pytest.mark.django_db
 class TestAdminManualConfirmationView:
@@ -403,6 +430,7 @@ class TestAdminManualConfirmationView:
 
 
 # --- Admin: reembolso ---
+
 
 @pytest.mark.django_db
 class TestAdminRefundView:

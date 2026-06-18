@@ -2,6 +2,7 @@
 Manager personalizado para el modelo User.
 Usa teléfono en lugar de username.
 """
+
 from django.contrib.auth.base_user import BaseUserManager
 
 

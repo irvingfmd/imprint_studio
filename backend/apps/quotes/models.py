@@ -4,6 +4,7 @@ Modelos de la app quotes.
 Quote: cotización oficial generada por el administrador.
 QuoteSnapshot: copia inmutable de la configuración usada al cotizar.
 """
+
 import uuid
 
 from django.db import models
@@ -14,10 +15,10 @@ from apps.orders.models import Order
 
 
 class QuoteStatus(models.TextChoices):
-    PENDING  = "PENDING",  "Pending"
+    PENDING = "PENDING", "Pending"
     ACCEPTED = "ACCEPTED", "Accepted"
     REJECTED = "REJECTED", "Rejected"
-    EXPIRED  = "EXPIRED",  "Expired"
+    EXPIRED = "EXPIRED", "Expired"
 
 
 class Quote(models.Model):

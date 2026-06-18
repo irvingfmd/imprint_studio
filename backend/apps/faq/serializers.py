@@ -1,6 +1,7 @@
 """
 Serializers para la app faq.
 """
+
 from rest_framework import serializers
 
 from .models import FAQ

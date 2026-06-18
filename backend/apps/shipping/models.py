@@ -4,6 +4,7 @@ Modelos de la app shipping.
 ShippingAddress: direcciones de envío de clientes.
 Shipment: registros de envíos a domicilio.
 """
+
 import uuid
 
 from django.db import models

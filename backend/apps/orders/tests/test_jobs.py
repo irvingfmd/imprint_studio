@@ -2,11 +2,11 @@
 Tests del scheduler de cancelación automática de anticipos vencidos.
 Fuente: docs/appendices/status-flow.md — Cancelación Automática por Vencimiento de Anticipo.
 """
+
+from datetime import timedelta
 from decimal import Decimal
 
 import pytest
-from datetime import timedelta
-
 from django.utils import timezone
 
 from apps.configuration.models import BusinessConfig
@@ -55,9 +55,7 @@ def _register_transition(order, admin_user, hours_ago: int) -> None:
         new_status=OrderStatus.PENDING_DEPOSIT,
         changed_by=admin_user,
     )
-    ProductionHistory.objects.filter(pk=entry.pk).update(
-        changed_at=timezone.now() - timedelta(hours=hours_ago)
-    )
+    ProductionHistory.objects.filter(pk=entry.pk).update(changed_at=timezone.now() - timedelta(hours=hours_ago))
 
 
 @pytest.mark.django_db
@@ -215,7 +213,9 @@ class TestCancelExpiredDeposits:
 class TestExpirePendingQuotes:
     def _make_quote(self, customer, admin_user, expires_delta_days: int):
         from decimal import Decimal
+
         from apps.quotes.models import Quote, QuoteStatus
+
         order = Order.objects.create(
             customer=customer,
             request_type=RequestType.REFERENCE,
@@ -248,6 +248,7 @@ class TestExpirePendingQuotes:
 
     def test_expira_cotizacion_vencida(self, customer, admin_user):
         from apps.quotes.models import QuoteStatus
+
         quote = self._make_quote(customer, admin_user, expires_delta_days=-1)
         expire_pending_quotes()
         quote.refresh_from_db()
@@ -255,6 +256,7 @@ class TestExpirePendingQuotes:
 
     def test_no_expira_cotizacion_vigente(self, customer, admin_user):
         from apps.quotes.models import QuoteStatus
+
         quote = self._make_quote(customer, admin_user, expires_delta_days=3)
         expire_pending_quotes()
         quote.refresh_from_db()
@@ -262,6 +264,7 @@ class TestExpirePendingQuotes:
 
     def test_expira_multiples_cotizaciones(self, customer, admin_user):
         from apps.quotes.models import QuoteStatus
+
         q1 = self._make_quote(customer, admin_user, expires_delta_days=-2)
         q2 = self._make_quote(customer, admin_user, expires_delta_days=-1)
         expire_pending_quotes()
@@ -271,7 +274,8 @@ class TestExpirePendingQuotes:
         assert q2.quote_status == QuoteStatus.EXPIRED
 
     def test_no_toca_cotizaciones_ya_aceptadas(self, customer, admin_user):
-        from apps.quotes.models import Quote, QuoteStatus
+        from apps.quotes.models import QuoteStatus
+
         quote = self._make_quote(customer, admin_user, expires_delta_days=-1)
         quote.quote_status = QuoteStatus.ACCEPTED
         quote.save(update_fields=["quote_status"])
@@ -283,8 +287,8 @@ class TestExpirePendingQuotes:
 @pytest.mark.django_db
 class TestQuoteExpiresAt:
     def test_create_quote_fija_expires_at(self, customer, admin_user):
-        from apps.quotes.models import QuoteStatus
         from apps.quotes.services import QuoteService
+
         order = Order.objects.create(
             customer=customer,
             request_type=RequestType.REFERENCE,

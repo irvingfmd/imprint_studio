@@ -1,6 +1,7 @@
 """
 Configuración del panel de administración para la app production.
 """
+
 from django.contrib import admin
 
 from .models import ProductionHistory

@@ -1,6 +1,7 @@
 """
 Vistas para la app payments.
 """
+
 import os
 
 from rest_framework import status
@@ -8,23 +9,21 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
+from apps.orders.selectors import get_order_by_id
 from core.permissions import IsAdmin
 from core.responses import created_response, error_response, success_response
-
-from apps.orders.selectors import get_order_by_id
 
 from . import selectors, services
 from .serializers import (
     ConfirmPaymentSerializer,
     ManualConfirmationSerializer,
-    PaymentProofSerializer,
     PaymentSerializer,
     RefundSerializer,
     RejectPaymentSerializer,
 )
 
-
 # --- Vistas para clientes ---
+
 
 class OrderPaymentListView(APIView):
     """Lista los pagos de un pedido. Accesible para el propietario o admin."""
@@ -106,9 +105,7 @@ class PaymentProofView(APIView):
             f"proofs/{payment_id}{ext}",
             uploaded_file,
         )
-        file_url = request.build_absolute_uri(
-            django_settings.MEDIA_URL + save_path
-        )
+        file_url = request.build_absolute_uri(django_settings.MEDIA_URL + save_path)
 
         try:
             services.PaymentService.upload_proof(
@@ -124,6 +121,7 @@ class PaymentProofView(APIView):
 
 
 # --- Vistas administrativas ---
+
 
 class AdminPaymentListView(APIView):
     """Lista todos los pagos con filtros opcionales. Solo administradores."""

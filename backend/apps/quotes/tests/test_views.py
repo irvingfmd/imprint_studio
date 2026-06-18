@@ -12,16 +12,18 @@ Endpoints cubiertos:
   PUT  /api/v1/admin/quotes/{quote_id}/expire/
   POST /api/v1/admin/calculator/calculate/
 """
-import pytest
+
 from decimal import Decimal
+
+import pytest
 
 from apps.configuration.models import BusinessConfig, Printer
 from apps.orders.models import Order, OrderStatus, RequestType
 from apps.quotes.models import Quote, QuoteSnapshot, QuoteStatus
 from apps.quotes.services import QuoteService
 
-
 # --- URL helpers ---
+
 
 def quote_url(quote_id):
     return f"/api/v1/quotes/{quote_id}/"
@@ -59,6 +61,7 @@ CALCULATOR_URL = "/api/v1/admin/calculator/calculate/"
 
 
 # --- Helpers de datos ---
+
 
 def _make_printer(power_watts: int = 250) -> Printer:
     return Printer.objects.create(name="Prueba", brand="Test", power_watts=power_watts)
@@ -149,6 +152,7 @@ def _setup_quoted_order(customer, admin_user):
 
 # --- Detalle de cotización ---
 
+
 @pytest.mark.django_db
 class TestQuoteDetailView:
     def test_sin_token_devuelve_401(self, api_client, customer, admin_user):
@@ -168,12 +172,12 @@ class TestQuoteDetailView:
     def test_cliente_ajeno_recibe_403(self, api_client, admin_user):
         # Caso 60: cliente accede a recurso ajeno
         from apps.authentication.models import User
+
         otro = User.objects.create_user(phone="+529611099901", first_name="Otro")
         order = _make_order(otro, status=OrderStatus.QUOTED)
         quote = _make_quote_direct(order, admin_user)
         api_client.force_authenticate(user=admin_user)
         # admin puede verla; usamos un tercer cliente que no es dueño ni admin
-        from apps.authentication.models import UserRole
         cliente2 = User.objects.create_user(phone="+529611099902", first_name="Cliente2")
         api_client.force_authenticate(user=cliente2)
         resp = api_client.get(quote_url(quote.id))
@@ -181,11 +185,13 @@ class TestQuoteDetailView:
 
     def test_cotizacion_inexistente_devuelve_404(self, auth_client):
         import uuid
+
         resp = auth_client.get(quote_url(uuid.uuid4()))
         assert resp.status_code == 404
 
 
 # --- Lista de cotizaciones de un pedido ---
+
 
 @pytest.mark.django_db
 class TestOrderQuoteListView:
@@ -205,6 +211,7 @@ class TestOrderQuoteListView:
     def test_cliente_no_ve_cotizaciones_de_pedido_ajeno(self, auth_client, admin_user):
         # Caso 60
         from apps.authentication.models import User
+
         otro = User.objects.create_user(phone="+529611099903", first_name="Otro")
         order_ajeno = _make_order(otro, status=OrderStatus.QUOTED)
         _make_quote_direct(order_ajeno, admin_user)
@@ -213,11 +220,13 @@ class TestOrderQuoteListView:
 
     def test_pedido_inexistente_devuelve_404(self, auth_client):
         import uuid
+
         resp = auth_client.get(order_quotes_url(uuid.uuid4()))
         assert resp.status_code == 404
 
 
 # --- Aceptar cotización ---
+
 
 @pytest.mark.django_db
 class TestAcceptQuoteView:
@@ -265,6 +274,7 @@ class TestAcceptQuoteView:
     def test_cliente_ajeno_recibe_403(self, api_client, customer, admin_user):
         # Caso 60
         from apps.authentication.models import User
+
         otro = User.objects.create_user(phone="+529611099904", first_name="Otro")
         order = _make_order(otro, status=OrderStatus.QUOTED)
         quote = _make_quote_direct(order, admin_user)
@@ -278,6 +288,7 @@ class TestAcceptQuoteView:
 
 
 # --- Rechazar cotización ---
+
 
 @pytest.mark.django_db
 class TestRejectQuoteView:
@@ -310,6 +321,7 @@ class TestRejectQuoteView:
     def test_cliente_ajeno_recibe_403(self, api_client, customer, admin_user):
         # Caso 60
         from apps.authentication.models import User
+
         otro = User.objects.create_user(phone="+529611099905", first_name="Otro")
         order = _make_order(otro, status=OrderStatus.QUOTED)
         quote = _make_quote_direct(order, admin_user)
@@ -319,6 +331,7 @@ class TestRejectQuoteView:
 
 
 # --- Snapshot (solo admin) ---
+
 
 @pytest.mark.django_db
 class TestQuoteSnapshotView:
@@ -347,6 +360,7 @@ class TestQuoteSnapshotView:
 
 
 # --- Admin: crear cotización ---
+
 
 @pytest.mark.django_db
 class TestAdminCreateQuoteView:
@@ -389,6 +403,7 @@ class TestAdminCreateQuoteView:
 
     def test_pedido_inexistente_devuelve_404(self, admin_client):
         import uuid
+
         _make_config()
         resp = admin_client.post(
             admin_create_quote_url(uuid.uuid4()),
@@ -409,6 +424,7 @@ class TestAdminCreateQuoteView:
 
 
 # --- Admin: expirar cotización ---
+
 
 @pytest.mark.django_db
 class TestAdminExpireQuoteView:
@@ -435,6 +451,7 @@ class TestAdminExpireQuoteView:
 
 
 # --- Calculadora ---
+
 
 @pytest.mark.django_db
 class TestCalculatorView:
@@ -508,6 +525,7 @@ class TestCalculatorView:
 
 # --- PDF de cotización ---
 
+
 @pytest.mark.django_db
 class TestQuotePDFView:
     def test_propietario_descarga_pdf(self, auth_client, customer, admin_user):
@@ -535,6 +553,7 @@ class TestQuotePDFView:
 
     def test_cliente_ajeno_recibe_403(self, api_client, admin_user):
         from apps.authentication.models import User
+
         _make_config()
         otro = User.objects.create_user(phone="+529611099910", first_name="Otro")
         order = _make_order(otro)
@@ -546,6 +565,7 @@ class TestQuotePDFView:
 
     def test_cotizacion_inexistente_devuelve_404(self, auth_client):
         import uuid
+
         resp = auth_client.get(pdf_url(uuid.uuid4()))
         assert resp.status_code == 404
 

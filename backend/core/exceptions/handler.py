@@ -10,6 +10,7 @@ documentado en 04-api-specification.md:
         "errors": {...}
     }
 """
+
 import logging
 
 from rest_framework import status

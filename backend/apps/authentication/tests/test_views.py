@@ -2,14 +2,14 @@
 Tests de los endpoints de authentication.
 Casos del plan: 1-7 (registro, OTP, JWT, me).
 """
-import pytest
+
 from datetime import timedelta
 
+import pytest
 from django.utils import timezone
 
 from apps.authentication.models import OTPCode, User
 from apps.authentication.services import _hash_otp
-
 
 REGISTER_URL = "/api/v1/auth/register/"
 OTP_SEND_URL = "/api/v1/auth/otp/send/"
@@ -32,37 +32,49 @@ def admin_user_role_url(user_id):
 class TestRegisterView:
     def test_valid_registration_returns_201(self, api_client):
         # Caso 1: registro correcto
-        resp = api_client.post(REGISTER_URL, {
-            "phone": "+529611200001",
-            "first_name": "Ana",
-            "last_name": "López",
-            "email": "ana@test.com",
-        })
+        resp = api_client.post(
+            REGISTER_URL,
+            {
+                "phone": "+529611200001",
+                "first_name": "Ana",
+                "last_name": "López",
+                "email": "ana@test.com",
+            },
+        )
         assert resp.status_code == 201
         assert User.objects.filter(phone="+529611200001").exists()
 
     def test_duplicate_phone_returns_400(self, api_client, customer):
         # Caso 2: teléfono duplicado
-        resp = api_client.post(REGISTER_URL, {
-            "phone": customer.phone,
-            "first_name": "Otro",
-        })
+        resp = api_client.post(
+            REGISTER_URL,
+            {
+                "phone": customer.phone,
+                "first_name": "Otro",
+            },
+        )
         assert resp.status_code == 400
 
     def test_duplicate_email_returns_400(self, api_client, customer):
         # Caso 3: email duplicado
-        resp = api_client.post(REGISTER_URL, {
-            "phone": "+529611200002",
-            "first_name": "Otro",
-            "email": customer.email,
-        })
+        resp = api_client.post(
+            REGISTER_URL,
+            {
+                "phone": "+529611200002",
+                "first_name": "Otro",
+                "email": customer.email,
+            },
+        )
         assert resp.status_code == 400
 
     def test_phone_without_e164_format_returns_400(self, api_client):
-        resp = api_client.post(REGISTER_URL, {
-            "phone": "9611234567",
-            "first_name": "Test",
-        })
+        resp = api_client.post(
+            REGISTER_URL,
+            {
+                "phone": "9611234567",
+                "first_name": "Test",
+            },
+        )
         assert resp.status_code == 400
 
     def test_first_name_required(self, api_client):
@@ -91,9 +103,7 @@ class TestSendOTPView:
             expires_at=timezone.now() + timedelta(minutes=10),
         )
         api_client.post(OTP_SEND_URL, {"phone": customer.phone})
-        assert not OTPCode.objects.filter(
-            phone=customer.phone, code="111111", is_used=False
-        ).exists()
+        assert not OTPCode.objects.filter(phone=customer.phone, code="111111", is_used=False).exists()
 
 
 @pytest.mark.django_db
@@ -108,10 +118,13 @@ class TestVerifyOTPView:
     def test_correct_otp_returns_tokens(self, api_client, customer):
         # Caso 5: OTP correcto → JWT generado
         self._create_otp(customer.phone)
-        resp = api_client.post(OTP_VERIFY_URL, {
-            "phone": customer.phone,
-            "otp_code": "123456",
-        })
+        resp = api_client.post(
+            OTP_VERIFY_URL,
+            {
+                "phone": customer.phone,
+                "otp_code": "123456",
+            },
+        )
         assert resp.status_code == 200
         assert "access" in resp.data["data"]
         assert "refresh" in resp.data["data"]
@@ -119,10 +132,13 @@ class TestVerifyOTPView:
     def test_incorrect_otp_returns_401(self, api_client, customer):
         # Caso 6: OTP incorrecto → 401
         self._create_otp(customer.phone)
-        resp = api_client.post(OTP_VERIFY_URL, {
-            "phone": customer.phone,
-            "otp_code": "000000",
-        })
+        resp = api_client.post(
+            OTP_VERIFY_URL,
+            {
+                "phone": customer.phone,
+                "otp_code": "000000",
+            },
+        )
         assert resp.status_code == 401
 
     def test_expired_otp_returns_401(self, api_client, customer):
@@ -131,24 +147,33 @@ class TestVerifyOTPView:
             code=_hash_otp("999999"),
             expires_at=timezone.now() - timedelta(minutes=1),
         )
-        resp = api_client.post(OTP_VERIFY_URL, {
-            "phone": customer.phone,
-            "otp_code": "999999",
-        })
+        resp = api_client.post(
+            OTP_VERIFY_URL,
+            {
+                "phone": customer.phone,
+                "otp_code": "999999",
+            },
+        )
         assert resp.status_code == 401
 
     def test_non_numeric_otp_code_returns_400(self, api_client, customer):
-        resp = api_client.post(OTP_VERIFY_URL, {
-            "phone": customer.phone,
-            "otp_code": "abcdef",
-        })
+        resp = api_client.post(
+            OTP_VERIFY_URL,
+            {
+                "phone": customer.phone,
+                "otp_code": "abcdef",
+            },
+        )
         assert resp.status_code == 400
 
     def test_incorrect_otp_length_returns_400(self, api_client, customer):
-        resp = api_client.post(OTP_VERIFY_URL, {
-            "phone": customer.phone,
-            "otp_code": "12345",
-        })
+        resp = api_client.post(
+            OTP_VERIFY_URL,
+            {
+                "phone": customer.phone,
+                "otp_code": "12345",
+            },
+        )
         assert resp.status_code == 400
 
 
@@ -157,6 +182,7 @@ class TestTokenRefreshView:
     def test_refresh_token_returns_new_access(self, api_client, customer):
         # Caso 7: refresh token
         from apps.authentication.services import JWTService
+
         tokens = JWTService().generate_tokens(customer)
         resp = api_client.post(TOKEN_REFRESH_URL, {"refresh": tokens["refresh"]})
         assert resp.status_code == 200
@@ -240,6 +266,7 @@ class TestAdminRetrieveUserView:
 
     def test_usuario_inexistente_devuelve_404(self, admin_client):
         import uuid
+
         resp = admin_client.get(admin_user_detail_url(uuid.uuid4()))
         assert resp.status_code == 404
 
@@ -302,6 +329,7 @@ class TestAdminUpdateUserRoleView:
 
     def test_usuario_inexistente_devuelve_404(self, admin_client):
         import uuid
+
         resp = admin_client.put(
             admin_user_role_url(uuid.uuid4()),
             {"role": "ADMIN"},

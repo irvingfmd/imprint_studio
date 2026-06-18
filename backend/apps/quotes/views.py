@@ -1,15 +1,15 @@
 """
 Vistas para la app quotes.
 """
+
 from django.http import HttpResponse
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
+from apps.orders.selectors import get_order_by_id
 from core.permissions import IsAdmin
 from core.responses import created_response, error_response, success_response
-
-from apps.orders.selectors import get_order_by_id
 
 from . import selectors, services
 from .pdf_service import QuotePDFService
@@ -22,8 +22,8 @@ from .serializers import (
     RejectQuoteSerializer,
 )
 
-
 # --- Vistas para clientes ---
+
 
 class QuoteDetailView(APIView):
     """Detalle de una cotización. Solo el propietario del pedido o admin."""
@@ -154,6 +154,7 @@ class QuoteSnapshotView(APIView):
 
 # --- Vistas administrativas ---
 
+
 class AdminCreateQuoteView(APIView):
     """Crea una cotización para un pedido con datos de Bambu Studio. Solo admin."""
 
@@ -175,7 +176,9 @@ class AdminCreateQuoteView(APIView):
                 print_time_hours=serializer.validated_data["print_time_hours"],
                 shipping_cost=serializer.validated_data.get("shipping_cost", 0),
                 created_by=request.user,
-                printer_id=str(serializer.validated_data["printer_id"]) if serializer.validated_data.get("printer_id") else None,
+                printer_id=str(serializer.validated_data["printer_id"])
+                if serializer.validated_data.get("printer_id")
+                else None,
             )
         except ValueError as e:
             return error_response(str(e), status_code=status.HTTP_400_BAD_REQUEST)
@@ -218,6 +221,7 @@ class CalculatorView(APIView):
         printer = None
         if printer_id:
             from apps.configuration.models import Printer
+
             try:
                 printer = Printer.objects.get(id=printer_id, is_active=True)
             except Printer.DoesNotExist:

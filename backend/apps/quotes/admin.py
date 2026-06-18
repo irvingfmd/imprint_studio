@@ -1,6 +1,7 @@
 """
 Registro de modelos de quotes en el panel de administración Django.
 """
+
 from django.contrib import admin
 
 from .models import Quote, QuoteSnapshot

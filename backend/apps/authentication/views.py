@@ -4,6 +4,7 @@ Views de la app authentication.
 Endpoints de registro, OTP y JWT.
 Documentados en 04-api-specification.md
 """
+
 import logging
 
 from django.conf import settings
@@ -13,6 +14,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.authentication.models import UserRole
 from apps.authentication.selectors import get_all_users, get_user_by_id
 from apps.authentication.serializers import (
     AdminUserSerializer,
@@ -22,7 +24,6 @@ from apps.authentication.serializers import (
     UserSerializer,
     VerifyOTPSerializer,
 )
-from apps.authentication.models import UserRole
 from apps.authentication.services import JWTService, OTPService, RegisterService
 from core.permissions import IsAdmin
 from core.responses import created_response, error_response, success_response
@@ -134,8 +135,8 @@ class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request: Request) -> Response:
-        from rest_framework_simplejwt.tokens import RefreshToken
         from rest_framework_simplejwt.exceptions import TokenError
+        from rest_framework_simplejwt.tokens import RefreshToken
 
         refresh = request.data.get("refresh")
         if not refresh:
@@ -173,6 +174,7 @@ class AdminListUsersView(APIView):
 
     def get(self, request: Request) -> Response:
         from django.core.paginator import Paginator
+
         try:
             page_size = max(1, min(int(request.query_params.get("page_size", 20)), 100))
         except (ValueError, TypeError):
@@ -240,7 +242,7 @@ class AdminUpdateUserRoleView(APIView):
         new_role = serializer.validated_data["role"]
         user.role = new_role
         # is_staff controla acceso al panel Django — se sincroniza con el rol.
-        user.is_staff = (new_role == UserRole.ADMIN)
+        user.is_staff = new_role == UserRole.ADMIN
         user.save(update_fields=["role", "is_staff", "updated_at"])
 
         logger.info("Rol de usuario %s cambiado a %s por %s", user.phone, new_role, request.user.phone)

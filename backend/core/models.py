@@ -4,6 +4,7 @@ Modelos base abstractos reutilizables.
 Todas las entidades principales del sistema deben heredar
 de BaseModel o SoftDeleteModel según corresponda.
 """
+
 import uuid
 
 from django.db import models

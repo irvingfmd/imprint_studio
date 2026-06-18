@@ -5,8 +5,10 @@ Casos del plan: 19-27, 30, 31, 54.
 QuoteCalculatorService: cobertura 100% requerida.
 QuoteService: create, accept, reject, expire.
 """
-import pytest
+
 from decimal import Decimal
+
+import pytest
 
 from apps.configuration.models import BusinessConfig, Printer
 from apps.orders.models import EventType, Order, OrderEvent, OrderStatus, RequestType
@@ -14,8 +16,8 @@ from apps.payments.models import Payment, PaymentType
 from apps.quotes.models import Quote, QuoteSnapshot, QuoteStatus
 from apps.quotes.services import QuoteCalculatorService, QuoteService
 
-
 # --- Helpers de fixtures ---
+
 
 def _make_config(**kwargs) -> BusinessConfig:
     """
@@ -89,6 +91,7 @@ def _make_quote_direct(order, admin_user, status=QuoteStatus.PENDING) -> Quote:
 
 # --- QuoteCalculatorService ---
 
+
 @pytest.mark.django_db
 class TestQuoteCalculatorService:
     """Cobertura 100% requerida por el plan de pruebas."""
@@ -110,30 +113,38 @@ class TestQuoteCalculatorService:
             printer=printer,
             config=config,
         )
-        assert result["material_cost"]          == Decimal("6.25")
-        assert result["energy_cost"]            == Decimal("6.25")
-        assert result["labor_cost"]             == Decimal("187.50")
-        assert result["post_processing_cost"]   == Decimal("12.50")
-        assert result["packaging_cost"]         == Decimal("2.00")
-        assert result["risk_cost"]              == Decimal("1.25")
-        assert result["subtotal"]               == Decimal("335.75")
-        assert result["profit_amount"]          == Decimal("100.73")
-        assert result["discount_amount"]        == Decimal("0.00")
-        assert result["total_price"]            == Decimal("436.48")
+        assert result["material_cost"] == Decimal("6.25")
+        assert result["energy_cost"] == Decimal("6.25")
+        assert result["labor_cost"] == Decimal("187.50")
+        assert result["post_processing_cost"] == Decimal("12.50")
+        assert result["packaging_cost"] == Decimal("2.00")
+        assert result["risk_cost"] == Decimal("1.25")
+        assert result["subtotal"] == Decimal("335.75")
+        assert result["profit_amount"] == Decimal("100.73")
+        assert result["discount_amount"] == Decimal("0.00")
+        assert result["total_price"] == Decimal("436.48")
 
     def test_calculo_urgente_aplica_multiplicador(self, db):
         """Caso 25: prioridad URGENT aplica urgent_multiplier = 1.30."""
         config = _make_config()
         printer = _make_printer()
         normal = QuoteCalculatorService.calculate(
-            weight_grams=Decimal("250.00"), print_time_hours=Decimal("12.50"),
-            priority="NORMAL", shipping_cost=Decimal("0.00"),
-            full_payment_selected=False, printer=printer, config=config,
+            weight_grams=Decimal("250.00"),
+            print_time_hours=Decimal("12.50"),
+            priority="NORMAL",
+            shipping_cost=Decimal("0.00"),
+            full_payment_selected=False,
+            printer=printer,
+            config=config,
         )
         urgent = QuoteCalculatorService.calculate(
-            weight_grams=Decimal("250.00"), print_time_hours=Decimal("12.50"),
-            priority="URGENT", shipping_cost=Decimal("0.00"),
-            full_payment_selected=False, printer=printer, config=config,
+            weight_grams=Decimal("250.00"),
+            print_time_hours=Decimal("12.50"),
+            priority="URGENT",
+            shipping_cost=Decimal("0.00"),
+            full_payment_selected=False,
+            printer=printer,
+            config=config,
         )
         assert urgent["priority_multiplier"] == Decimal("1.30")
         assert urgent["total_price"] > normal["total_price"]
@@ -143,14 +154,22 @@ class TestQuoteCalculatorService:
         config = _make_config()
         printer = _make_printer()
         normal = QuoteCalculatorService.calculate(
-            weight_grams=Decimal("250.00"), print_time_hours=Decimal("12.50"),
-            priority="NORMAL", shipping_cost=Decimal("0.00"),
-            full_payment_selected=False, printer=printer, config=config,
+            weight_grams=Decimal("250.00"),
+            print_time_hours=Decimal("12.50"),
+            priority="NORMAL",
+            shipping_cost=Decimal("0.00"),
+            full_payment_selected=False,
+            printer=printer,
+            config=config,
         )
         express = QuoteCalculatorService.calculate(
-            weight_grams=Decimal("250.00"), print_time_hours=Decimal("12.50"),
-            priority="EXPRESS", shipping_cost=Decimal("0.00"),
-            full_payment_selected=False, printer=printer, config=config,
+            weight_grams=Decimal("250.00"),
+            print_time_hours=Decimal("12.50"),
+            priority="EXPRESS",
+            shipping_cost=Decimal("0.00"),
+            full_payment_selected=False,
+            printer=printer,
+            config=config,
         )
         assert express["priority_multiplier"] == Decimal("1.50")
         assert express["total_price"] > normal["total_price"]
@@ -160,44 +179,60 @@ class TestQuoteCalculatorService:
         config = _make_config()
         printer = _make_printer(power_watts=250)
         result = QuoteCalculatorService.calculate(
-            weight_grams=Decimal("250.00"), print_time_hours=Decimal("12.50"),
-            priority="NORMAL", shipping_cost=Decimal("120.00"),
-            full_payment_selected=True, printer=printer, config=config,
+            weight_grams=Decimal("250.00"),
+            print_time_hours=Decimal("12.50"),
+            priority="NORMAL",
+            shipping_cost=Decimal("120.00"),
+            full_payment_selected=True,
+            printer=printer,
+            config=config,
         )
         # El documento muestra 414.66, pero usa total_before_discount redondeado (436.48).
         # El código opera con el valor exacto (436.475), por eso el total real es 414.65.
         assert result["discount_amount"] == Decimal("21.82")
-        assert result["total_price"]     == Decimal("414.65")
+        assert result["total_price"] == Decimal("414.65")
 
     def test_sin_pago_completo_no_hay_descuento(self, db):
         config = _make_config()
         result = QuoteCalculatorService.calculate(
-            weight_grams=Decimal("100.00"), print_time_hours=Decimal("5.00"),
-            priority="NORMAL", shipping_cost=Decimal("0.00"),
-            full_payment_selected=False, config=config,
+            weight_grams=Decimal("100.00"),
+            print_time_hours=Decimal("5.00"),
+            priority="NORMAL",
+            shipping_cost=Decimal("0.00"),
+            full_payment_selected=False,
+            config=config,
         )
         assert result["discount_amount"] == Decimal("0.00")
 
     def test_sin_envio_shipping_cost_es_cero(self, db):
         config = _make_config()
         result = QuoteCalculatorService.calculate(
-            weight_grams=Decimal("100.00"), print_time_hours=Decimal("5.00"),
-            priority="NORMAL", shipping_cost=Decimal("0.00"),
-            full_payment_selected=False, config=config,
+            weight_grams=Decimal("100.00"),
+            print_time_hours=Decimal("5.00"),
+            priority="NORMAL",
+            shipping_cost=Decimal("0.00"),
+            full_payment_selected=False,
+            config=config,
         )
         assert result["shipping_cost"] == Decimal("0.00")
 
     def test_con_envio_incluye_en_subtotal(self, db):
         config = _make_config()
         sin_envio = QuoteCalculatorService.calculate(
-            weight_grams=Decimal("100.00"), print_time_hours=Decimal("5.00"),
-            priority="NORMAL", shipping_cost=Decimal("0.00"),
-            full_payment_selected=False, config=config,
+            weight_grams=Decimal("100.00"),
+            print_time_hours=Decimal("5.00"),
+            priority="NORMAL",
+            shipping_cost=Decimal("0.00"),
+            full_payment_selected=False,
+            config=config,
         )
         con_envio = QuoteCalculatorService.calculate(
-            weight_grams=Decimal("100.00"), print_time_hours=Decimal("5.00"),
-            priority="NORMAL", shipping_cost=Decimal("100.00"),
-            full_payment_selected=False, config=config,
+            weight_grams=Decimal("100.00"),
+            print_time_hours=Decimal("5.00"),
+            priority="NORMAL",
+            shipping_cost=Decimal("100.00"),
+            full_payment_selected=False,
+            config=config,
         )
         assert con_envio["subtotal"] > sin_envio["subtotal"]
         assert con_envio["total_price"] > sin_envio["total_price"]
@@ -206,9 +241,12 @@ class TestQuoteCalculatorService:
         """Sin impresora no se puede calcular energía → energy_cost = 0.00."""
         config = _make_config()
         result = QuoteCalculatorService.calculate(
-            weight_grams=Decimal("200.00"), print_time_hours=Decimal("8.00"),
-            priority="NORMAL", shipping_cost=Decimal("0.00"),
-            full_payment_selected=False, config=config,
+            weight_grams=Decimal("200.00"),
+            print_time_hours=Decimal("8.00"),
+            priority="NORMAL",
+            shipping_cost=Decimal("0.00"),
+            full_payment_selected=False,
+            config=config,
         )
         assert result["energy_cost"] == Decimal("0.00")
 
@@ -218,14 +256,22 @@ class TestQuoteCalculatorService:
         low = _make_printer(power_watts=150, name="Low", brand="A")
         high = _make_printer(power_watts=400, name="High", brand="B")
         r_low = QuoteCalculatorService.calculate(
-            weight_grams=Decimal("100.00"), print_time_hours=Decimal("5.00"),
-            priority="NORMAL", shipping_cost=Decimal("0.00"),
-            full_payment_selected=False, printer=low, config=config,
+            weight_grams=Decimal("100.00"),
+            print_time_hours=Decimal("5.00"),
+            priority="NORMAL",
+            shipping_cost=Decimal("0.00"),
+            full_payment_selected=False,
+            printer=low,
+            config=config,
         )
         r_high = QuoteCalculatorService.calculate(
-            weight_grams=Decimal("100.00"), print_time_hours=Decimal("5.00"),
-            priority="NORMAL", shipping_cost=Decimal("0.00"),
-            full_payment_selected=False, printer=high, config=config,
+            weight_grams=Decimal("100.00"),
+            print_time_hours=Decimal("5.00"),
+            priority="NORMAL",
+            shipping_cost=Decimal("0.00"),
+            full_payment_selected=False,
+            printer=high,
+            config=config,
         )
         assert r_high["energy_cost"] > r_low["energy_cost"]
 
@@ -233,9 +279,12 @@ class TestQuoteCalculatorService:
         config = _make_config()
         with pytest.raises(ValueError, match="Prioridad inválida"):
             QuoteCalculatorService.calculate(
-                weight_grams=Decimal("100.00"), print_time_hours=Decimal("5.00"),
-                priority="SUPER", shipping_cost=Decimal("0.00"),
-                full_payment_selected=False, config=config,
+                weight_grams=Decimal("100.00"),
+                print_time_hours=Decimal("5.00"),
+                priority="SUPER",
+                shipping_cost=Decimal("0.00"),
+                full_payment_selected=False,
+                config=config,
             )
 
     def test_sin_config_activa_lanza_value_error(self, db):
@@ -263,9 +312,17 @@ class TestQuoteCalculatorService:
             config=config,
         )
         campos_monetarios = [
-            "material_cost", "energy_cost", "labor_cost", "post_processing_cost",
-            "packaging_cost", "risk_cost", "shipping_cost", "subtotal",
-            "profit_amount", "discount_amount", "total_price",
+            "material_cost",
+            "energy_cost",
+            "labor_cost",
+            "post_processing_cost",
+            "packaging_cost",
+            "risk_cost",
+            "shipping_cost",
+            "subtotal",
+            "profit_amount",
+            "discount_amount",
+            "total_price",
         ]
         for campo in campos_monetarios:
             assert isinstance(result[campo], Decimal), f"{campo} no es Decimal"
@@ -284,29 +341,38 @@ class TestQuoteCalculatorService:
             config=config,
         )
         campos_monetarios = [
-            "material_cost", "energy_cost", "labor_cost", "post_processing_cost",
-            "packaging_cost", "risk_cost", "subtotal",
-            "profit_amount", "discount_amount", "total_price",
+            "material_cost",
+            "energy_cost",
+            "labor_cost",
+            "post_processing_cost",
+            "packaging_cost",
+            "risk_cost",
+            "subtotal",
+            "profit_amount",
+            "discount_amount",
+            "total_price",
         ]
         for campo in campos_monetarios:
             valor = result[campo]
             # Verifica que el valor ya está redondeado a 2 decimales
-            assert valor == valor.quantize(Decimal("0.01")), (
-                f"{campo}={valor} no está redondeado a 2 decimales"
-            )
+            assert valor == valor.quantize(Decimal("0.01")), f"{campo}={valor} no está redondeado a 2 decimales"
 
     def test_config_recibida_externamente(self, db):
         """Cuando se pasa config, no debe ir a la DB a buscarla."""
         config = _make_config()
         result = QuoteCalculatorService.calculate(
-            weight_grams=Decimal("100.00"), print_time_hours=Decimal("5.00"),
-            priority="NORMAL", shipping_cost=Decimal("0.00"),
-            full_payment_selected=False, config=config,
+            weight_grams=Decimal("100.00"),
+            print_time_hours=Decimal("5.00"),
+            priority="NORMAL",
+            shipping_cost=Decimal("0.00"),
+            full_payment_selected=False,
+            config=config,
         )
         assert result["config"] == config
 
 
 # --- QuoteService ---
+
 
 @pytest.mark.django_db
 class TestCreateQuote:
@@ -434,6 +500,7 @@ class TestAcceptQuote:
         pago = Payment.objects.filter(order=order, payment_type=PaymentType.DEPOSIT).first()
         assert pago is not None
         from decimal import ROUND_HALF_UP
+
         expected = (total_original / Decimal("2")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
         assert pago.amount == expected
 

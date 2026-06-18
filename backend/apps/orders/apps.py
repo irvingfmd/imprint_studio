@@ -16,9 +16,16 @@ class OrdersConfig(AppConfig):
         """Inicia el scheduler cuando el servidor está corriendo."""
         # No arrancar durante tests, migraciones, u otros comandos de gestión
         skip_commands = {
-            "test", "makemigrations", "migrate", "shell",
-            "createsuperuser", "seed_initial_data", "check",
-            "collectstatic", "showmigrations", "sqlmigrate",
+            "test",
+            "makemigrations",
+            "migrate",
+            "shell",
+            "createsuperuser",
+            "seed_initial_data",
+            "check",
+            "collectstatic",
+            "showmigrations",
+            "sqlmigrate",
         }
         if any(arg in skip_commands for arg in sys.argv):
             return
@@ -36,6 +43,7 @@ class OrdersConfig(AppConfig):
 
         try:
             import scheduler as sched
+
             sched.start()
         except Exception as exc:
             logger.warning("No se pudo iniciar el scheduler: %s", exc)

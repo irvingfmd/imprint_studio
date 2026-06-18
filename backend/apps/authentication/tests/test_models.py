@@ -2,9 +2,10 @@
 Tests del modelo User y OTPCode.
 Casos del plan: estructura de campos, propiedades, constraints.
 """
-import pytest
+
 from datetime import timedelta
 
+import pytest
 from django.utils import timezone
 
 from apps.authentication.models import OTPCode, User, UserRole
@@ -44,13 +45,9 @@ class TestUserModel:
             User.objects.create_user(phone="+529611111112", first_name="B")
 
     def test_email_is_unique(self, db):
-        User.objects.create_user(
-            phone="+529611111113", first_name="A", email="dup@test.com"
-        )
+        User.objects.create_user(phone="+529611111113", first_name="A", email="dup@test.com")
         with pytest.raises(Exception):
-            User.objects.create_user(
-                phone="+529611111114", first_name="B", email="dup@test.com"
-            )
+            User.objects.create_user(phone="+529611111114", first_name="B", email="dup@test.com")
 
     def test_email_is_optional(self, db):
         user = User.objects.create_user(phone="+529611111115", first_name="A")

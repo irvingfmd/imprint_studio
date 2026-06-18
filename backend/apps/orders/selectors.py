@@ -2,6 +2,7 @@
 Selectores para la app orders.
 Encapsulan las consultas a la base de datos.
 """
+
 from django.db.models import QuerySet
 
 from .models import Order, RequestFile
@@ -9,19 +10,13 @@ from .models import Order, RequestFile
 
 def get_order_by_id(order_id: str) -> Order | None:
     try:
-        return Order.objects.select_related("customer", "shipping_address").get(
-            id=order_id, is_deleted=False
-        )
+        return Order.objects.select_related("customer", "shipping_address").get(id=order_id, is_deleted=False)
     except Order.DoesNotExist:
         return None
 
 
 def get_orders_for_customer(customer_id: str) -> QuerySet:
-    return (
-        Order.objects
-        .filter(customer_id=customer_id, is_deleted=False)
-        .order_by("-created_at")
-    )
+    return Order.objects.filter(customer_id=customer_id, is_deleted=False).order_by("-created_at")
 
 
 def get_all_orders(
