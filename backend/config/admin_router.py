@@ -30,4 +30,7 @@ urlpatterns = [
 
     # Usuarios
     path("users/", include("apps.authentication.admin_urls")),
+
+    # FAQ
+    path("faq/", include("apps.faq.admin_urls")),
 ]

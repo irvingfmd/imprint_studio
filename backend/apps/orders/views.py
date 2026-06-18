@@ -283,7 +283,9 @@ class AdminDashboardView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def get(self, request):
-        from django.db.models import Sum
+        from decimal import Decimal
+        from django.db.models import Count, Sum
+        from django.db.models.functions import TruncMonth
         from apps.orders.models import Order, OrderStatus
         from apps.payments.models import Payment, PaymentStatus
         from django.utils import timezone
@@ -291,6 +293,17 @@ class AdminDashboardView(APIView):
         now = timezone.now()
         first_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
+        # Retroceder N meses sin dependencias externas
+        def _months_back(dt, n: int):
+            month = dt.month - n
+            year = dt.year + (month - 1) // 12
+            month = (month - 1) % 12 + 1
+            return dt.replace(year=year, month=month, day=1)
+
+        first_of_prev_month = _months_back(first_of_month, 1)
+        six_months_ago = _months_back(first_of_month, 5)
+
+        # --- Conteos existentes (backwards compatible) ---
         pending_orders = Order.objects.filter(
             status=OrderStatus.RECEIVED, is_deleted=False
         ).count()
@@ -311,7 +324,75 @@ class AdminDashboardView(APIView):
             Payment.objects
             .filter(payment_status=PaymentStatus.CONFIRMED, created_at__gte=first_of_month)
             .exclude(payment_type="REFUND")
-            .aggregate(total=Sum("amount"))["total"] or 0
+            .aggregate(total=Sum("amount"))["total"] or Decimal("0")
+        )
+
+        # --- Ingresos por mes (últimos 6 meses) ---
+        revenue_by_month_qs = (
+            Payment.objects
+            .filter(
+                payment_status=PaymentStatus.CONFIRMED,
+                created_at__gte=six_months_ago,
+            )
+            .exclude(payment_type="REFUND")
+            .annotate(month=TruncMonth("created_at"))
+            .values("month")
+            .annotate(revenue=Sum("amount"))
+            .order_by("month")
+        )
+        revenue_by_month = [
+            {"month": r["month"].strftime("%Y-%m"), "revenue": str(r["revenue"])}
+            for r in revenue_by_month_qs
+        ]
+
+        # --- Pedidos del mes actual vs anterior ---
+        orders_this_month = Order.objects.filter(
+            created_at__gte=first_of_month, is_deleted=False
+        ).count()
+        orders_prev_month = Order.objects.filter(
+            created_at__gte=first_of_prev_month,
+            created_at__lt=first_of_month,
+            is_deleted=False,
+        ).count()
+
+        # --- Tiempo promedio de entrega (días, pedidos entregados este mes) ---
+        delivered_this_month = Order.objects.filter(
+            status=OrderStatus.DELIVERED,
+            delivered_at__gte=first_of_month,
+            is_deleted=False,
+        )
+        delivery_times: list[float] = []
+        for order in delivered_this_month:
+            delivery_times.append((order.delivered_at - order.created_at).total_seconds() / 86400)
+        avg_delivery_days = (
+            round(sum(delivery_times) / len(delivery_times), 1) if delivery_times else None
+        )
+
+        # --- Tasa de cancelación del mes ---
+        cancelled_this_month = Order.objects.filter(
+            status=OrderStatus.CANCELLED,
+            cancelled_at__gte=first_of_month,
+            is_deleted=False,
+        ).count()
+        cancellation_rate = (
+            round(cancelled_this_month / orders_this_month * 100, 1)
+            if orders_this_month > 0 else 0
+        )
+
+        # --- Top tipos de solicitud del mes ---
+        request_type_counts = list(
+            Order.objects.filter(created_at__gte=first_of_month, is_deleted=False)
+            .values("request_type")
+            .annotate(count=Count("id"))
+            .order_by("-count")[:3]
+        )
+
+        # --- Pedidos por prioridad del mes ---
+        priority_counts = list(
+            Order.objects.filter(created_at__gte=first_of_month, is_deleted=False)
+            .values("priority")
+            .annotate(count=Count("id"))
+            .order_by("-count")
         )
 
         return success_response(
@@ -322,6 +403,13 @@ class AdminDashboardView(APIView):
                 "ready_orders": ready_orders,
                 "pending_payments": pending_payments,
                 "monthly_revenue": str(monthly_revenue),
+                "revenue_by_month": revenue_by_month,
+                "orders_this_month": orders_this_month,
+                "orders_prev_month": orders_prev_month,
+                "avg_delivery_days": avg_delivery_days,
+                "cancellation_rate": cancellation_rate,
+                "request_type_counts": request_type_counts,
+                "priority_counts": priority_counts,
             },
             message="Dashboard metrics retrieved",
         )

@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "apps.production",
     "apps.shipping",
     "apps.notifications",
+    "apps.faq",
 
     # Django core
     "django.contrib.admin",

@@ -198,6 +198,13 @@ export interface DashboardMetrics {
   ready_orders: number
   pending_payments: number
   monthly_revenue: string
+  revenue_by_month: { month: string; revenue: string }[]
+  orders_this_month: number
+  orders_prev_month: number
+  avg_delivery_days: number | null
+  cancellation_rate: number
+  request_type_counts: { request_type: string; count: number }[]
+  priority_counts: { priority: string; count: number }[]
 }
 
 export interface ApiResponse<T> {

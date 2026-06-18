@@ -46,6 +46,9 @@ const router = createRouter({
       ],
     },
 
+    // FAQ (público)
+    { path: '/faq', name: 'faq', component: () => import('@/modules/faq/views/FAQView.vue') },
+
     // 404
     { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('@/views/NotFoundView.vue') },
   ],

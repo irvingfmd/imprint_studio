@@ -12,6 +12,11 @@
         <p class="text-gray-400 text-sm mt-1">Impresión 3D personalizada</p>
       </div>
       <RouterView />
+      <div class="text-center mt-6">
+        <router-link to="/faq" class="text-gray-400 hover:text-blue-400 text-sm">
+          Preguntas Frecuentes
+        </router-link>
+      </div>
     </div>
   </div>
 </template>

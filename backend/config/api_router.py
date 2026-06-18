@@ -28,6 +28,9 @@ urlpatterns = [
     # Instrucciones de pago (público autenticado)
     path("payment-instructions/", include("apps.configuration.urls")),
 
+    # FAQ (público)
+    path("faq/", include("apps.faq.urls")),
+
     # Rutas administrativas
     path("admin/", include("config.admin_router")),
 ]

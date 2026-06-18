@@ -210,19 +210,45 @@
         </div>
       </AppCard>
 
-      <!-- Historial de producción -->
+      <!-- Timeline de seguimiento -->
       <AppCard v-if="history.length > 0" class="mb-4">
-        <h3 class="text-sm font-medium text-gray-400 mb-3">Seguimiento del pedido</h3>
-        <div class="space-y-3">
-          <div v-for="entry in history" :key="entry.id" class="flex items-start gap-3 text-sm">
-            <div class="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5 shrink-0" />
-            <div class="flex-1">
-              <span class="text-gray-300 font-medium">{{ ORDER_STATUS_LABELS[entry.new_status] }}</span>
-              <span v-if="entry.notes" class="text-gray-500 ml-1 block text-xs">{{ entry.notes }}</span>
+        <h3 class="text-sm font-medium text-gray-400 mb-4">Seguimiento del pedido</h3>
+        <ol class="relative ml-3">
+          <li
+            v-for="(entry, idx) in history"
+            :key="entry.id"
+            class="relative pl-7 pb-6 last:pb-0"
+          >
+            <!-- Línea vertical -->
+            <div
+              v-if="idx < history.length - 1"
+              class="absolute left-0 top-3 w-0.5 h-full"
+              :class="entry.new_status === 'CANCELLED' ? 'bg-red-800' : 'bg-gray-700'"
+            />
+
+            <!-- Dot -->
+            <div
+              class="absolute left-0 top-0.5 -translate-x-1/2 rounded-full border-2 flex items-center justify-center"
+              :class="timelineDotClass(entry.new_status, idx)"
+            >
+              <svg v-if="idx < history.length - 1 && entry.new_status !== 'CANCELLED'" class="w-2.5 h-2.5 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+              </svg>
             </div>
-            <span class="text-gray-600 text-xs shrink-0">{{ formatDate(entry.changed_at) }}</span>
-          </div>
-        </div>
+
+            <!-- Contenido -->
+            <div class="min-w-0">
+              <p
+                class="text-sm font-medium"
+                :class="idx === history.length - 1 ? 'text-blue-400' : entry.new_status === 'CANCELLED' ? 'text-red-400' : 'text-gray-200'"
+              >
+                {{ ORDER_STATUS_LABELS[entry.new_status] || entry.new_status }}
+              </p>
+              <p class="text-xs text-gray-500 mt-0.5">{{ formatDateTime(entry.changed_at) }}</p>
+              <p v-if="entry.notes" class="text-xs text-gray-500 mt-1 leading-relaxed">{{ entry.notes }}</p>
+            </div>
+          </li>
+        </ol>
       </AppCard>
 
       <!-- Pedido entregado -->
@@ -330,6 +356,12 @@ const addFileInput = ref<HTMLInputElement | null>(null)
 const uploadingFile = ref(false)
 
 const CANCELLABLE_STATUSES = ['RECEIVED', 'PENDING_ANALYSIS', 'QUOTED', 'APPROVED', 'PENDING_DEPOSIT']
+
+function timelineDotClass(status: string, idx: number): string {
+  if (status === 'CANCELLED') return 'w-5 h-5 bg-red-900 border-red-500'
+  if (idx === history.value.length - 1) return 'w-5 h-5 bg-blue-900 border-blue-400'
+  return 'w-5 h-5 bg-emerald-900/50 border-emerald-600'
+}
 
 const canCancel = computed(() => order.value && CANCELLABLE_STATUSES.includes(order.value.status))
 const pendingPayment = computed(() => payments.value.find(p => p.payment_status === 'PENDING'))
