@@ -10,11 +10,13 @@ from apps.production.views import AdminCancelOrderView, AdminRevertOrderStatusVi
 from apps.quotes.views import AdminCreateQuoteView
 from apps.shipping.views import AdminCreateShipmentView
 
-from .views import AdminOrderDetailView, AdminOrderListView
+from .views import AdminOrderCreateView, AdminOrderDetailView, AdminOrderListView
 
 urlpatterns = [
     # GET /api/v1/admin/orders/
     path("", AdminOrderListView.as_view(), name="admin-order-list"),
+    # POST /api/v1/admin/orders/create/
+    path("create/", AdminOrderCreateView.as_view(), name="admin-order-create"),
     # GET /api/v1/admin/orders/{order_id}/
     path("<uuid:order_id>/", AdminOrderDetailView.as_view(), name="admin-order-detail"),
     # PUT /api/v1/admin/orders/{order_id}/status/

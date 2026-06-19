@@ -38,6 +38,7 @@ const router = createRouter({
         { path: '', redirect: '/admin/dashboard' },
         { path: 'dashboard', name: 'admin-dashboard', component: () => import('@/modules/admin/views/AdminDashboardView.vue') },
         { path: 'orders', name: 'admin-orders', component: () => import('@/modules/admin/views/AdminOrderListView.vue') },
+        { path: 'orders/new', name: 'admin-order-create', component: () => import('@/modules/admin/views/AdminOrderCreateView.vue') },
         { path: 'orders/:id', name: 'admin-order-detail', component: () => import('@/modules/admin/views/AdminOrderDetailView.vue') },
         { path: 'payments', name: 'admin-payments', component: () => import('@/modules/admin/views/AdminPaymentsView.vue') },
         { path: 'users', name: 'admin-users', component: () => import('@/modules/admin/views/AdminUsersView.vue') },

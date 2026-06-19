@@ -36,6 +36,20 @@ export async function revertOrderStatus(orderId: string, reason: string): Promis
   await api.put(`/admin/orders/${orderId}/revert/`, { reason })
 }
 
+export async function createAdminOrder(payload: {
+  customer_id: string
+  request_type: string
+  title: string
+  description: string
+  color: string
+  quantity: number
+  priority: string
+  delivery_method: string
+}): Promise<{ id: string; status: string }> {
+  const { data } = await api.post('/admin/orders/create/', payload)
+  return data.data
+}
+
 // --- Cotizaciones ---
 
 export async function createQuote(orderId: string, payload: {
@@ -167,7 +181,7 @@ export async function deleteHoliday(holidayId: string): Promise<void> {
 
 // --- Usuarios ---
 
-export async function listAdminUsers(params?: { page?: number; page_size?: number }): Promise<PaginatedResponse<AdminUser>> {
+export async function listAdminUsers(params?: { page?: number; page_size?: number; search?: string }): Promise<PaginatedResponse<AdminUser>> {
   const { data } = await api.get('/admin/users/', { params })
   return data.data
 }

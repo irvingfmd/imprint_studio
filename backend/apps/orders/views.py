@@ -15,6 +15,7 @@ from core.responses import created_response, error_response, success_response
 
 from . import selectors, services
 from .serializers import (
+    AdminOrderCreateSerializer,
     AdminOrderDetailSerializer,
     AdminOrderListSerializer,
     AssignShippingAddressSerializer,
@@ -263,6 +264,33 @@ class AdminOrderListView(APIView):
                 "results": serializer.data,
             },
             message="Orders retrieved",
+        )
+
+
+class AdminOrderCreateView(APIView):
+    """Crea un pedido a nombre de un cliente. Solo administradores."""
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def post(self, request):
+        serializer = AdminOrderCreateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return error_response("Validation error", errors=serializer.errors)
+
+        from apps.authentication.models import User
+
+        try:
+            customer = User.objects.get(id=serializer.validated_data["customer_id"])
+        except User.DoesNotExist:
+            return error_response("Cliente no encontrado.", status_code=status.HTTP_404_NOT_FOUND)
+
+        order = services.OrderService.create_order(
+            customer=customer,
+            data=serializer.validated_data,
+        )
+        return created_response(
+            data={"id": str(order.id), "status": order.status},
+            message="Order created by admin",
         )
 
 

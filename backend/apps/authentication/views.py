@@ -180,7 +180,7 @@ class AdminListUsersView(APIView):
         except (ValueError, TypeError):
             return error_response("page_size debe ser un entero positivo.", status_code=status.HTTP_400_BAD_REQUEST)
 
-        users = get_all_users()
+        users = get_all_users(search=request.query_params.get("search"))
         page_num = request.query_params.get("page", 1)
         paginator = Paginator(users, page_size)
         page = paginator.get_page(page_num)

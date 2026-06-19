@@ -9,8 +9,11 @@ from django.db.models import QuerySet
 from apps.authentication.models import User
 
 
-def get_all_users() -> QuerySet:
-    return User.objects.filter(is_deleted=False).order_by("created_at")
+def get_all_users(search: str | None = None) -> QuerySet:
+    qs = User.objects.filter(is_deleted=False)
+    if search:
+        qs = qs.filter(phone__icontains=search)
+    return qs.order_by("created_at")
 
 
 def get_user_by_id(user_id: str) -> User | None:
