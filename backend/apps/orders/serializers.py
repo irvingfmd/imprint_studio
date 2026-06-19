@@ -139,7 +139,7 @@ class AdminOrderCreateSerializer(serializers.Serializer):
     customer_id = serializers.UUIDField()
     request_type = serializers.ChoiceField(choices=RequestType.choices)
     title = serializers.CharField(max_length=255)
-    description = serializers.CharField()
+    description = serializers.CharField(required=False, default="", allow_blank=True)
     color = serializers.CharField(max_length=100, required=False, default="", allow_blank=True)
     quantity = serializers.IntegerField(min_value=1)
     dimensions_notes = serializers.CharField(required=False, default="", allow_blank=True)
