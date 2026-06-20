@@ -2,7 +2,7 @@
 
 ## Imprint Studio
 
-Versión: 3.1
+Versión: 4.0
 
 Estado: Aprobado para implementación
 
@@ -437,7 +437,13 @@ users
      │
      ├── order_events
      │
-     └── shipments
+     ├── shipments
+     │
+     ├── internal_notes
+     │
+     ├── reviews
+     │
+     └── discount_redemptions
 
 configuration (independiente)
 ├── business_config
@@ -445,6 +451,16 @@ configuration (independiente)
 ├── holidays
 ├── payment_instructions
 └── printers
+
+materials (independiente)
+└── materials
+
+loyalty (independiente)
+├── discount_codes
+└── discount_redemptions → orders, users
+
+faq (independiente)
+└── faqs
 ```
 
 ---
@@ -1348,6 +1364,7 @@ ORDER_DELIVERED
 REFUND_REQUESTED
 REFUND_PROCESSED
 ORDER_CANCELLED
+DEPOSIT_REMINDER
 ```
 
 ---
@@ -1624,6 +1641,217 @@ Las impresoras inactivas no aparecen en el selector del panel admin.
 
 ---
 
+# Tabla: internal_notes
+
+## Propósito
+
+Notas internas del equipo asociadas a un pedido. Solo visibles para administradores.
+
+---
+
+## Campos
+
+| Campo      | Tipo   | Nullable |
+| ---------- | ------ | -------- |
+| id         | UUID   | No       |
+| order_id   | UUID   | No       |
+| created_by | UUID   | No       |
+| content    | TEXT   | No       |
+| created_at | TIMESTAMP | No    |
+
+---
+
+## Relaciones
+
+```text
+order_id → orders.id
+created_by → users.id
+```
+
+---
+
+## Índices
+
+```text
+order_id
+created_at
+```
+
+---
+
+## Regla de Negocio
+
+Las notas internas nunca son visibles para el cliente. Solo admins pueden crear y leer.
+
+---
+
+# Tabla: reviews
+
+## Propósito
+
+Almacena calificaciones y comentarios de clientes sobre pedidos entregados.
+
+---
+
+## Campos
+
+| Campo       | Tipo         | Nullable |
+| ----------- | ------------ | -------- |
+| id          | UUID         | No       |
+| order_id    | UUID         | No       |
+| customer_id | UUID         | No       |
+| rating      | SMALLINT     | No       |
+| comment     | TEXT         | Sí       |
+| created_at  | TIMESTAMP    | No       |
+
+---
+
+## Relaciones
+
+```text
+order_id → orders.id (OneToOne)
+customer_id → users.id
+```
+
+---
+
+## Restricciones
+
+- `rating` debe estar entre 1 y 5
+- Un pedido solo puede tener una reseña (OneToOneField)
+
+---
+
+## Regla de Negocio
+
+Solo se puede crear una reseña si `order.status = DELIVERED` y `order.customer = customer`.
+
+---
+
+# Tabla: materials
+
+## Propósito
+
+Catálogo de materiales de impresión 3D con tracking de inventario.
+
+---
+
+## Campos
+
+| Campo           | Tipo          | Nullable |
+| --------------- | ------------- | -------- |
+| id              | UUID          | No       |
+| name            | VARCHAR(100)  | No       |
+| material_type   | VARCHAR(20)   | No       |
+| brand           | VARCHAR(100)  | Sí       |
+| available_colors| JSONB         | No       |
+| price_per_kg    | DECIMAL(10,2) | No       |
+| stock_grams     | DECIMAL(10,2) | No       |
+| min_stock_grams | DECIMAL(10,2) | No       |
+| is_active       | BOOLEAN       | No       |
+| created_at      | TIMESTAMP     | No       |
+| updated_at      | TIMESTAMP     | No       |
+
+---
+
+## MaterialType
+
+```python
+class MaterialType(models.TextChoices):
+    PLA = "PLA", "PLA"
+    PETG = "PETG", "PETG"
+    ABS = "ABS", "ABS"
+    TPU = "TPU", "TPU"
+    RESIN = "RESIN", "Resin"
+    OTHER = "OTHER", "Other"
+```
+
+---
+
+## Reglas de Negocio
+
+`available_colors` es una lista JSON de strings (ej: `["Negro", "Blanco", "Rojo"]`).
+
+Si `stock_grams < min_stock_grams`, el material se marca como bajo stock en el panel admin.
+
+---
+
+# Tabla: discount_codes
+
+## Propósito
+
+Almacena códigos de descuento para el programa de lealtad.
+
+---
+
+## Campos
+
+| Campo            | Tipo          | Nullable |
+| ---------------- | ------------- | -------- |
+| id               | UUID          | No       |
+| code             | VARCHAR(50)   | No       |
+| discount_type    | VARCHAR(20)   | No       |
+| discount_value   | DECIMAL(10,2) | No       |
+| min_order_amount | DECIMAL(10,2) | No       |
+| max_uses         | INTEGER       | Sí       |
+| current_uses     | INTEGER       | No       |
+| valid_from       | TIMESTAMP     | No       |
+| valid_until      | TIMESTAMP     | Sí       |
+| is_active        | BOOLEAN       | No       |
+| created_at       | TIMESTAMP     | No       |
+| updated_at       | TIMESTAMP     | No       |
+
+---
+
+## DiscountType
+
+```python
+class DiscountType(models.TextChoices):
+    PERCENTAGE = "PERCENTAGE", "Percentage"
+    FIXED_AMOUNT = "FIXED_AMOUNT", "Fixed Amount"
+```
+
+---
+
+## Restricciones
+
+- `code` es unique y uppercase
+- `max_uses = NULL` significa ilimitado
+- `valid_until = NULL` significa sin expiración
+
+---
+
+# Tabla: discount_redemptions
+
+## Propósito
+
+Registra cada uso de un código de descuento.
+
+---
+
+## Campos
+
+| Campo            | Tipo          | Nullable |
+| ---------------- | ------------- | -------- |
+| id               | UUID          | No       |
+| discount_code_id | UUID          | No       |
+| order_id         | UUID          | No       |
+| customer_id      | UUID          | No       |
+| discount_applied | DECIMAL(10,2) | No       |
+| redeemed_at      | TIMESTAMP     | No       |
+
+---
+
+## Relaciones
+
+```text
+discount_code_id → discount_codes.id
+order_id → orders.id
+customer_id → users.id
+```
+
+---
+
 # Recomendaciones para Django Models
 
 ## BaseModel
@@ -1664,6 +1892,10 @@ orders
 quotes
 payments
 production
+reviews
+materials
+loyalty
+faq
 ```
 
 ---
@@ -1694,7 +1926,7 @@ para futuras expansiones sin requerir rediseños significativos.
 
 # Estado del Documento
 
-Versión: 3.1
+Versión: 4.0
 
 Estado:
 

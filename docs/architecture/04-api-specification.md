@@ -2,7 +2,7 @@
 
 ## Imprint Studio
 
-Versión: 2.1
+Versión: 3.0
 
 Estado: Aprobado para implementación
 
@@ -2922,6 +2922,327 @@ Content-Disposition: attachment; filename="cotizacion-{short_id}.pdf"
 ```
 
 El PDF incluye: datos del pedido, desglose de costos, opciones de pago e instrucciones de transferencia.
+
+---
+
+---
+
+# Repetir Pedido
+
+## Endpoint
+
+```http
+POST /api/v1/orders/{order_id}/repeat/
+```
+
+Permiso requerido: `IsAuthenticated` (solo el dueño del pedido).
+
+Clona los datos del pedido (título, descripción, color, cantidad, tipo, prioridad, método de entrega) como un pedido nuevo. No clona archivos, pagos ni cotizaciones.
+
+---
+
+## Response 201
+
+```json
+{
+  "success": true,
+  "message": "Order repeated",
+  "data": {
+    "id": "uuid",
+    "status": "RECEIVED"
+  }
+}
+```
+
+---
+
+# Reseñas
+
+## Crear reseña
+
+```http
+POST /api/v1/orders/{order_id}/review/
+```
+
+Permiso: `IsAuthenticated` (dueño del pedido, solo si `status = DELIVERED`).
+
+### Request Body
+
+```json
+{
+  "rating": 5,
+  "comment": "Excelente trabajo, quedó increíble."
+}
+```
+
+- `rating`: entero 1-5 (obligatorio)
+- `comment`: texto (opcional)
+
+---
+
+## Obtener reseña
+
+```http
+GET /api/v1/orders/{order_id}/review/
+```
+
+Permiso: `IsAuthenticated` (dueño o admin).
+
+---
+
+# Notas Internas (Admin)
+
+## Endpoint
+
+```http
+GET/POST /api/v1/admin/orders/{order_id}/notes/
+```
+
+Permiso: `IsAdmin`.
+
+### Request Body (POST)
+
+```json
+{
+  "content": "El cliente pidió que se use PLA negro mate."
+}
+```
+
+- `content`: texto, máx 2000 caracteres
+
+---
+
+# Materiales (Público)
+
+## Endpoint
+
+```http
+GET /api/v1/materials/
+```
+
+Permiso: `IsAuthenticated`.
+
+Retorna lista de materiales activos con colores disponibles.
+
+---
+
+# Admin — Materiales
+
+## Listar / Crear
+
+```http
+GET/POST /api/v1/admin/materials/
+```
+
+Params: `?active_only=true`, `?low_stock=true`
+
+### Request Body (POST)
+
+```json
+{
+  "name": "PLA Premium",
+  "material_type": "PLA",
+  "brand": "eSun",
+  "available_colors": ["Negro", "Blanco", "Rojo", "Azul"],
+  "price_per_kg": "350.00",
+  "stock_grams": "5000.00",
+  "min_stock_grams": "500.00",
+  "is_active": true
+}
+```
+
+---
+
+## Detalle / Editar / Eliminar
+
+```http
+GET/PUT/DELETE /api/v1/admin/materials/{material_id}/
+```
+
+---
+
+## Ajustar Stock
+
+```http
+POST /api/v1/admin/materials/{material_id}/stock/
+```
+
+### Request Body
+
+```json
+{
+  "grams": "1000.00",
+  "operation": "add"
+}
+```
+
+- `operation`: `"add"` o `"deduct"`
+
+---
+
+# Admin — Reseñas
+
+## Endpoint
+
+```http
+GET /api/v1/admin/reviews/
+```
+
+Permiso: `IsAdmin`. Lista todas las reseñas con paginación.
+
+---
+
+# Admin — Descuentos
+
+## Listar / Crear
+
+```http
+GET/POST /api/v1/admin/discounts/
+```
+
+### Request Body (POST)
+
+```json
+{
+  "code": "BIENVENIDO10",
+  "discount_type": "PERCENTAGE",
+  "discount_value": "10.00",
+  "min_order_amount": "100.00",
+  "max_uses": 50,
+  "valid_from": "2026-06-01T00:00:00Z",
+  "valid_until": "2026-12-31T23:59:59Z",
+  "is_active": true
+}
+```
+
+---
+
+## Detalle / Editar / Eliminar
+
+```http
+GET/PUT/DELETE /api/v1/admin/discounts/{discount_id}/
+```
+
+---
+
+## Redemptions
+
+```http
+GET /api/v1/admin/discounts/{discount_id}/redemptions/
+```
+
+---
+
+# Validar Descuento (Cliente)
+
+```http
+POST /api/v1/discounts/validate/
+```
+
+Permiso: `IsAuthenticated`.
+
+### Request Body
+
+```json
+{
+  "code": "BIENVENIDO10"
+}
+```
+
+### Response 200
+
+```json
+{
+  "success": true,
+  "message": "Discount code valid",
+  "data": {
+    "discount_type": "PERCENTAGE",
+    "discount_value": "10.00"
+  }
+}
+```
+
+---
+
+# Admin — Exportar Reportes CSV
+
+## Pedidos
+
+```http
+GET /api/v1/admin/export/orders/
+```
+
+Params: `?status=`, `?created_from=`, `?created_to=`
+
+Response: `text/csv` con columnas: id, title, customer_phone, status, priority, request_type, payment_status, created_at.
+
+---
+
+## Pagos
+
+```http
+GET /api/v1/admin/export/payments/
+```
+
+Params: `?status=`, `?created_from=`, `?created_to=`
+
+Response: `text/csv` con columnas: id, order_id, amount, payment_type, payment_method, payment_status, created_at.
+
+---
+
+# Admin — Historial de Pagos del Cliente
+
+```http
+GET /api/v1/admin/users/{user_id}/payments/
+```
+
+Permiso: `IsAdmin`.
+
+### Response 200
+
+```json
+{
+  "success": true,
+  "message": "Customer payment history retrieved",
+  "data": {
+    "total_paid": "5250.00",
+    "total_orders": 8,
+    "average_ticket": "656.25",
+    "payments": [...]
+  }
+}
+```
+
+---
+
+# Cotización Exprés (Pública)
+
+## Endpoint
+
+```http
+POST /api/v1/quotes/estimate/
+```
+
+Permiso: `AllowAny`.
+
+Acepta un archivo STL (multipart), analiza peso/tiempo y retorna estimado de precio sin guardar nada en BD. Límite: 20MB, solo `.stl`.
+
+### Response 200
+
+```json
+{
+  "success": true,
+  "message": "Estimate calculated",
+  "data": {
+    "weight_grams": "250.00",
+    "print_time_hours": "12.50",
+    "material_cost": "6.25",
+    "energy_cost": "0.00",
+    "labor_cost": "187.50",
+    "total_price": "506.31"
+  }
+}
+```
 
 ---
 

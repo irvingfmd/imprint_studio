@@ -89,17 +89,25 @@ imprint_studio/
 │   ├── apps/
 │   │   ├── authentication/   # User, OTPCode, JWT
 │   │   ├── configuration/    # BusinessConfig, BusinessHours, Holiday, PaymentInstructions, Printer
-│   │   ├── orders/           # Order, RequestFile
+│   │   ├── orders/           # Order, RequestFile, InternalNote
 │   │   ├── quotes/           # Quote, QuoteSnapshot
 │   │   ├── payments/         # Payment
 │   │   ├── production/       # ProductionHistory
 │   │   ├── shipping/         # ShippingAddress, Shipment
-│   │   └── notifications/    # WhatsApp, Email
+│   │   ├── notifications/    # WhatsApp, Email (send_mail real)
+│   │   ├── reviews/          # Review (calificaciones post-entrega)
+│   │   ├── materials/        # Material, inventario de filamento
+│   │   ├── loyalty/          # DiscountCode, DiscountRedemption
+│   │   └── faq/              # FAQ
 │   ├── config/               # settings.py, urls.py, routers
 │   ├── core/                 # BaseModel, permisos, responses, exception handler, throttles
 │   └── manage.py
 ├── docs/                     # Documentación oficial
 └── frontend/                 # Vue 3 (implementado)
+    ├── src/
+    │   ├── i18n/              # vue-i18n (locales es/en)
+    │   └── ...
+    └── ...
 ```
 
 ---
@@ -115,7 +123,16 @@ imprint_studio/
 - App `quotes`: Quote (`tax_amount`), QuoteSnapshot (`electricity_rate_kwh`, `printer_name`, `printer_power_watts`, `tax_percentage`) — modelos, serializers, services (QuoteCalculatorService + QuoteService), selectors, views, urls, admin, migración
 - App `payments`: Payment — modelos, serializers, services, selectors, views, urls, admin, migración
 - App `production`: ProductionHistory, OrderStatusTransitionService (con revert_status) — modelos, serializers, services, selectors, views, admin, migración
-- App `notifications`: WhatsAppService, EmailService, NotificationService — servicios puros (sin modelos ni endpoints)
+- App `notifications`: WhatsAppService (no-op, requiere Meta Business API), EmailService (send_mail real via Django), NotificationService — notificaciones de nuevo pedido, cotización lista, pago confirmado, cambio de estado, recordatorio de anticipo
+- App `reviews`: Review (1-5 estrellas + comentario opcional), OneToOneField a Order, solo pedidos DELIVERED, un review por pedido
+- App `materials`: Material (PLA/PETG/ABS/TPU/RESIN/OTHER), JSONField `available_colors`, stock_grams con alertas de bajo nivel (min_stock_grams), ajuste de stock (add/deduct)
+- App `loyalty`: DiscountCode (PERCENTAGE o FIXED_AMOUNT), max_uses, vigencia, min_order_amount. DiscountRedemption para tracking de usos. Validación y aplicación de descuentos
+- App `faq`: FAQ con question, answer, display_order, is_active. Seed con 10 FAQs de impresión 3D
+- Repetir pedido: POST /orders/{id}/repeat/ clona datos como pedido nuevo
+- Notas internas: InternalNote model en orders, CRUD admin por pedido (el cliente no las ve)
+- Recordatorios automáticos: job `send_deposit_reminders` 24h antes del vencimiento, EventType DEPOSIT_REMINDER
+- Exportar CSV: endpoints admin para pedidos y pagos con filtros por status/fecha
+- Historial de pagos del cliente: GET /admin/users/{id}/payments/ con total_paid, total_orders, average_ticket
 - `core`: BaseModel, SoftDeleteModel, permisos, responses, exception handler, throttles (OTPSendThrottle, OTPVerifyThrottle)
 - Todas las migraciones aplicadas
 - Superusuario creado
@@ -133,9 +150,14 @@ imprint_studio/
 #### Pedidos (cliente)
 - GET/POST /api/v1/orders/
 - GET  /api/v1/orders/{order_id}/
+- POST /api/v1/orders/{order_id}/repeat/
 - PUT  /api/v1/orders/{order_id}/cancel/
 - PUT  /api/v1/orders/{order_id}/shipping-address/
 - GET/POST /api/v1/orders/{order_id}/files/
+
+#### Reseñas (cliente)
+- POST /api/v1/orders/{order_id}/review/
+- GET  /api/v1/orders/{order_id}/review/
 
 #### Cotizaciones (cliente)
 - GET  /api/v1/orders/{order_id}/quotes/
@@ -143,6 +165,7 @@ imprint_studio/
 - PUT  /api/v1/quotes/{quote_id}/accept/
 - PUT  /api/v1/quotes/{quote_id}/reject/
 - GET  /api/v1/quotes/{quote_id}/snapshot/  (admin only)
+- POST /api/v1/quotes/estimate/  (público, cotización exprés con STL)
 
 #### Pagos (cliente)
 - GET  /api/v1/orders/{order_id}/payments/
@@ -166,6 +189,7 @@ imprint_studio/
 - PUT  /api/v1/admin/orders/{order_id}/status/
 - PUT  /api/v1/admin/orders/{order_id}/cancel/
 - PUT  /api/v1/admin/orders/{order_id}/revert/
+- GET/POST /api/v1/admin/orders/{order_id}/notes/
 
 #### Admin — cotizaciones
 - POST /api/v1/admin/orders/{order_id}/quote/
@@ -207,6 +231,30 @@ imprint_studio/
 - GET /api/v1/admin/users/  (params: `?page=`, `?page_size=`, `?search=`)
 - GET /api/v1/admin/users/{user_id}/
 - PUT /api/v1/admin/users/{user_id}/role/
+- GET /api/v1/admin/users/{user_id}/payments/
+
+#### Admin — materiales
+- GET/POST /api/v1/admin/materials/  (params: `?active_only=true`, `?low_stock=true`)
+- GET/PUT/DELETE /api/v1/admin/materials/{material_id}/
+- POST /api/v1/admin/materials/{material_id}/stock/
+
+#### Admin — reseñas
+- GET /api/v1/admin/reviews/
+
+#### Admin — descuentos
+- GET/POST /api/v1/admin/discounts/
+- GET/PUT/DELETE /api/v1/admin/discounts/{discount_id}/
+- GET /api/v1/admin/discounts/{discount_id}/redemptions/
+
+#### Admin — exportar reportes
+- GET /api/v1/admin/export/orders/  (params: `?status=`, `?created_from=`, `?created_to=`)
+- GET /api/v1/admin/export/payments/  (params: `?status=`, `?created_from=`, `?created_to=`)
+
+#### Materiales (público autenticado)
+- GET /api/v1/materials/
+
+#### Descuentos (cliente)
+- POST /api/v1/discounts/validate/
 
 #### Instrucciones de pago (público autenticado)
 - GET /api/v1/payment-instructions/
@@ -225,6 +273,18 @@ imprint_studio/
 - Store: authStore (JWT tokens, user, isAdmin)
 - Router con guards de autenticación y rol
 - Módulo FAQ: vista pública con acordeón, admin CRUD
+- AdminMaterialsView: CRUD de materiales con stock, colores como chips, alertas de bajo nivel, ajuste de stock (add/deduct)
+- AdminProductionView: calendario de producción tipo kanban con 4 columnas (DEPOSIT_PAID → PRINTING → POST_PROCESSING → READY), auto-refresh 60s
+- AdminDiscountsView: CRUD de cupones/descuentos, generador de códigos aleatorios, tabla con usos
+- PublicQuoteView (`/cotizar`): cotización exprés pública con drag & drop de STL, sin registro requerido
+- StlViewer: componente three.js para preview 3D de archivos STL en detalle de pedido (admin y cliente)
+- LanguageSwitcher: selector de idioma ES/EN en header, persistencia en localStorage
+- i18n: infraestructura vue-i18n con locales es/en (vistas se migrarán gradualmente a $t())
+- PWA: manifest.json + service worker (cache-first para assets, network-first para API)
+- Reseñas en OrderDetailView: estrellas 1-5 + comentario opcional post-entrega
+- Botón "Repetir pedido" en OrderDetailView del cliente
+- Notas internas en AdminOrderDetailView (textarea + lista, solo visible para admins)
+- Botones "Exportar CSV" en listas de pedidos y pagos admin
 
 ### Pruebas ✅ (completo)
 
@@ -272,6 +332,8 @@ Pendiente de evaluación (no bloqueante):
 
 - Job `cancel_expired_deposits`: corre cada hora, cancela pedidos en `PENDING_DEPOSIT`
   que superaron `BusinessConfig.deposit_deadline_hours` (default 72h)
+- Job `send_deposit_reminders`: corre cada 6 horas, envía recordatorio de pago 24h antes
+  del vencimiento del plazo de anticipo. Usa EventType `DEPOSIT_REMINDER` para deduplicar
 - Usa subquery sobre `ProductionHistory` para calcular desde cuándo el pedido está en ese estado
 - `ProductionHistory.changed_by` ahora es nullable — `NULL` = acción automática del sistema
 - En dev: arrancar con `runserver` (el scheduler se inicia en el proceso hijo, `RUN_MAIN=true`)
@@ -343,5 +405,9 @@ Fuente oficial: docs/appendices/status-flow.md
 - AUTH_USER_MODEL = "authentication.User" — no cambiar
 - USERNAME_FIELD = "phone" — autenticación por teléfono, no username
 - En desarrollo el OTP se imprime en consola, no se envía por WhatsApp
+- Email: en dev usa `console.EmailBackend` (imprime en consola), en prod configurar `EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend` + credenciales SMTP
+- WhatsApp: servicio preparado pero no-op — requiere Meta Business API (el usuario configura después)
+- PWA: agregar iconos en `frontend/public/icons/icon-192.png` y `icon-512.png` para instalación completa
+- i18n: infraestructura lista (vue-i18n), vistas existentes se migrarán gradualmente a `$t()`
 - SQLite solo para desarrollo, PostgreSQL para producción
 - psycopg2-binary no tiene wheel para Python 3.14 todavía
