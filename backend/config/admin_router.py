@@ -36,4 +36,6 @@ urlpatterns = [
     path("reviews/", include("apps.reviews.admin_urls")),
     # Materiales
     path("materials/", include("apps.materials.admin_urls")),
+    # Descuentos
+    path("discounts/", include("apps.loyalty.admin_urls")),
 ]

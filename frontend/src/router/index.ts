@@ -46,6 +46,7 @@ const router = createRouter({
         { path: 'printers', name: 'admin-printers', component: () => import('@/modules/admin/views/AdminPrintersView.vue') },
         { path: 'materials', name: 'admin-materials', component: () => import('@/modules/admin/views/AdminMaterialsView.vue') },
         { path: 'production', name: 'admin-production', component: () => import('@/modules/admin/views/AdminProductionView.vue') },
+        { path: 'discounts', name: 'admin-discounts', component: () => import('@/modules/admin/views/AdminDiscountsView.vue') },
       ],
     },
 

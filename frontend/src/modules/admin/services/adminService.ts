@@ -331,3 +331,57 @@ export async function adjustStock(materialId: string, grams: string, operation: 
   const { data } = await api.post(`/admin/materials/${materialId}/stock/`, { grams, operation })
   return data.data
 }
+
+// --- Descuentos ---
+
+export interface DiscountCode {
+  id: string
+  code: string
+  discount_type: 'PERCENTAGE' | 'FIXED_AMOUNT'
+  discount_value: string
+  min_order_amount: string
+  max_uses: number | null
+  current_uses: number
+  valid_from: string
+  valid_until: string | null
+  is_active: boolean
+  created_at: string
+}
+
+export async function listDiscountCodes(activeOnly = false): Promise<PaginatedResponse<DiscountCode>> {
+  const params = activeOnly ? { active_only: 'true' } : {}
+  const { data } = await api.get('/admin/discounts/', { params })
+  return data.data
+}
+
+export async function createDiscountCode(payload: {
+  code: string
+  discount_type: string
+  discount_value: string
+  min_order_amount?: string
+  max_uses?: number | null
+  valid_from: string
+  valid_until?: string | null
+  is_active?: boolean
+}): Promise<DiscountCode> {
+  const { data } = await api.post('/admin/discounts/', payload)
+  return data.data
+}
+
+export async function updateDiscountCode(discountId: string, payload: {
+  code: string
+  discount_type: string
+  discount_value: string
+  min_order_amount?: string
+  max_uses?: number | null
+  valid_from: string
+  valid_until?: string | null
+  is_active?: boolean
+}): Promise<DiscountCode> {
+  const { data } = await api.put(`/admin/discounts/${discountId}/`, payload)
+  return data.data
+}
+
+export async function deleteDiscountCode(discountId: string): Promise<void> {
+  await api.delete(`/admin/discounts/${discountId}/`)
+}

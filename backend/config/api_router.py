@@ -26,6 +26,8 @@ urlpatterns = [
     path("faq/", include("apps.faq.urls")),
     # Materiales (público autenticado)
     path("materials/", include("apps.materials.urls")),
+    # Descuentos (clientes)
+    path("discounts/", include("apps.loyalty.urls")),
     # Rutas administrativas
     path("admin/", include("config.admin_router")),
 ]
