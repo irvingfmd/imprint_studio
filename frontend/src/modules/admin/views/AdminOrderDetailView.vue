@@ -80,6 +80,7 @@
             <span class="text-xs text-gray-600 shrink-0 uppercase">{{ file.file_type }}</span>
           </li>
         </ul>
+        <StlViewer v-if="stlFileUrl" :url="stlFileUrl" height="280px" class="mt-3" />
       </AppCard>
 
       <!-- Cambiar estado -->
@@ -429,6 +430,7 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppAlert from '@/components/ui/AppAlert.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
+import StlViewer from '@/components/ui/StlViewer.vue'
 import {
   getAdminOrder, updateOrderStatus, cancelOrderAdmin, revertOrderStatus,
   createQuote, calculateQuote, createShipment, markDelivered, expireQuote, listPrinters,
@@ -477,6 +479,10 @@ const addingNote = ref(false)
 
 const activeQuote = computed((): Quote | null => order.value?.active_quote ?? null)
 const webModelFiles = computed(() => files.value.filter((f: any) => f.file_type === 'WEB_MODEL'))
+const stlFileUrl = computed(() => {
+  const stl = files.value.find((f: any) => f.file_type === 'STL' || f.original_filename?.toLowerCase().endsWith('.stl'))
+  return stl?.file_url ?? null
+})
 
 const QUOTE_STATUS_LABELS: Record<string, string> = {
   PENDING: 'Pendiente',

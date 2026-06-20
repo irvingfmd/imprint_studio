@@ -2,9 +2,12 @@
 Vistas para la app quotes.
 """
 
+import os
+from decimal import Decimal
+
 from django.http import HttpResponse
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 
 from apps.orders.selectors import get_order_by_id
@@ -206,6 +209,55 @@ class AdminExpireQuoteView(APIView):
             return error_response(str(e), status_code=status.HTTP_400_BAD_REQUEST)
 
         return success_response(data={}, message="Quote expired")
+
+
+class PublicQuoteEstimateView(APIView):
+    """Estimado público a partir de un STL. No guarda nada en BD."""
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        uploaded_file = request.FILES.get("file")
+        if not uploaded_file:
+            return error_response("Se requiere un archivo STL.", status_code=status.HTTP_400_BAD_REQUEST)
+
+        if uploaded_file.size > 20 * 1024 * 1024:
+            return error_response("El archivo no puede superar los 20 MB.", status_code=status.HTTP_400_BAD_REQUEST)
+
+        ext = os.path.splitext(uploaded_file.name)[1].lower()
+        if ext != ".stl":
+            return error_response("Solo se aceptan archivos STL.", status_code=status.HTTP_400_BAD_REQUEST)
+
+        from .stl_service import estimate_from_stl
+
+        try:
+            data = uploaded_file.read()
+            estimate = estimate_from_stl(data)
+        except ValueError as e:
+            return error_response(str(e), status_code=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            result = services.QuoteCalculatorService.calculate(
+                weight_grams=estimate["estimated_weight_grams"],
+                print_time_hours=estimate["estimated_print_time_hours"],
+                priority="NORMAL",
+                shipping_cost=Decimal("0.00"),
+                full_payment_selected=False,
+            )
+        except ValueError as e:
+            return error_response(str(e), status_code=status.HTTP_400_BAD_REQUEST)
+
+        result.pop("config", None)
+        result.pop("printer", None)
+        return success_response(
+            data={
+                "weight_grams": str(estimate["estimated_weight_grams"]),
+                "print_time_hours": str(estimate["estimated_print_time_hours"]),
+                "volume_cm3": estimate["volume_cm3"],
+                **{k: str(v) for k, v in result.items()},
+            },
+            message="Estimate calculated",
+        )
 
 
 class CalculatorView(APIView):

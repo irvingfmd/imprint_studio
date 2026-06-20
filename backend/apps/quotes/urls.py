@@ -4,9 +4,18 @@ URLs de la app quotes para clientes.
 
 from django.urls import path
 
-from .views import AcceptQuoteView, QuoteDetailView, QuotePDFView, QuoteSnapshotView, RejectQuoteView
+from .views import (
+    AcceptQuoteView,
+    PublicQuoteEstimateView,
+    QuoteDetailView,
+    QuotePDFView,
+    QuoteSnapshotView,
+    RejectQuoteView,
+)
 
 urlpatterns = [
+    # POST /api/v1/quotes/estimate/
+    path("estimate/", PublicQuoteEstimateView.as_view(), name="quote-estimate"),
     # GET /api/v1/quotes/{quote_id}/
     path("<uuid:quote_id>/", QuoteDetailView.as_view(), name="quote-detail"),
     # PUT /api/v1/quotes/{quote_id}/accept/

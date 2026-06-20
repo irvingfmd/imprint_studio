@@ -2,17 +2,18 @@
 Servicios de notificaciones para Imprint Studio.
 
 WhatsAppService: mensajes vía WhatsApp Business Cloud API.
-EmailService: correos vía Brevo REST API.
+EmailService: correos vía django.core.mail (SMTP configurable).
 NotificationService: notificaciones de negocio de alto nivel.
 
-En desarrollo (sin credenciales configuradas), ambos servicios registran
-el mensaje en el log en lugar de enviarlo.
+En desarrollo (console backend), los emails se imprimen en consola.
+En producción, configurar EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend.
 """
 
 import logging
 
 import requests
 from django.conf import settings
+from django.core.mail import send_mail
 
 logger = logging.getLogger(__name__)
 
@@ -59,40 +60,22 @@ class WhatsAppService:
 
 
 class EmailService:
-    """Envía correos electrónicos vía Brevo REST API."""
-
-    BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
-    SENDER_NAME = "Imprint Studio"
-    SENDER_EMAIL = "noreply@imprintstudio.com"
+    """Envía correos electrónicos vía django.core.mail (SMTP configurable)."""
 
     @classmethod
     def send_email(cls, to_email: str, subject: str, body: str, to_name: str = "") -> bool:
         """
-        Envía un correo electrónico.
-        Sin API key configurada, registra en log (modo desarrollo).
+        Envía un correo usando el backend de email configurado en Django.
+        En desarrollo (console backend) se imprime en consola.
         """
-        api_key = getattr(settings, "BREVO_API_KEY", "")
-
-        if not api_key:
-            logger.info("[Email DEV] Para: %s | Asunto: %s | %s", to_email, subject, body)
-            return True
-
         try:
-            response = requests.post(
-                cls.BREVO_API_URL,
-                headers={
-                    "api-key": api_key,
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "sender": {"name": cls.SENDER_NAME, "email": cls.SENDER_EMAIL},
-                    "to": [{"email": to_email, "name": to_name or to_email}],
-                    "subject": subject,
-                    "textContent": body,
-                },
-                timeout=10,
+            send_mail(
+                subject=subject,
+                message=body,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[to_email],
+                fail_silently=False,
             )
-            response.raise_for_status()
             logger.info("Email enviado a %s", to_email)
             return True
         except Exception as exc:

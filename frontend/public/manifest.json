@@ -1,0 +1,21 @@
+{
+  "name": "Imprint Studio",
+  "short_name": "Imprint",
+  "description": "Impresión 3D personalizada en Tuxtla Gutiérrez",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#2563EB",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

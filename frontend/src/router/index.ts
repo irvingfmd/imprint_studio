@@ -45,11 +45,13 @@ const router = createRouter({
         { path: 'config', name: 'admin-config', component: () => import('@/modules/admin/views/AdminConfigView.vue') },
         { path: 'printers', name: 'admin-printers', component: () => import('@/modules/admin/views/AdminPrintersView.vue') },
         { path: 'materials', name: 'admin-materials', component: () => import('@/modules/admin/views/AdminMaterialsView.vue') },
+        { path: 'production', name: 'admin-production', component: () => import('@/modules/admin/views/AdminProductionView.vue') },
       ],
     },
 
-    // FAQ (público)
+    // Públicas (sin auth)
     { path: '/faq', name: 'faq', component: () => import('@/modules/faq/views/FAQView.vue') },
+    { path: '/cotizar', name: 'public-quote', component: () => import('@/modules/quotes/views/PublicQuoteView.vue') },
 
     // 404
     { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('@/views/NotFoundView.vue') },

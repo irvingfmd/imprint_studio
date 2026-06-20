@@ -80,7 +80,8 @@
             </template>
           </li>
         </ul>
-        <p v-else class="text-sm text-gray-500 mb-3">Sin archivos adjuntos aún.</p>
+        <StlViewer v-if="stlFileUrl" :url="stlFileUrl" height="250px" class="mb-3" />
+        <p v-else-if="files.length === 0" class="text-sm text-gray-500 mb-3">Sin archivos adjuntos aún.</p>
         <div v-if="canUploadFiles" :class="{ 'pt-3 border-t border-gray-700': files.length > 0 }">
           <input
             type="file"
@@ -371,6 +372,7 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppAlert from '@/components/ui/AppAlert.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
+import StlViewer from '@/components/ui/StlViewer.vue'
 import { getOrder, listProductionHistory, cancelOrder, repeatOrder, listOrderFiles, uploadOrderFile, getReview, createReview } from '../services/orderService'
 import { listOrderQuotes, acceptQuote, rejectQuote, downloadQuotePDF } from '@/modules/quotes/services/quoteService'
 import { listOrderPayments, uploadPaymentProof } from '@/modules/payments/services/paymentService'
@@ -388,6 +390,10 @@ const activeQuote = ref<Quote | null>(null)
 const payments = ref<Payment[]>([])
 const history = ref<ProductionHistoryEntry[]>([])
 const files = ref<any[]>([])
+const stlFileUrl = computed(() => {
+  const stl = files.value.find((f: any) => f.file_type === 'STL' || f.original_filename?.toLowerCase().endsWith('.stl'))
+  return stl?.file_url ?? null
+})
 const loading = ref(true)
 const errorMessage = ref('')
 const accepting = ref(false)
