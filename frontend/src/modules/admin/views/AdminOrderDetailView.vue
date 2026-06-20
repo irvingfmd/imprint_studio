@@ -114,9 +114,14 @@
             </div>
           </div>
           <AppInput v-model="statusNotes" placeholder="Notas para el cliente (opcional)" />
-          <AppButton size="sm" :loading="updatingStatus" :disabled="!selectedStatus" @click="handleStatusChange">
-            Actualizar estado
-          </AppButton>
+          <div class="relative group/status inline-block">
+            <AppButton size="sm" :loading="updatingStatus" :disabled="!selectedStatus" @click="handleStatusChange">
+              Actualizar estado
+            </AppButton>
+            <div v-if="!selectedStatus" class="absolute bottom-full left-0 mb-1 w-52 text-xs bg-gray-900 border border-gray-700 text-gray-400 rounded-lg px-2 py-1.5 hidden group-hover/status:block z-10">
+              Selecciona un estado arriba para continuar.
+            </div>
+          </div>
         </div>
         <p v-else class="text-gray-500 text-sm">No hay transiciones disponibles desde el estado actual.</p>
       </AppCard>
@@ -202,9 +207,14 @@
           <AppButton size="sm" variant="secondary" :loading="calculating" @click="handleCalculate">
             Calcular
           </AppButton>
-          <AppButton size="sm" :loading="creatingQuote" :disabled="!quotePreview" @click="handleCreateQuote">
-            Crear cotización
-          </AppButton>
+          <div class="relative group/quote inline-block">
+            <AppButton size="sm" :loading="creatingQuote" :disabled="!quotePreview" @click="handleCreateQuote">
+              Crear cotización
+            </AppButton>
+            <div v-if="!quotePreview" class="absolute bottom-full left-0 mb-1 w-56 text-xs bg-gray-900 border border-gray-700 text-gray-400 rounded-lg px-2 py-1.5 hidden group-hover/quote:block z-10">
+              Primero haz clic en «Calcular» para ver el desglose.
+            </div>
+          </div>
         </div>
       </AppCard>
 
@@ -365,7 +375,12 @@
         <AppInput v-model="revertReason" label="Motivo" placeholder="¿Por qué reviertes el estado?" />
         <div class="flex gap-2 mt-4">
           <AppButton variant="ghost" class="flex-1" @click="showRevertModal = false">Cancelar</AppButton>
-          <AppButton variant="secondary" class="flex-1" :loading="reverting" :disabled="!revertReason.trim()" @click="handleRevert">Revertir</AppButton>
+          <div class="relative group/revert flex-1">
+            <AppButton variant="secondary" class="w-full" :loading="reverting" :disabled="!revertReason.trim()" @click="handleRevert">Revertir</AppButton>
+            <div v-if="!revertReason.trim()" class="absolute bottom-full left-0 mb-1 w-48 text-xs bg-gray-900 border border-gray-700 text-gray-400 rounded-lg px-2 py-1.5 hidden group-hover/revert:block z-10">
+              Escribe el motivo para continuar.
+            </div>
+          </div>
         </div>
       </div>
     </div>

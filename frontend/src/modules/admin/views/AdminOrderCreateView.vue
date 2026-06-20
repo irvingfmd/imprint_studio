@@ -191,9 +191,14 @@
       </AppCard>
 
       <AppAlert :message="errorMessage" />
-      <AppButton type="submit" size="lg" class="w-full" :loading="loading" :disabled="!selectedCustomer">
-        Crear pedido
-      </AppButton>
+      <div class="relative group/submit">
+        <AppButton type="submit" size="lg" class="w-full" :loading="loading" :disabled="!selectedCustomer">
+          Crear pedido
+        </AppButton>
+        <div v-if="!selectedCustomer" class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 w-56 text-xs text-center bg-gray-900 border border-gray-700 text-gray-400 rounded-lg px-2 py-1.5 hidden group-hover/submit:block z-10">
+          Busca y selecciona un cliente primero.
+        </div>
+      </div>
     </form>
   </div>
 </template>
