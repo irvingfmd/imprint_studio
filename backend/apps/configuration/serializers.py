@@ -23,6 +23,7 @@ class BusinessConfigSerializer(serializers.ModelSerializer):
             "urgent_multiplier",
             "express_multiplier",
             "full_payment_discount_percentage",
+            "tax_percentage",
             "deposit_deadline_hours",
             "balance_deadline_days",
         ]

@@ -122,7 +122,8 @@ class TestQuoteCalculatorService:
         assert result["subtotal"] == Decimal("335.75")
         assert result["profit_amount"] == Decimal("100.73")
         assert result["discount_amount"] == Decimal("0.00")
-        assert result["total_price"] == Decimal("436.48")
+        assert result["tax_amount"] == Decimal("69.84")
+        assert result["total_price"] == Decimal("506.31")
 
     def test_calculo_urgente_aplica_multiplicador(self, db):
         """Caso 25: prioridad URGENT aplica urgent_multiplier = 1.30."""
@@ -190,7 +191,8 @@ class TestQuoteCalculatorService:
         # El documento muestra 414.66, pero usa total_before_discount redondeado (436.48).
         # El código opera con el valor exacto (436.475), por eso el total real es 414.65.
         assert result["discount_amount"] == Decimal("21.82")
-        assert result["total_price"] == Decimal("414.65")
+        assert result["tax_amount"] == Decimal("66.34")
+        assert result["total_price"] == Decimal("481.00")
 
     def test_sin_pago_completo_no_hay_descuento(self, db):
         config = _make_config()

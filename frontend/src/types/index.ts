@@ -78,6 +78,7 @@ export interface Quote {
   subtotal: string
   profit_amount: string
   discount_amount: string
+  tax_amount: string
   total_price: string
   quote_status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED'
   expires_at?: string | null
@@ -97,6 +98,7 @@ export interface QuoteCalculation {
   subtotal: string
   profit_amount: string
   discount_amount: string
+  tax_amount: string
   total_price: string
 }
 
@@ -178,6 +180,7 @@ export interface BusinessConfig {
   urgent_multiplier: string
   express_multiplier: string
   full_payment_discount_percentage: string
+  tax_percentage: string
   deposit_deadline_hours: number | string
   balance_deadline_days: number | string
 }

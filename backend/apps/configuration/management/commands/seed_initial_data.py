@@ -39,6 +39,7 @@ class Command(BaseCommand):
             urgent_multiplier="1.30",
             express_multiplier="1.50",
             full_payment_discount_percentage="5.00",
+            tax_percentage="16.00",
             deposit_deadline_hours=72,
             balance_deadline_days=7,
             is_active=True,

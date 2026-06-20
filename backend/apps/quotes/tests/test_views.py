@@ -473,7 +473,7 @@ class TestCalculatorView:
         )
         assert resp.status_code == 200
         data = resp.data["data"]
-        assert data["total_price"] == Decimal("436.48")
+        assert data["total_price"] == Decimal("506.31")
         assert data["discount_amount"] == Decimal("0.00")
 
     def test_calcula_con_pago_completo(self, admin_client):
@@ -494,9 +494,8 @@ class TestCalculatorView:
         )
         assert resp.status_code == 200
         data = resp.data["data"]
-        # El cálculo usa intermedios exactos: total_price real = 414.65 (ver test_services)
         assert data["discount_amount"] == Decimal("21.82")
-        assert data["total_price"] == Decimal("414.65")
+        assert data["total_price"] == Decimal("481.00")
 
     def test_cliente_en_endpoint_admin_recibe_403(self, auth_client):
         # Caso 61

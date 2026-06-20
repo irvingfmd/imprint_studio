@@ -44,6 +44,9 @@ class BusinessConfig(models.Model):
     # Descuentos
     full_payment_discount_percentage = models.DecimalField(max_digits=5, decimal_places=2)
 
+    # Impuestos
+    tax_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=16)
+
     # Plazos
     deposit_deadline_hours = models.PositiveIntegerField()
     balance_deadline_days = models.PositiveIntegerField()

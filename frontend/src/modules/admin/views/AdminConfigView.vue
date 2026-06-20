@@ -79,13 +79,15 @@
           </div>
         </AppCard>
         <AppCard>
-          <h3 class="text-sm font-medium text-gray-400 mb-4">Ganancia y descuentos</h3>
+          <h3 class="text-sm font-medium text-gray-400 mb-4">Ganancia, descuentos e impuestos</h3>
           <div class="grid grid-cols-2 gap-4">
             <AppInput v-model="config.profit_margin_percentage" label="Margen de ganancia (%)" type="number" />
             <AppInput v-model="config.full_payment_discount_percentage" label="Descuento pago completo (%)" type="number" />
             <AppInput v-model="config.urgent_multiplier" label="Multiplicador urgente" type="number" />
             <AppInput v-model="config.express_multiplier" label="Multiplicador express" type="number" />
+            <AppInput v-model="config.tax_percentage" label="IVA (%)" type="number" />
           </div>
+          <p class="text-xs text-gray-500 mt-2">El IVA se aplica sobre el precio antes de impuestos. Ponlo en 0 si no aplica en tu régimen fiscal.</p>
         </AppCard>
         <AppCard>
           <h3 class="text-sm font-medium text-gray-400 mb-4">Plazos de pago</h3>

@@ -79,6 +79,7 @@ class Quote(models.Model):
         decimal_places=2,
         default=0,
     )
+    tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
 
     quote_status = models.CharField(
@@ -141,6 +142,7 @@ class QuoteSnapshot(models.Model):
     urgent_multiplier = models.DecimalField(max_digits=5, decimal_places=2)
     express_multiplier = models.DecimalField(max_digits=5, decimal_places=2)
     full_payment_discount_percentage = models.DecimalField(max_digits=5, decimal_places=2)
+    tax_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=16)
 
     # Copia de la impresora usada
     printer_name = models.CharField(max_length=255, blank=True, default="")

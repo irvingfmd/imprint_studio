@@ -206,6 +206,9 @@ class QuotePDFService:
         if quote.discount_amount > 0:
             data.append(["Descuento (pago total)", f"-${quote.discount_amount:,.2f} MXN"])
 
+        if quote.tax_amount > 0:
+            data.append(["IVA", f"${quote.tax_amount:,.2f} MXN"])
+
         # Fila de total
         data.append(["TOTAL", f"${quote.total_price:,.2f} MXN"])
 

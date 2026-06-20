@@ -85,7 +85,9 @@ class QuoteCalculatorService:
         if full_payment_selected:
             discount_amount = total_before_discount * (config.full_payment_discount_percentage / Decimal("100"))
 
-        total_price = total_before_discount - discount_amount
+        price_before_tax = total_before_discount - discount_amount
+        tax_amount = price_before_tax * (config.tax_percentage / Decimal("100"))
+        total_price = price_before_tax + tax_amount
 
         return {
             "material_cost": _round_money(material_cost),
@@ -101,6 +103,7 @@ class QuoteCalculatorService:
             "subtotal": _round_money(subtotal),
             "profit_amount": _round_money(profit_amount),
             "discount_amount": _round_money(discount_amount),
+            "tax_amount": _round_money(tax_amount),
             "total_price": _round_money(total_price),
             "config": config,
             "printer": printer,
@@ -169,6 +172,7 @@ class QuoteService:
             subtotal=result["subtotal"],
             profit_amount=result["profit_amount"],
             discount_amount=Decimal("0.00"),
+            tax_amount=result["tax_amount"],
             total_price=result["total_price"],
             quote_status=QuoteStatus.PENDING,
             expires_at=quote_expires_at,
@@ -186,6 +190,7 @@ class QuoteService:
             urgent_multiplier=config.urgent_multiplier,
             express_multiplier=config.express_multiplier,
             full_payment_discount_percentage=config.full_payment_discount_percentage,
+            tax_percentage=config.tax_percentage,
             printer_name=str(printer) if printer else "",
             printer_power_watts=printer.power_watts if printer else None,
         )
@@ -232,21 +237,26 @@ class QuoteService:
 
         # Aplica descuento para pago completo
         discount_amount = Decimal("0.00")
+        tax_amount = quote.tax_amount
         if payment_option == "FULL_PAYMENT":
             try:
                 snapshot = quote.snapshot
+                price_before_tax = quote.total_price - quote.tax_amount
                 discount_amount = _round_money(
-                    quote.total_price * (snapshot.full_payment_discount_percentage / Decimal("100"))
+                    price_before_tax * (snapshot.full_payment_discount_percentage / Decimal("100"))
                 )
+                new_base = price_before_tax - discount_amount
+                tax_amount = _round_money(new_base * (snapshot.tax_percentage / Decimal("100")))
             except Quote.snapshot.RelatedObjectDoesNotExist:
                 pass
 
-        final_total = quote.total_price - discount_amount
+        final_total = quote.total_price - quote.tax_amount - discount_amount + tax_amount
         quote.discount_amount = discount_amount
+        quote.tax_amount = tax_amount
         quote.total_price = final_total
         quote.quote_status = QuoteStatus.ACCEPTED
         quote.accepted_at = now
-        quote.save(update_fields=["discount_amount", "total_price", "quote_status", "accepted_at", "updated_at"])
+        quote.save(update_fields=["discount_amount", "tax_amount", "total_price", "quote_status", "accepted_at", "updated_at"])
 
         # Monto del pago según modalidad
         from apps.payments.models import Payment, PaymentMethod, PaymentStatus, PaymentType

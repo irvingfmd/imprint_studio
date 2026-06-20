@@ -198,6 +198,9 @@
           <div class="flex justify-between text-gray-400 pt-1 border-t border-gray-700">
             <span>Subtotal + margen</span><span class="text-gray-300">{{ formatMXN(quotePreview.subtotal) }}</span>
           </div>
+          <div v-if="Number(quotePreview.tax_amount) > 0" class="flex justify-between text-gray-400">
+            <span>IVA</span><span class="text-gray-300">{{ formatMXN(quotePreview.tax_amount) }}</span>
+          </div>
           <div class="flex justify-between font-semibold text-white pt-1 border-t border-gray-600">
             <span>Total estimado</span><span>{{ formatMXN(quotePreview.total_price) }}</span>
           </div>
@@ -249,6 +252,9 @@
           </div>
           <div v-if="Number(activeQuote.shipping_cost) > 0" class="flex justify-between text-gray-400">
             <span>Envío</span><span class="text-gray-300">{{ formatMXN(activeQuote.shipping_cost) }}</span>
+          </div>
+          <div v-if="Number(activeQuote.tax_amount) > 0" class="flex justify-between text-gray-400 pt-1 border-t border-gray-700">
+            <span>IVA</span><span class="text-gray-300">{{ formatMXN(activeQuote.tax_amount) }}</span>
           </div>
         </div>
 

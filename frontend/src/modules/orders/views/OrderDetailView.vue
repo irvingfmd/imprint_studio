@@ -134,6 +134,9 @@
           <div v-if="Number(activeQuote.discount_amount) > 0" class="flex justify-between text-green-400">
             <span>Descuento por pago completo</span><span>-{{ formatMXN(activeQuote.discount_amount) }}</span>
           </div>
+          <div v-if="Number(activeQuote.tax_amount) > 0" class="flex justify-between text-gray-400">
+            <span>IVA</span><span class="text-gray-300">{{ formatMXN(activeQuote.tax_amount) }}</span>
+          </div>
           <div class="flex justify-between font-semibold text-white pt-2 border-t border-gray-700">
             <span>Total</span><span>{{ formatMXN(activeQuote.total_price) }}</span>
           </div>
