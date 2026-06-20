@@ -38,6 +38,7 @@ class QuoteCalculatorService:
         full_payment_selected: bool,
         printer: "Printer | None" = None,
         config: BusinessConfig | None = None,
+        include_post_processing: bool = True,
     ) -> dict:
         """
         Calcula el desglose de costos.
@@ -60,7 +61,7 @@ class QuoteCalculatorService:
             energy_cost = Decimal("0.00")
 
         labor_cost = print_time_hours * config.labor_cost_per_hour
-        post_processing_cost = weight_grams * config.post_processing_cost_per_gram
+        post_processing_cost = (weight_grams * config.post_processing_cost_per_gram) if include_post_processing else Decimal("0.00")
         packaging_cost = config.packaging_cost
         risk_cost = (material_cost + energy_cost) * (config.failure_percentage / Decimal("100"))
 
@@ -116,6 +117,7 @@ class QuoteService:
         shipping_cost: Decimal,
         created_by,
         printer_id: str | None = None,
+        include_post_processing: bool = True,
     ) -> Quote:
         """
         Crea una cotización para el pedido con datos reales de Bambu Studio.
@@ -144,6 +146,7 @@ class QuoteService:
             shipping_cost=shipping_cost,
             full_payment_selected=False,
             printer=printer,
+            include_post_processing=include_post_processing,
         )
         config: BusinessConfig = result["config"]
 

@@ -160,6 +160,12 @@
           </div>
         </div>
 
+        <label class="flex items-center gap-2 mt-3 cursor-pointer">
+          <input type="checkbox" v-model="quoteForm.include_post_processing" class="rounded border-gray-600 bg-gray-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-0" />
+          <span class="text-sm text-gray-300">Incluir post-procesado</span>
+          <span class="text-xs text-gray-500">(lijado, soportes, acabado)</span>
+        </label>
+
         <!-- Desglose detallado del cálculo -->
         <div v-if="quotePreview" class="mt-4 p-3 bg-gray-900/60 rounded-lg text-sm space-y-1.5 border border-gray-700">
           <p class="text-xs font-medium text-gray-400 mb-2">Desglose de costos:</p>
@@ -404,7 +410,7 @@ const calculating = ref(false)
 const creatingQuote = ref(false)
 const quotePreview = ref<QuoteCalculation | null>(null)
 const quoteErrors = ref<Record<string, string>>({})
-const quoteForm = ref({ weight_grams: '', print_time_hours: '', shipping_cost: '0', printer_id: '' as string | null })
+const quoteForm = ref({ weight_grams: '', print_time_hours: '', shipping_cost: '0', printer_id: '' as string | null, include_post_processing: true })
 const printers = ref<Printer[]>([])
 const creatingShipment = ref(false)
 const markingDelivered = ref(false)
@@ -580,6 +586,7 @@ async function handleCalculate() {
       priority: order.value?.priority ?? 'NORMAL',
       full_payment_selected: false,
       printer_id: quoteForm.value.printer_id || null,
+      include_post_processing: quoteForm.value.include_post_processing,
     })
     quotePreview.value = result
   } catch (err: any) {
@@ -598,10 +605,11 @@ async function handleCreateQuote() {
       print_time_hours: quoteForm.value.print_time_hours,
       shipping_cost: quoteForm.value.shipping_cost,
       printer_id: quoteForm.value.printer_id || null,
+      include_post_processing: quoteForm.value.include_post_processing,
     })
     toast.show('Cotización creada y enviada al cliente.')
     quotePreview.value = null
-    quoteForm.value = { weight_grams: '', print_time_hours: '', shipping_cost: '0', printer_id: '' }
+    quoteForm.value = { weight_grams: '', print_time_hours: '', shipping_cost: '0', printer_id: '', include_post_processing: true }
     await reload()
   } catch (err: any) {
     errorMessage.value = err.response?.data?.message ?? 'Error al crear la cotización'

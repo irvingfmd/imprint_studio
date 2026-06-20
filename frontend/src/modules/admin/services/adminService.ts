@@ -57,6 +57,7 @@ export async function createQuote(orderId: string, payload: {
   print_time_hours: string
   shipping_cost: string
   printer_id?: string | null
+  include_post_processing?: boolean
 }): Promise<{ quote_id: string; total_price: string }> {
   const { data } = await api.post(`/admin/orders/${orderId}/quote/`, payload)
   return data.data
@@ -73,6 +74,7 @@ export async function calculateQuote(payload: {
   priority: string
   full_payment_selected: boolean
   printer_id?: string | null
+  include_post_processing?: boolean
 }): Promise<any> {
   const { data } = await api.post('/admin/calculator/calculate/', payload)
   return data.data

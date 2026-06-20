@@ -179,6 +179,7 @@ class AdminCreateQuoteView(APIView):
                 printer_id=str(serializer.validated_data["printer_id"])
                 if serializer.validated_data.get("printer_id")
                 else None,
+                include_post_processing=serializer.validated_data.get("include_post_processing", True),
             )
         except ValueError as e:
             return error_response(str(e), status_code=status.HTTP_400_BAD_REQUEST)
@@ -235,6 +236,7 @@ class CalculatorView(APIView):
                 shipping_cost=serializer.validated_data.get("shipping_cost", 0),
                 full_payment_selected=serializer.validated_data.get("full_payment_selected", False),
                 printer=printer,
+                include_post_processing=serializer.validated_data.get("include_post_processing", True),
             )
         except ValueError as e:
             return error_response(str(e), status_code=status.HTTP_400_BAD_REQUEST)

@@ -67,6 +67,7 @@ class CreateQuoteSerializer(serializers.Serializer):
         default=Decimal("0.00"),
     )
     printer_id = serializers.UUIDField(required=False, allow_null=True, default=None)
+    include_post_processing = serializers.BooleanField(default=True)
 
 
 class AcceptQuoteSerializer(serializers.Serializer):
@@ -90,3 +91,4 @@ class CalculateSerializer(serializers.Serializer):
     )
     full_payment_selected = serializers.BooleanField(default=False)
     printer_id = serializers.UUIDField(required=False, allow_null=True, default=None)
+    include_post_processing = serializers.BooleanField(default=True)
