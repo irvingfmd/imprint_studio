@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     "apps.shipping",
     "apps.notifications",
     "apps.faq",
+    "apps.reviews",
     # Django core
     "django.contrib.admin",
     "django.contrib.auth",

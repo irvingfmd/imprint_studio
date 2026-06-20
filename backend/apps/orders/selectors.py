@@ -5,7 +5,7 @@ Encapsulan las consultas a la base de datos.
 
 from django.db.models import QuerySet
 
-from .models import Order, RequestFile
+from .models import InternalNote, Order, RequestFile
 
 
 def get_order_by_id(order_id: str) -> Order | None:
@@ -50,3 +50,7 @@ def get_all_orders(
 
 def get_files_for_order(order_id: str) -> QuerySet:
     return RequestFile.objects.filter(order_id=order_id).order_by("uploaded_at")
+
+
+def get_internal_notes_for_order(order_id: str) -> QuerySet:
+    return InternalNote.objects.select_related("created_by").filter(order_id=order_id)

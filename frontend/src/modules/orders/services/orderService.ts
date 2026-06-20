@@ -55,6 +55,11 @@ export async function addWebModelLink(orderId: string, url: string, modelName: s
   })
 }
 
+export async function repeatOrder(orderId: string): Promise<{ id: string; status: string }> {
+  const { data } = await api.post(`/orders/${orderId}/repeat/`)
+  return data.data
+}
+
 export async function listProductionHistory(orderId: string): Promise<PaginatedResponse<ProductionHistoryEntry>> {
   const { data } = await api.get(`/orders/${orderId}/production-history/`)
   return data.data

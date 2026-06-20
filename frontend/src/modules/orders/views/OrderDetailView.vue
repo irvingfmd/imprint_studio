@@ -267,9 +267,12 @@
         </div>
       </AppCard>
 
-      <!-- Cancelar pedido -->
-      <div v-if="canCancel" class="mt-4">
-        <AppButton variant="danger" size="sm" @click="showCancelModal = true">
+      <!-- Acciones del pedido -->
+      <div class="flex gap-2 mt-4">
+        <AppButton v-if="canRepeat" variant="secondary" size="sm" :loading="repeating" @click="handleRepeat">
+          Repetir pedido
+        </AppButton>
+        <AppButton v-if="canCancel" variant="danger" size="sm" @click="showCancelModal = true">
           Cancelar pedido
         </AppButton>
       </div>
@@ -326,7 +329,7 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppAlert from '@/components/ui/AppAlert.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
-import { getOrder, listProductionHistory, cancelOrder, listOrderFiles, uploadOrderFile } from '../services/orderService'
+import { getOrder, listProductionHistory, cancelOrder, repeatOrder, listOrderFiles, uploadOrderFile } from '../services/orderService'
 import { listOrderQuotes, acceptQuote, rejectQuote, downloadQuotePDF } from '@/modules/quotes/services/quoteService'
 import { listOrderPayments, uploadPaymentProof } from '@/modules/payments/services/paymentService'
 import { formatMXN, formatDate, formatDateTime, ORDER_STATUS_LABELS, PRIORITY_LABELS, PAYMENT_TYPE_LABELS, REQUEST_TYPE_LABELS, DELIVERY_METHOD_LABELS } from '@/utils/formatters'
@@ -357,8 +360,10 @@ const cancelReason = ref('')
 const proofInput = ref<HTMLInputElement | null>(null)
 const addFileInput = ref<HTMLInputElement | null>(null)
 const uploadingFile = ref(false)
+const repeating = ref(false)
 
 const CANCELLABLE_STATUSES = ['RECEIVED', 'PENDING_ANALYSIS', 'QUOTED', 'APPROVED', 'PENDING_DEPOSIT']
+const NON_REPEATABLE = ['RECEIVED', 'PENDING_ANALYSIS']
 
 function timelineDotClass(status: string, idx: number): string {
   if (status === 'CANCELLED') return 'w-5 h-5 bg-red-900 border-red-500'
@@ -367,6 +372,7 @@ function timelineDotClass(status: string, idx: number): string {
 }
 
 const canCancel = computed(() => order.value && CANCELLABLE_STATUSES.includes(order.value.status))
+const canRepeat = computed(() => order.value && !NON_REPEATABLE.includes(order.value.status))
 const pendingPayment = computed(() => payments.value.find(p => p.payment_status === 'PENDING'))
 const canUploadFiles = computed(() =>
   order.value &&
@@ -478,6 +484,20 @@ async function handleCancel() {
     showCancelModal.value = false
   } finally {
     cancelling.value = false
+  }
+}
+
+async function handleRepeat() {
+  repeating.value = true
+  errorMessage.value = ''
+  try {
+    const result = await repeatOrder(orderId)
+    toast.show('Pedido duplicado correctamente.')
+    router.push(`/orders/${result.id}`)
+  } catch (err: any) {
+    errorMessage.value = err.response?.data?.message ?? 'Error al repetir el pedido'
+  } finally {
+    repeating.value = false
   }
 }
 

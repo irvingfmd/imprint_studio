@@ -5,7 +5,7 @@ Toda la lógica de negocio de pedidos vive aquí.
 
 from django.db import transaction
 
-from .models import EventType, Order, OrderEvent, OrderStatus, RequestFile, RequestType
+from .models import EventType, InternalNote, Order, OrderEvent, OrderStatus, RequestFile, RequestType
 
 
 class OrderService:
@@ -45,6 +45,24 @@ class OrderService:
         NotificationService.notify_admin_new_order(order)
 
         return order
+
+    @staticmethod
+    @transaction.atomic
+    def repeat_order(original_order: Order, customer) -> Order:
+        """Clona un pedido existente como uno nuevo. No copia archivos, pagos ni estado."""
+        return OrderService.create_order(
+            customer=customer,
+            data={
+                "request_type": original_order.request_type,
+                "title": original_order.title,
+                "description": original_order.description,
+                "color": original_order.color,
+                "quantity": original_order.quantity,
+                "dimensions_notes": original_order.dimensions_notes,
+                "priority": original_order.priority,
+                "delivery_method": original_order.delivery_method,
+            },
+        )
 
     @staticmethod
     @transaction.atomic
@@ -105,3 +123,13 @@ class OrderService:
         )
 
         return request_file
+
+
+class InternalNoteService:
+    @staticmethod
+    def create_note(order: Order, user, content: str) -> InternalNote:
+        return InternalNote.objects.create(
+            order=order,
+            created_by=user,
+            content=content,
+        )

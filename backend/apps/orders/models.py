@@ -287,3 +287,37 @@ class OrderEvent(models.Model):
 
     def __str__(self) -> str:
         return f"{self.event_type} — Order {self.order_id}"
+
+
+class InternalNote(models.Model):
+    """Nota interna de un pedido. Solo visible para administradores."""
+
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="internal_notes",
+    )
+
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="internal_notes",
+    )
+
+    content = models.TextField()
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "internal_notes"
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"Nota — Order {self.order_id}"

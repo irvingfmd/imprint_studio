@@ -5,7 +5,7 @@ Serializers para la app orders.
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 
-from .models import DeliveryMethod, FileType, Order, OrderPriority, RequestFile, RequestType
+from .models import DeliveryMethod, FileType, InternalNote, Order, OrderPriority, RequestFile, RequestType
 
 
 class OrderListSerializer(serializers.ModelSerializer):
@@ -145,6 +145,22 @@ class AdminOrderCreateSerializer(serializers.Serializer):
     dimensions_notes = serializers.CharField(required=False, default="", allow_blank=True)
     priority = serializers.ChoiceField(choices=OrderPriority.choices, default=OrderPriority.NORMAL)
     delivery_method = serializers.ChoiceField(choices=DeliveryMethod.choices, default=DeliveryMethod.PICKUP)
+
+
+class InternalNoteSerializer(serializers.ModelSerializer):
+    created_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = InternalNote
+        fields = ["id", "content", "created_by", "created_by_name", "created_at"]
+        read_only_fields = fields
+
+    def get_created_by_name(self, obj) -> str:
+        return obj.created_by.first_name if obj.created_by else ""
+
+
+class CreateInternalNoteSerializer(serializers.Serializer):
+    content = serializers.CharField(max_length=2000)
 
 
 class AdminOrderListSerializer(serializers.ModelSerializer):

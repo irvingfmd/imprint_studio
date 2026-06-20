@@ -20,6 +20,8 @@ from .serializers import (
     AdminOrderListSerializer,
     AssignShippingAddressSerializer,
     CancelOrderSerializer,
+    CreateInternalNoteSerializer,
+    InternalNoteSerializer,
     OrderCreateSerializer,
     OrderDetailSerializer,
     OrderListSerializer,
@@ -103,6 +105,28 @@ class CancelOrderView(APIView):
             return error_response(str(e), status_code=status.HTTP_400_BAD_REQUEST)
 
         return success_response(data={}, message="Order cancelled")
+
+
+class RepeatOrderView(APIView):
+    """Clona un pedido existente como uno nuevo. Solo el dueño del pedido."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, order_id):
+        order = selectors.get_order_by_id(str(order_id))
+        if not order:
+            return error_response("Order not found", status_code=status.HTTP_404_NOT_FOUND)
+        if order.customer_id != request.user.id:
+            return error_response("Permission denied", status_code=status.HTTP_403_FORBIDDEN)
+
+        new_order = services.OrderService.repeat_order(
+            original_order=order,
+            customer=request.user,
+        )
+        return created_response(
+            data={"id": str(new_order.id), "status": new_order.status},
+            message="Order repeated",
+        )
 
 
 class AssignShippingAddressView(APIView):
@@ -306,6 +330,40 @@ class AdminOrderDetailView(APIView):
 
         serializer = AdminOrderDetailSerializer(order)
         return success_response(data=serializer.data, message="Order retrieved")
+
+
+class AdminInternalNotesView(APIView):
+    """Lista y crea notas internas de un pedido. Solo administradores."""
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request, order_id):
+        order = selectors.get_order_by_id(str(order_id))
+        if not order:
+            return error_response("Order not found", status_code=status.HTTP_404_NOT_FOUND)
+        notes = selectors.get_internal_notes_for_order(str(order_id))
+        serializer = InternalNoteSerializer(notes, many=True)
+        return success_response(
+            data={"count": notes.count(), "results": serializer.data},
+            message="Internal notes retrieved",
+        )
+
+    def post(self, request, order_id):
+        serializer = CreateInternalNoteSerializer(data=request.data)
+        if not serializer.is_valid():
+            return error_response("Validation error", errors=serializer.errors)
+        order = selectors.get_order_by_id(str(order_id))
+        if not order:
+            return error_response("Order not found", status_code=status.HTTP_404_NOT_FOUND)
+        note = services.InternalNoteService.create_note(
+            order=order,
+            user=request.user,
+            content=serializer.validated_data["content"],
+        )
+        return created_response(
+            data=InternalNoteSerializer(note).data,
+            message="Internal note created",
+        )
 
 
 class AdminDashboardView(APIView):

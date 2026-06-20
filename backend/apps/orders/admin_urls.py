@@ -10,7 +10,7 @@ from apps.production.views import AdminCancelOrderView, AdminRevertOrderStatusVi
 from apps.quotes.views import AdminCreateQuoteView
 from apps.shipping.views import AdminCreateShipmentView
 
-from .views import AdminOrderCreateView, AdminOrderDetailView, AdminOrderListView
+from .views import AdminInternalNotesView, AdminOrderCreateView, AdminOrderDetailView, AdminOrderListView
 
 urlpatterns = [
     # GET /api/v1/admin/orders/
@@ -37,4 +37,6 @@ urlpatterns = [
     ),
     # POST /api/v1/admin/orders/{order_id}/refund/
     path("<uuid:order_id>/refund/", AdminRefundView.as_view(), name="admin-order-refund"),
+    # GET/POST /api/v1/admin/orders/{order_id}/notes/
+    path("<uuid:order_id>/notes/", AdminInternalNotesView.as_view(), name="admin-order-notes"),
 ]

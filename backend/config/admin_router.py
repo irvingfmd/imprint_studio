@@ -26,4 +26,6 @@ urlpatterns = [
     path("users/", include("apps.authentication.admin_urls")),
     # FAQ
     path("faq/", include("apps.faq.admin_urls")),
+    # Reseñas
+    path("reviews/", include("apps.reviews.admin_urls")),
 ]

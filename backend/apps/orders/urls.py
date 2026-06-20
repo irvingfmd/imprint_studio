@@ -3,7 +3,7 @@ URLs de la app orders para clientes.
 Incluye rutas nested de payments, production, quotes, eventos y archivos.
 """
 
-from django.urls import path
+from django.urls import include, path
 
 from apps.payments.views import OrderPaymentListView
 from apps.production.views import (
@@ -19,6 +19,7 @@ from .views import (
     OrderDetailView,
     OrderFileListUploadView,
     OrderListCreateView,
+    RepeatOrderView,
 )
 
 urlpatterns = [
@@ -28,6 +29,8 @@ urlpatterns = [
     path("<uuid:order_id>/", OrderDetailView.as_view(), name="order-detail"),
     # PUT /api/v1/orders/{order_id}/cancel/
     path("<uuid:order_id>/cancel/", CancelOrderView.as_view(), name="order-cancel"),
+    # POST /api/v1/orders/{order_id}/repeat/
+    path("<uuid:order_id>/repeat/", RepeatOrderView.as_view(), name="order-repeat"),
     # PUT /api/v1/orders/{order_id}/shipping-address/
     path(
         "<uuid:order_id>/shipping-address/",
@@ -54,4 +57,6 @@ urlpatterns = [
         OrderEventDetailView.as_view(),
         name="order-event-detail",
     ),
+    # GET/POST /api/v1/orders/{order_id}/review/
+    path("<uuid:order_id>/review/", include("apps.reviews.urls")),
 ]

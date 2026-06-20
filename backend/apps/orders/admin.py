@@ -4,7 +4,7 @@ Registro de modelos de orders en el panel de administración Django.
 
 from django.contrib import admin
 
-from .models import Order, OrderEvent, RequestFile
+from .models import InternalNote, Order, OrderEvent, RequestFile
 
 
 @admin.register(Order)
@@ -28,5 +28,12 @@ class RequestFileAdmin(admin.ModelAdmin):
 class OrderEventAdmin(admin.ModelAdmin):
     list_display = ["event_type", "order", "created_by", "created_at"]
     list_filter = ["event_type"]
+    readonly_fields = ["id", "created_at"]
+    ordering = ["-created_at"]
+
+
+@admin.register(InternalNote)
+class InternalNoteAdmin(admin.ModelAdmin):
+    list_display = ["order", "created_by", "created_at"]
     readonly_fields = ["id", "created_at"]
     ordering = ["-created_at"]
