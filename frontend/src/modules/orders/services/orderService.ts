@@ -69,3 +69,12 @@ export async function listOrderEvents(orderId: string): Promise<PaginatedRespons
   const { data } = await api.get(`/orders/${orderId}/events/`)
   return data.data
 }
+
+export async function getReview(orderId: string): Promise<{ id: string; rating: number; comment: string; created_at: string } | null> {
+  const { data } = await api.get(`/orders/${orderId}/review/`)
+  return data.data
+}
+
+export async function createReview(orderId: string, rating: number, comment: string): Promise<void> {
+  await api.post(`/orders/${orderId}/review/create/`, { rating, comment })
+}

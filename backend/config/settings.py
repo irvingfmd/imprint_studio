@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "apps.notifications",
     "apps.faq",
     "apps.reviews",
+    "apps.materials",
     # Django core
     "django.contrib.admin",
     "django.contrib.auth",

@@ -7,7 +7,13 @@ Documentadas en 04-api-specification.md bajo /api/v1/admin/
 
 from django.urls import include, path
 
+from apps.orders.views import AdminExportOrdersCSVView
+from apps.payments.views import AdminExportPaymentsCSVView
+
 urlpatterns = [
+    # Exportaciones CSV
+    path("export/orders/", AdminExportOrdersCSVView.as_view(), name="admin-export-orders"),
+    path("export/payments/", AdminExportPaymentsCSVView.as_view(), name="admin-export-payments"),
     # Pedidos
     path("orders/", include("apps.orders.admin_urls")),
     # Cotizaciones
@@ -28,4 +34,6 @@ urlpatterns = [
     path("faq/", include("apps.faq.admin_urls")),
     # Reseñas
     path("reviews/", include("apps.reviews.admin_urls")),
+    # Materiales
+    path("materials/", include("apps.materials.admin_urls")),
 ]

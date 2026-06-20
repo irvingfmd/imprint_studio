@@ -236,6 +236,7 @@ class EventType(models.TextChoices):
     REFUND_REQUESTED = "REFUND_REQUESTED", "Refund Requested"
     REFUND_PROCESSED = "REFUND_PROCESSED", "Refund Processed"
     ORDER_CANCELLED = "ORDER_CANCELLED", "Order Cancelled"
+    DEPOSIT_REMINDER = "DEPOSIT_REMINDER", "Deposit Reminder"
 
 
 class OrderEvent(models.Model):

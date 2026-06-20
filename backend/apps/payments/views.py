@@ -160,6 +160,39 @@ class AdminPaymentListView(APIView):
         )
 
 
+class AdminExportPaymentsCSVView(APIView):
+    """Exporta pagos a CSV con filtros opcionales. Solo administradores."""
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        import csv
+
+        from django.http import HttpResponse
+
+        payments = selectors.get_all_payments(
+            payment_status=request.query_params.get("status"),
+            created_from=request.query_params.get("created_from"),
+            created_to=request.query_params.get("created_to"),
+        )
+
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="pagos.csv"'
+        writer = csv.writer(response)
+        writer.writerow(["id", "pedido_id", "monto", "tipo", "metodo", "estado", "creado"])
+        for p in payments:
+            writer.writerow([
+                str(p.id),
+                str(p.order_id),
+                str(p.amount),
+                p.payment_type,
+                p.payment_method,
+                p.payment_status,
+                p.created_at.strftime("%Y-%m-%d %H:%M"),
+            ])
+        return response
+
+
 class AdminConfirmPaymentView(APIView):
     """Confirma un pago pendiente. Solo administradores."""
 

@@ -158,6 +158,22 @@ export interface OrderEvent {
   created_at: string
 }
 
+export type MaterialType = 'PLA' | 'PETG' | 'ABS' | 'TPU' | 'RESIN' | 'OTHER'
+
+export interface Material {
+  id: string
+  name: string
+  material_type: MaterialType
+  brand: string
+  available_colors: string[]
+  price_per_kg: string
+  stock_grams: string
+  min_stock_grams: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
 export interface Printer {
   id: string
   name: string

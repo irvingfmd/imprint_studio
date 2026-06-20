@@ -267,6 +267,48 @@
         </div>
       </AppCard>
 
+      <!-- Reseña -->
+      <AppCard v-if="order.status === 'DELIVERED'" class="mb-4">
+        <template v-if="review">
+          <h3 class="text-sm font-medium text-gray-400 mb-2">Tu calificación</h3>
+          <div class="flex items-center gap-1 mb-1">
+            <span v-for="s in 5" :key="s" class="text-lg" :class="s <= review.rating ? 'text-yellow-400' : 'text-gray-700'">★</span>
+          </div>
+          <p v-if="review.comment" class="text-sm text-gray-300 mt-1">{{ review.comment }}</p>
+          <p class="text-xs text-gray-500 mt-2">{{ formatDate(review.created_at) }}</p>
+        </template>
+
+        <template v-else>
+          <h3 class="text-sm font-medium text-gray-400 mb-3">¿Cómo estuvo tu pedido?</h3>
+          <div class="flex items-center gap-1 mb-3">
+            <button
+              v-for="s in 5"
+              :key="s"
+              type="button"
+              class="text-2xl transition-colors"
+              :class="s <= reviewRating ? 'text-yellow-400' : 'text-gray-700 hover:text-yellow-600'"
+              @click="reviewRating = s"
+            >
+              ★
+            </button>
+          </div>
+          <textarea
+            v-model="reviewComment"
+            rows="2"
+            placeholder="Deja un comentario (opcional)"
+            class="w-full rounded-lg bg-gray-800 border border-gray-700 text-gray-100 placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none mb-3"
+          />
+          <div class="relative group/review inline-block">
+            <AppButton size="sm" :loading="submittingReview" :disabled="reviewRating === 0" @click="handleSubmitReview">
+              Enviar calificación
+            </AppButton>
+            <div v-if="reviewRating === 0" class="absolute bottom-full left-0 mb-1 w-52 text-xs bg-gray-900 border border-gray-700 text-gray-400 rounded-lg px-2 py-1.5 hidden group-hover/review:block z-10">
+              Selecciona al menos una estrella.
+            </div>
+          </div>
+        </template>
+      </AppCard>
+
       <!-- Acciones del pedido -->
       <div class="flex gap-2 mt-4">
         <AppButton v-if="canRepeat" variant="secondary" size="sm" :loading="repeating" @click="handleRepeat">
@@ -329,7 +371,7 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppAlert from '@/components/ui/AppAlert.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
-import { getOrder, listProductionHistory, cancelOrder, repeatOrder, listOrderFiles, uploadOrderFile } from '../services/orderService'
+import { getOrder, listProductionHistory, cancelOrder, repeatOrder, listOrderFiles, uploadOrderFile, getReview, createReview } from '../services/orderService'
 import { listOrderQuotes, acceptQuote, rejectQuote, downloadQuotePDF } from '@/modules/quotes/services/quoteService'
 import { listOrderPayments, uploadPaymentProof } from '@/modules/payments/services/paymentService'
 import { formatMXN, formatDate, formatDateTime, ORDER_STATUS_LABELS, PRIORITY_LABELS, PAYMENT_TYPE_LABELS, REQUEST_TYPE_LABELS, DELIVERY_METHOD_LABELS } from '@/utils/formatters'
@@ -361,6 +403,10 @@ const proofInput = ref<HTMLInputElement | null>(null)
 const addFileInput = ref<HTMLInputElement | null>(null)
 const uploadingFile = ref(false)
 const repeating = ref(false)
+const review = ref<{ id: string; rating: number; comment: string; created_at: string } | null>(null)
+const reviewRating = ref(0)
+const reviewComment = ref('')
+const submittingReview = ref(false)
 
 const CANCELLABLE_STATUSES = ['RECEIVED', 'PENDING_ANALYSIS', 'QUOTED', 'APPROVED', 'PENDING_DEPOSIT']
 const NON_REPEATABLE = ['RECEIVED', 'PENDING_ANALYSIS']
@@ -431,6 +477,14 @@ async function reload() {
   payments.value = paymentsData.results
   history.value = historyData.results
   files.value = filesData.results
+
+  if (orderData.status === 'DELIVERED') {
+    try {
+      review.value = await getReview(orderId)
+    } catch {
+      review.value = null
+    }
+  }
 }
 
 onMounted(async () => {
@@ -551,6 +605,21 @@ async function handleProofUpload(event: Event) {
     errorMessage.value = err.response?.data?.message ?? 'Error al subir el comprobante'
   } finally {
     uploadingProof.value = false
+  }
+}
+
+async function handleSubmitReview() {
+  if (reviewRating.value === 0) return
+  submittingReview.value = true
+  errorMessage.value = ''
+  try {
+    await createReview(orderId, reviewRating.value, reviewComment.value)
+    toast.show('¡Gracias por tu calificación!')
+    review.value = await getReview(orderId)
+  } catch (err: any) {
+    errorMessage.value = err.response?.data?.message ?? 'Error al enviar la calificación'
+  } finally {
+    submittingReview.value = false
   }
 }
 </script>

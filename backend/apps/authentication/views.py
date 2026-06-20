@@ -211,6 +211,57 @@ class AdminRetrieveUserView(APIView):
         return success_response(data=serializer.data, message="User retrieved")
 
 
+class AdminCustomerPaymentHistoryView(APIView):
+    """
+    Historial consolidado de pagos de un cliente.
+    GET /api/v1/admin/users/{user_id}/payments/
+    """
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request: Request, user_id) -> Response:
+        from decimal import Decimal
+
+        from django.db.models import Avg, Count, Sum
+
+        from apps.payments.models import Payment, PaymentStatus
+
+        user = get_user_by_id(str(user_id))
+        if not user:
+            return error_response("User not found", status_code=status.HTTP_404_NOT_FOUND)
+
+        payments = (
+            Payment.objects.filter(
+                order__customer=user,
+                payment_status=PaymentStatus.CONFIRMED,
+                is_deleted=False,
+            )
+            .exclude(payment_type="REFUND")
+            .select_related("order")
+            .order_by("-created_at")
+        )
+
+        agg = payments.aggregate(
+            total_paid=Sum("amount"),
+            total_orders=Count("order_id", distinct=True),
+            average_ticket=Avg("amount"),
+        )
+
+        from apps.payments.serializers import PaymentSerializer
+
+        serializer = PaymentSerializer(payments[:50], many=True)
+
+        return success_response(
+            data={
+                "total_paid": str(agg["total_paid"] or Decimal("0.00")),
+                "total_orders": agg["total_orders"] or 0,
+                "average_ticket": str((agg["average_ticket"] or Decimal("0.00")).quantize(Decimal("0.01"))),
+                "payments": serializer.data,
+            },
+            message="Customer payment history retrieved",
+        )
+
+
 class AdminUpdateUserRoleView(APIView):
     """
     Cambia el rol de un usuario (CUSTOMER ↔ ADMIN).

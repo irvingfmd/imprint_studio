@@ -44,6 +44,7 @@ const router = createRouter({
         { path: 'users', name: 'admin-users', component: () => import('@/modules/admin/views/AdminUsersView.vue') },
         { path: 'config', name: 'admin-config', component: () => import('@/modules/admin/views/AdminConfigView.vue') },
         { path: 'printers', name: 'admin-printers', component: () => import('@/modules/admin/views/AdminPrintersView.vue') },
+        { path: 'materials', name: 'admin-materials', component: () => import('@/modules/admin/views/AdminMaterialsView.vue') },
       ],
     },
 

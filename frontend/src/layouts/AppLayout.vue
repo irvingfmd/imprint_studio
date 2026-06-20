@@ -83,6 +83,7 @@ const adminLinks = [
   { to: '/admin/payments', icon: '💳', label: 'Pagos' },
   { to: '/admin/users', icon: '👥', label: 'Usuarios' },
   { to: '/admin/printers', icon: '🖨️', label: 'Impresoras' },
+  { to: '/admin/materials', icon: '🧪', label: 'Materiales' },
   { to: '/admin/config', icon: '⚙️', label: 'Configuración' },
 ]
 

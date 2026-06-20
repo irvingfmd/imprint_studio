@@ -484,6 +484,40 @@ class AdminDashboardView(APIView):
         )
 
 
+class AdminExportOrdersCSVView(APIView):
+    """Exporta pedidos a CSV con filtros opcionales. Solo administradores."""
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        import csv
+
+        from django.http import HttpResponse
+
+        orders = selectors.get_all_orders(
+            status=request.query_params.get("status"),
+            created_from=request.query_params.get("created_from"),
+            created_to=request.query_params.get("created_to"),
+        )
+
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="pedidos.csv"'
+        writer = csv.writer(response)
+        writer.writerow(["id", "titulo", "telefono_cliente", "estado", "prioridad", "tipo", "pago", "creado"])
+        for o in orders.select_related("customer"):
+            writer.writerow([
+                str(o.id),
+                o.title,
+                o.customer.phone,
+                o.status,
+                o.priority,
+                o.request_type,
+                o.payment_status,
+                o.created_at.strftime("%Y-%m-%d %H:%M"),
+            ])
+        return response
+
+
 def _try_auto_quote(order, file_path: str, user):  # noqa: F821
     """
     Si el archivo es STL y el pedido no tiene cotización activa, genera una auto-cotización.

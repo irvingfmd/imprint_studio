@@ -136,8 +136,7 @@ def remind_pending_deposits() -> None:
     for order in due_soon:
         already_reminded = OrderEvent.objects.filter(
             order=order,
-            event_type=EventType.STATUS_CHANGED,
-            event_description__icontains="recordatorio de anticipo",
+            event_type=EventType.DEPOSIT_REMINDER,
         ).exists()
         if already_reminded:
             continue
@@ -146,7 +145,7 @@ def remind_pending_deposits() -> None:
             NotificationService.notify_deposit_reminder(order, reminder_hours)
             OrderEvent.objects.create(
                 order=order,
-                event_type=EventType.STATUS_CHANGED,
+                event_type=EventType.DEPOSIT_REMINDER,
                 event_description="Recordatorio de anticipo enviado automáticamente.",
                 metadata={"hours_remaining": reminder_hours},
                 created_by=None,

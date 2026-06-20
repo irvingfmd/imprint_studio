@@ -333,6 +333,34 @@
         </AppCard>
       </template>
 
+      <!-- Notas internas (solo admin) -->
+      <AppCard class="mb-4">
+        <h3 class="text-sm font-medium text-gray-400 mb-3">Notas internas</h3>
+        <div v-if="internalNotes.length > 0" class="space-y-3 mb-4">
+          <div v-for="note in internalNotes" :key="note.id" class="text-sm border-l-2 border-gray-700 pl-3">
+            <p class="text-gray-200 whitespace-pre-wrap">{{ note.content }}</p>
+            <p class="text-gray-600 text-xs mt-1">{{ note.created_by_name || 'Sistema' }} · {{ formatDateTime(note.created_at) }}</p>
+          </div>
+        </div>
+        <p v-else class="text-gray-500 text-xs mb-3">Sin notas internas.</p>
+        <div class="flex gap-2">
+          <textarea
+            v-model="newNoteContent"
+            rows="2"
+            placeholder="Agregar nota interna..."
+            class="flex-1 rounded-lg bg-gray-800 border border-gray-700 text-gray-100 placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+          />
+          <div class="relative group/note self-end">
+            <AppButton size="sm" :loading="addingNote" :disabled="!newNoteContent.trim()" @click="handleAddNote">
+              Agregar
+            </AppButton>
+            <div v-if="!newNoteContent.trim()" class="absolute bottom-full right-0 mb-1 w-44 text-xs bg-gray-900 border border-gray-700 text-gray-400 rounded-lg px-2 py-1.5 hidden group-hover/note:block z-10">
+              Escribe una nota primero.
+            </div>
+          </div>
+        </div>
+      </AppCard>
+
       <!-- Revertir / Cancelar pedido (admin) -->
       <div class="flex gap-2 mt-4">
         <AppButton v-if="canRevert" variant="secondary" size="sm" @click="showRevertModal = true">
@@ -404,7 +432,9 @@ import StatusBadge from '@/components/ui/StatusBadge.vue'
 import {
   getAdminOrder, updateOrderStatus, cancelOrderAdmin, revertOrderStatus,
   createQuote, calculateQuote, createShipment, markDelivered, expireQuote, listPrinters,
+  listInternalNotes, createInternalNote,
 } from '../services/adminService'
+import type { InternalNote } from '../services/adminService'
 import { listProductionHistory, listOrderFiles } from '@/modules/orders/services/orderService'
 import { downloadQuotePDF } from '@/modules/quotes/services/quoteService'
 import { formatMXN, formatDate, formatDateTime, ORDER_STATUS_LABELS, PRIORITY_LABELS, REQUEST_TYPE_LABELS, DELIVERY_METHOD_LABELS } from '@/utils/formatters'
@@ -441,6 +471,9 @@ const expiringQuote = ref(false)
 const showRevertModal = ref(false)
 const revertReason = ref('')
 const reverting = ref(false)
+const internalNotes = ref<InternalNote[]>([])
+const newNoteContent = ref('')
+const addingNote = ref(false)
 
 const activeQuote = computed((): Quote | null => order.value?.active_quote ?? null)
 const webModelFiles = computed(() => files.value.filter((f: any) => f.file_type === 'WEB_MODEL'))
@@ -510,14 +543,16 @@ const canCreateQuote = computed(() =>
 )
 
 async function reload() {
-  const [orderData, historyData, filesData] = await Promise.all([
+  const [orderData, historyData, filesData, notesData] = await Promise.all([
     getAdminOrder(orderId),
     listProductionHistory(orderId),
     listOrderFiles(orderId),
+    listInternalNotes(orderId),
   ])
   order.value = orderData
   history.value = historyData.results
   files.value = filesData.results
+  internalNotes.value = notesData.results
   selectedStatus.value = ''
   statusNotes.value = ''
 }
@@ -678,6 +713,23 @@ async function handleDownloadPDF() {
     errorMessage.value = 'Error al descargar el PDF. Intenta de nuevo.'
   } finally {
     downloadingPDF.value = false
+  }
+}
+
+async function handleAddNote() {
+  if (!newNoteContent.value.trim()) return
+  addingNote.value = true
+  errorMessage.value = ''
+  try {
+    await createInternalNote(orderId, newNoteContent.value.trim())
+    newNoteContent.value = ''
+    toast.show('Nota agregada.')
+    const notesData = await listInternalNotes(orderId)
+    internalNotes.value = notesData.results
+  } catch (err: any) {
+    errorMessage.value = err.response?.data?.message ?? 'Error al agregar la nota'
+  } finally {
+    addingNote.value = false
   }
 }
 

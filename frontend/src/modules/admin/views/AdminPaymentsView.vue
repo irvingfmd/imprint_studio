@@ -1,8 +1,16 @@
 <template>
   <div class="p-6 max-w-4xl">
-    <div class="mb-6">
-      <h1 class="text-xl font-semibold text-white">Pagos</h1>
-      <p class="text-gray-400 text-sm mt-0.5">Confirmación y gestión de pagos</p>
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-xl font-semibold text-white">Pagos</h1>
+        <p class="text-gray-400 text-sm mt-0.5">Confirmación y gestión de pagos</p>
+      </div>
+      <button
+        @click="handleExportCSV"
+        class="px-4 py-2 rounded-lg bg-gray-700 text-gray-200 text-sm font-medium hover:bg-gray-600 transition-colors"
+      >
+        Exportar CSV
+      </button>
     </div>
 
     <!-- Filtro por estado -->
@@ -99,7 +107,7 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppAlert from '@/components/ui/AppAlert.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
-import { listAdminPayments, confirmPayment, rejectPayment } from '../services/adminService'
+import { listAdminPayments, confirmPayment, rejectPayment, exportPaymentsCSV } from '../services/adminService'
 import { formatMXN, formatDateTime, PAYMENT_TYPE_LABELS } from '@/utils/formatters'
 import { useToast } from '@/composables/useToast'
 import type { Payment } from '@/types'
@@ -185,6 +193,16 @@ async function handleReject() {
     errorMessage.value = err.response?.data?.message ?? 'Error al rechazar'
   } finally {
     rejecting.value = null
+  }
+}
+
+async function handleExportCSV() {
+  const params: Record<string, string> = {}
+  if (activeFilter.value) params.status = activeFilter.value
+  try {
+    await exportPaymentsCSV(params)
+  } catch {
+    errorMessage.value = 'Error al exportar CSV'
   }
 }
 

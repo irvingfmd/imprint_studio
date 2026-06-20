@@ -2,7 +2,7 @@
 import api from '@/services/api'
 import type {
   Order, AdminOrderSummary, AdminUser, Payment, BusinessConfig,
-  PaymentInstructions, DashboardMetrics, PaginatedResponse, Printer,
+  PaymentInstructions, DashboardMetrics, PaginatedResponse, Printer, Material,
 } from '@/types'
 
 // --- Dashboard ---
@@ -47,6 +47,26 @@ export async function createAdminOrder(payload: {
   delivery_method: string
 }): Promise<{ id: string; status: string }> {
   const { data } = await api.post('/admin/orders/create/', payload)
+  return data.data
+}
+
+// --- Notas internas ---
+
+export interface InternalNote {
+  id: string
+  content: string
+  created_by: string | null
+  created_by_name: string
+  created_at: string
+}
+
+export async function listInternalNotes(orderId: string): Promise<PaginatedResponse<InternalNote>> {
+  const { data } = await api.get(`/admin/orders/${orderId}/notes/`)
+  return data.data
+}
+
+export async function createInternalNote(orderId: string, content: string): Promise<InternalNote> {
+  const { data } = await api.post(`/admin/orders/${orderId}/notes/`, { content })
   return data.data
 }
 
@@ -198,6 +218,38 @@ export async function updateUserRole(userId: string, role: 'CUSTOMER' | 'ADMIN')
   return data.data
 }
 
+// --- Exportaciones CSV ---
+
+async function downloadCSV(url: string, filename: string, params?: Record<string, string>): Promise<void> {
+  const response = await api.get(url, { params, responseType: 'blob' })
+  const blob = new Blob([response.data], { type: 'text/csv' })
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(blob)
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(link.href)
+}
+
+export async function exportOrdersCSV(params?: Record<string, string>): Promise<void> {
+  await downloadCSV('/admin/export/orders/', 'pedidos.csv', params)
+}
+
+export async function exportPaymentsCSV(params?: Record<string, string>): Promise<void> {
+  await downloadCSV('/admin/export/payments/', 'pagos.csv', params)
+}
+
+// --- Historial de pagos de cliente ---
+
+export async function getCustomerPaymentHistory(userId: string): Promise<{
+  total_paid: string
+  total_orders: number
+  average_ticket: string
+  payments: Payment[]
+}> {
+  const { data } = await api.get(`/admin/users/${userId}/payments/`)
+  return data.data
+}
+
 // --- Impresoras ---
 
 export async function listPrinters(activeOnly = false): Promise<Printer[]> {
@@ -230,5 +282,52 @@ export interface CfeRateLookup {
 
 export async function lookupElectricityRate(postalCode: string): Promise<CfeRateLookup> {
   const { data } = await api.get('/admin/electricity-rate-lookup/', { params: { postal_code: postalCode } })
+  return data.data
+}
+
+// --- Materiales ---
+
+export async function listMaterials(params?: { active_only?: boolean; low_stock?: boolean }): Promise<PaginatedResponse<Material>> {
+  const queryParams: Record<string, string> = {}
+  if (params?.active_only) queryParams.active_only = 'true'
+  if (params?.low_stock) queryParams.low_stock = 'true'
+  const { data } = await api.get('/admin/materials/', { params: queryParams })
+  return data.data
+}
+
+export async function createMaterial(payload: {
+  name: string
+  material_type: string
+  brand?: string
+  available_colors?: string[]
+  price_per_kg: string
+  stock_grams?: string
+  min_stock_grams?: string
+  is_active?: boolean
+}): Promise<Material> {
+  const { data } = await api.post('/admin/materials/', payload)
+  return data.data
+}
+
+export async function updateMaterial(materialId: string, payload: {
+  name: string
+  material_type: string
+  brand?: string
+  available_colors?: string[]
+  price_per_kg: string
+  stock_grams?: string
+  min_stock_grams?: string
+  is_active?: boolean
+}): Promise<Material> {
+  const { data } = await api.put(`/admin/materials/${materialId}/`, payload)
+  return data.data
+}
+
+export async function deleteMaterial(materialId: string): Promise<void> {
+  await api.delete(`/admin/materials/${materialId}/`)
+}
+
+export async function adjustStock(materialId: string, grams: string, operation: 'add' | 'deduct'): Promise<{ stock_grams: string }> {
+  const { data } = await api.post(`/admin/materials/${materialId}/stock/`, { grams, operation })
   return data.data
 }
