@@ -216,6 +216,26 @@ Valor inicial recomendado:
 
 ---
 
+## tax_percentage
+
+Porcentaje de impuesto (IVA) aplicado sobre el precio antes de impuestos.
+
+Unidad:
+
+```text
+porcentaje
+```
+
+Valor inicial recomendado:
+
+```text
+16.00
+```
+
+Si el régimen fiscal del negocio no requiere cobrar IVA, se configura en `0.00` y el impuesto no se aplica.
+
+---
+
 # Valores Iniciales Recomendados
 
 Estos valores son iniciales y deben poder modificarse desde administración.
@@ -232,6 +252,7 @@ Estos valores son iniciales y deben poder modificarse desde administración.
 | urgent_multiplier                | 1.30  |
 | express_multiplier               | 1.50  |
 | full_payment_discount_percentage | 5.00  |
+| tax_percentage                   | 16.00 |
 
 ---
 
@@ -482,22 +503,40 @@ discount_amount = (
 
 ---
 
-# Total Price
-
-## Si el cliente paga 50/50
+# Price Before Tax
 
 ```python
-total_price = total_before_discount
+price_before_tax = (
+    total_before_discount
+    - discount_amount
+)
 ```
 
 ---
 
-## Si el cliente paga 100%
+# Tax Amount (IVA)
+
+```python
+tax_amount = (
+    price_before_tax
+    * (
+        tax_percentage / Decimal("100")
+    )
+)
+```
+
+Si `tax_percentage = 0`, el impuesto es `0.00`.
+
+Al aceptar una cotización con pago completo, el IVA se recalcula sobre la base con descuento aplicado.
+
+---
+
+# Total Price
 
 ```python
 total_price = (
-    total_before_discount
-    - discount_amount
+    price_before_tax
+    + tax_amount
 )
 ```
 
@@ -525,6 +564,7 @@ def calculate_quote_price(
     shipping_cost: Decimal,
     full_payment_discount_percentage: Decimal,
     full_payment_selected: bool,
+    tax_percentage: Decimal,
     printer_power_watts: int | None = None,
 ) -> dict:
     """
@@ -613,9 +653,19 @@ def calculate_quote_price(
             )
         )
 
-    total_price = (
+    price_before_tax = (
         total_before_discount
         - discount_amount
+    )
+
+    tax_amount = (
+        price_before_tax
+        * (tax_percentage / Decimal("100"))
+    )
+
+    total_price = (
+        price_before_tax
+        + tax_amount
     )
 
     return {
@@ -634,6 +684,7 @@ def calculate_quote_price(
         "subtotal": round_money(subtotal),
         "profit_amount": round_money(profit_amount),
         "discount_amount": round_money(discount_amount),
+        "tax_amount": round_money(tax_amount),
         "total_price": round_money(total_price),
     }
 
@@ -722,6 +773,8 @@ profit_amount
 
 discount_amount
 
+tax_amount
+
 total_price
 ```
 
@@ -759,6 +812,8 @@ urgent_multiplier
 express_multiplier
 
 full_payment_discount_percentage
+
+tax_percentage
 
 printer_name        (nombre de la impresora al cotizar, o NULL)
 
@@ -800,7 +855,8 @@ POST /api/v1/admin/calculator/calculate/
   "priority": "NORMAL",
   "shipping_cost": 120.00,
   "printer_id": "uuid-de-la-impresora-o-null",
-  "full_payment_selected": false
+  "full_payment_selected": false,
+  "include_post_processing": true
 }
 ```
 
@@ -823,7 +879,8 @@ POST /api/v1/admin/calculator/calculate/
   "subtotal": 335.75,
   "profit_amount": 100.73,
   "discount_amount": 0.00,
-  "total_price": 436.48
+  "tax_amount": 69.84,
+  "total_price": 506.31
 }
 ```
 
@@ -844,7 +901,8 @@ POST /api/v1/admin/orders/{order_id}/quote/
   "weight_grams": 250.00,
   "print_time_hours": 12.50,
   "shipping_cost": 120.00,
-  "printer_id": "uuid-de-la-impresora-o-null"
+  "printer_id": "uuid-de-la-impresora-o-null",
+  "include_post_processing": true
 }
 ```
 

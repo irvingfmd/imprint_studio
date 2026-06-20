@@ -763,7 +763,8 @@ Requerida.
   "subtotal": 345.60,
   "profit_amount": 103.68,
   "discount_amount": 0.00,
-  "total_price": 449.28,
+  "tax_amount": 69.84,
+  "total_price": 506.31,
   "quote_status": "PENDING"
 }
 ```
@@ -916,6 +917,7 @@ ADMIN únicamente.
   "post_processing_cost_per_gram": 0.05,
   "failure_percentage": 10.00,
   "profit_margin_percentage": 30.00,
+  "tax_percentage": 16.00,
   "printer_name": "Bambu Lab X1C",
   "printer_power_watts": 200
 }
@@ -1416,6 +1418,69 @@ created_to
 
 ---
 
+# Create Admin Order
+
+## Endpoint
+
+```http
+POST /api/v1/admin/orders/create/
+```
+
+---
+
+## Authentication
+
+Requerida.
+
+---
+
+## Permission
+
+ADMIN.
+
+---
+
+## Request
+
+```json
+{
+  "customer_id": "uuid",
+  "request_type": "REFERENCE",
+  "title": "Figura personalizada",
+  "description": "",
+  "color": "Negro",
+  "quantity": 1,
+  "priority": "NORMAL",
+  "delivery_method": "PICKUP"
+}
+```
+
+`description` es opcional (puede enviarse vacío).
+
+---
+
+## Response
+
+```json
+{
+  "success": true,
+  "message": "Order created by admin",
+  "data": {
+    "id": "uuid",
+    "status": "RECEIVED"
+  }
+}
+```
+
+---
+
+## Regla de Negocio
+
+El pedido se crea a nombre del cliente identificado por `customer_id`.
+El admin puede buscar clientes por teléfono usando `GET /api/v1/admin/users/?search=961`.
+
+---
+
 # Retrieve Admin Order
 
 ## Endpoint
@@ -1534,6 +1599,47 @@ PUT /api/v1/admin/orders/{order_id}/cancel/
 
 ---
 
+# Revert Order Status
+
+## Endpoint
+
+```http
+PUT /api/v1/admin/orders/{order_id}/revert/
+```
+
+---
+
+## Request
+
+```json
+{
+  "reason": "Cambio accidental de estado"
+}
+```
+
+---
+
+## Response
+
+```json
+{
+  "success": true,
+  "message": "Order status reverted",
+  "data": {
+    "status": "DEPOSIT_PAID"
+  }
+}
+```
+
+---
+
+## Regla de Negocio
+
+No se puede revertir desde DELIVERED ni CANCELLED.
+Requiere al menos un registro en production_history.
+
+---
+
 # Admin Quotes Module
 
 Base Path:
@@ -1573,7 +1679,8 @@ ADMIN.
   "weight_grams": 250.00,
   "print_time_hours": 12.50,
   "shipping_cost": 120.00,
-  "printer_id": "uuid-de-la-impresora-o-null"
+  "printer_id": "uuid-de-la-impresora-o-null",
+  "include_post_processing": true
 }
 ```
 
@@ -1587,7 +1694,7 @@ ADMIN.
   "message": "Quote created",
   "data": {
     "quote_id": "uuid",
-    "total_price": 449.28
+    "total_price": 506.31
   }
 }
 ```
@@ -1984,6 +2091,7 @@ GET /api/v1/admin/business-config/
   "urgent_multiplier": 1.30,
   "express_multiplier": 1.50,
   "full_payment_discount_percentage": 5.00,
+  "tax_percentage": 16.00,
   "deposit_deadline_hours": 72,
   "balance_deadline_days": 7
 }
@@ -2015,6 +2123,7 @@ PUT /api/v1/admin/business-config/
   "urgent_multiplier": 1.30,
   "express_multiplier": 1.50,
   "full_payment_discount_percentage": 5.00,
+  "tax_percentage": 16.00,
   "deposit_deadline_hours": 72,
   "balance_deadline_days": 7
 }
@@ -2603,7 +2712,8 @@ POST /api/v1/admin/calculator/calculate/
   "priority": "NORMAL",
   "shipping_cost": 120.00,
   "printer_id": "uuid-de-la-impresora-o-null",
-  "full_payment_selected": false
+  "full_payment_selected": false,
+  "include_post_processing": true
 }
 ```
 
@@ -2612,6 +2722,10 @@ POST /api/v1/admin/calculator/calculate/
 ## Nota sobre `printer_id`
 
 Si se envía `null` o se omite, `energy_cost = 0`.
+
+## Nota sobre `include_post_processing`
+
+Si se envía `false`, `post_processing_cost = 0`. Default: `true`.
 
 ---
 
@@ -2632,7 +2746,8 @@ Si se envía `null` o se omite, `energy_cost = 0`.
   "subtotal": 329.54,
   "profit_amount": 98.86,
   "discount_amount": 0.00,
-  "total_price": 428.40
+  "tax_amount": 68.54,
+  "total_price": 496.94
 }
 ```
 
@@ -2666,6 +2781,7 @@ GET /api/v1/admin/users/
 |---|---|---|---|
 | page | int | 1 | Número de página |
 | page_size | int | 20 | Resultados por página |
+| search | string | — | Filtra por teléfono (icontains) |
 
 ---
 

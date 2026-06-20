@@ -109,12 +109,12 @@ imprint_studio/
 ### Completado
 - Estructura base del proyecto Django
 - App `authentication`: User, OTPCode, managers, serializers, services, views, urls
-- App `configuration`: BusinessConfig (`electricity_rate_kwh`), BusinessHours, Holiday, PaymentInstructions, Printer (catálogo de impresoras), seed_initial_data, CFE rate lookup por CP
+- App `configuration`: BusinessConfig (`electricity_rate_kwh`, `tax_percentage`), BusinessHours, Holiday, PaymentInstructions, Printer (catálogo de impresoras), seed_initial_data, CFE rate lookup por CP
 - App `shipping`: ShippingAddress, Shipment — modelos, serializers, services, selectors, views, urls, admin, migración
 - App `orders`: Order, RequestFile, OrderEvent (EventType) — modelos, serializers, services, selectors, views, urls, admin, migración
-- App `quotes`: Quote, QuoteSnapshot (`electricity_rate_kwh`, `printer_name`, `printer_power_watts`) — modelos, serializers, services (QuoteCalculatorService + QuoteService), selectors, views, urls, admin, migración
+- App `quotes`: Quote (`tax_amount`), QuoteSnapshot (`electricity_rate_kwh`, `printer_name`, `printer_power_watts`, `tax_percentage`) — modelos, serializers, services (QuoteCalculatorService + QuoteService), selectors, views, urls, admin, migración
 - App `payments`: Payment — modelos, serializers, services, selectors, views, urls, admin, migración
-- App `production`: ProductionHistory, OrderStatusTransitionService — modelos, serializers, services, selectors, views, admin, migración
+- App `production`: ProductionHistory, OrderStatusTransitionService (con revert_status) — modelos, serializers, services, selectors, views, admin, migración
 - App `notifications`: WhatsAppService, EmailService, NotificationService — servicios puros (sin modelos ni endpoints)
 - `core`: BaseModel, SoftDeleteModel, permisos, responses, exception handler, throttles (OTPSendThrottle, OTPVerifyThrottle)
 - Todas las migraciones aplicadas
@@ -161,9 +161,11 @@ imprint_studio/
 
 #### Admin — pedidos
 - GET  /api/v1/admin/orders/
+- POST /api/v1/admin/orders/create/
 - GET  /api/v1/admin/orders/{order_id}/
 - PUT  /api/v1/admin/orders/{order_id}/status/
 - PUT  /api/v1/admin/orders/{order_id}/cancel/
+- PUT  /api/v1/admin/orders/{order_id}/revert/
 
 #### Admin — cotizaciones
 - POST /api/v1/admin/orders/{order_id}/quote/
@@ -202,7 +204,7 @@ imprint_studio/
 - GET /api/v1/admin/electricity-rate-lookup/?postal_code=29000
 
 #### Admin — usuarios
-- GET /api/v1/admin/users/  (params: `?page=`, `?page_size=`)
+- GET /api/v1/admin/users/  (params: `?page=`, `?page_size=`, `?search=`)
 - GET /api/v1/admin/users/{user_id}/
 - PUT /api/v1/admin/users/{user_id}/role/
 
@@ -214,12 +216,15 @@ imprint_studio/
 - Dark mode + acento azul
 - Proxy a backend en /api/v1/
 - Auth: Login (OTP), Register, OTP verify con cooldown
-- Portal cliente: lista de pedidos, crear pedido, detalle (cotización, pagos, producción, cancelar)
-- Panel admin: Dashboard, lista de pedidos con filtros, detalle (cambiar estado, cotizar), pagos (confirmar/rechazar), configuración (costos, instrucciones de pago, festivos), lista de usuarios con cambio de rol
+- Portal cliente: lista de pedidos, crear pedido, detalle (cotización con IVA desglosado, pagos, timeline de producción, cancelar)
+- Panel admin: Dashboard enriquecido (métricas, gráfica de ingresos), lista de pedidos con filtros y botón "+ Nuevo pedido", detalle (cambiar estado, revertir estado, cotizar con toggle de post-procesado e IVA), pagos (confirmar/rechazar), configuración (costos, IVA, instrucciones de pago, festivos), lista de usuarios con cambio de rol
+- AdminOrderCreateView: formulario de creación de pedidos a nombre de un cliente con buscador por teléfono, subida de archivos y enlace web
+- Tooltips en botones deshabilitados explicando la razón y acción requerida
 - Componentes: AppButton, AppInput, AppCard, AppAlert, StatusBadge
 - Servicios: authService, orderService, quoteService, paymentService, adminService
 - Store: authStore (JWT tokens, user, isAdmin)
 - Router con guards de autenticación y rol
+- Módulo FAQ: vista pública con acordeón, admin CRUD
 
 ### Pruebas ✅ (completo)
 

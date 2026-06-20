@@ -1117,6 +1117,7 @@ Los datos deben provenir del laminado realizado en Bambu Studio.
 | subtotal             | DECIMAL(10,2) | No       |
 | profit_amount        | DECIMAL(10,2) | No       |
 | discount_amount      | DECIMAL(10,2) | No       |
+| tax_amount           | DECIMAL(10,2) | No       |
 | total_price          | DECIMAL(10,2) | No       |
 | quote_status         | VARCHAR(20)   | No       |
 | accepted_at          | TIMESTAMP     | Sí       |
@@ -1186,6 +1187,7 @@ No tienen `updated_at` por diseño.
 | urgent_multiplier                | DECIMAL(5,2) | No       |
 | express_multiplier               | DECIMAL(5,2) | No       |
 | full_payment_discount_percentage | DECIMAL(5,2) | No       |
+| tax_percentage                   | DECIMAL(5,2) | No       |
 | printer_name                     | VARCHAR(255) | Sí       |
 | printer_power_watts              | INTEGER      | Sí       |
 | created_at                       | TIMESTAMP    | No       |
@@ -1437,6 +1439,7 @@ Debe existir únicamente un registro activo.
 | urgent_multiplier                | DECIMAL(5,2) | No       |
 | express_multiplier               | DECIMAL(5,2) | No       |
 | full_payment_discount_percentage | DECIMAL(5,2) | No       |
+| tax_percentage                   | DECIMAL(5,2) | No       |
 | deposit_deadline_hours           | INTEGER      | No       |
 | balance_deadline_days            | INTEGER      | No       |
 | is_active                        | BOOLEAN      | No       |
@@ -1459,6 +1462,7 @@ Debe existir únicamente un registro activo.
 | urgent_multiplier                | 1.30  |
 | express_multiplier               | 1.50  |
 | full_payment_discount_percentage | 5.00  |
+| tax_percentage                   | 16.00 |
 | deposit_deadline_hours           | 72    |
 | balance_deadline_days            | 7     |
 
