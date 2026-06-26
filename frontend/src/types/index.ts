@@ -139,6 +139,7 @@ export interface Shipment {
   id: string
   carrier_name: string
   tracking_number: string
+  shipping_cost: string
   shipped_at: string | null
   delivered_at: string | null
 }
